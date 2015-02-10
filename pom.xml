@@ -1,0 +1,41 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.waag.histograph</groupId>
+  <artifactId>histograph-core</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>Histograph Core</name>
+  <description>Histograph Core</description>
+    <dependencies>
+  	<dependency>
+  		<groupId>com.tinkerpop</groupId>
+  		<artifactId>neo4j-gremlin</artifactId>
+  		<version>3.0.0.M7</version>
+  	</dependency>
+  	<dependency>
+      <groupId>com.tinkerpop</groupId>
+      <artifactId>gremlin-server</artifactId>
+      <version>3.0.0.M7</version>
+    </dependency>
+  	<dependency>
+  		<groupId>com.tinkerpop</groupId>
+  		<artifactId>tinkerpop</artifactId>
+  		<version>3.0.0.M7</version>
+  		<type>pom</type>
+  	</dependency>
+  	<dependency>
+    <groupId>redis.clients</groupId>
+    <artifactId>jedis</artifactId>
+    <version>2.6.2</version>
+  	</dependency>
+  </dependencies>
+  <repositories>
+	<repository>
+		<id>central</id>
+		<url>http://repo1.maven.org/maven2/</url>
+	</repository>
+	<repository>
+	   <id>central2</id>
+	   <url>http://central.maven.org/maven2</url>
+	</repository>
+</repositories>
+</project>
