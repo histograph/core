@@ -1,4 +1,4 @@
-package org.waag.histograph.inferencing;
+package org.waag.histograph.reasoner;
 
 import java.io.File;
 import java.io.FileInputStream;
