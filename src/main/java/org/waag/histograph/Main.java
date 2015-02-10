@@ -1,22 +1,20 @@
 package org.waag.histograph;
 
-import java.util.Iterator;
+import java.io.IOException;
 import java.util.List;
 
 import redis.clients.jedis.Jedis;
 
 import com.tinkerpop.gremlin.driver.Client;
 import com.tinkerpop.gremlin.driver.Cluster;
-import com.tinkerpop.gremlin.driver.Result;
-import com.tinkerpop.gremlin.driver.ResultSet;
-import com.tinkerpop.gremlin.neo4j.structure.Neo4jGraph;
 import com.tinkerpop.gremlin.server.GremlinServer;
-import com.tinkerpop.gremlin.server.Graphs;
 import com.tinkerpop.gremlin.server.Settings;
+
+import org.json.*;
+import org.waag.histograph.queue.InputReader;
 
 public class Main {
 	
-	Neo4jGraph g;
 	GremlinServer s;
 	Jedis jedis;
 	
@@ -28,11 +26,12 @@ public class Main {
 		System.out.println("Starting Histograph Core");
 				
 		try {
-			Settings settings = Settings.read(getClass().getResourceAsStream("/gremlin-server-neo4j.yaml"));
+			Settings settings = Settings.read(this.getClass().getResourceAsStream("/gremlin-server-neo4j.yaml"));
+			System.out.println(settings.graphs.get("g"));
 			s = new GremlinServer(settings);			
 			s.run();
-		} catch (Exception e1) {
-			e1.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		
 		jedis = new Jedis("localhost");
@@ -41,7 +40,7 @@ public class Main {
 		Client client = cluster.connect(); 
 		
 		List<String> messages = null;
-        while(true){
+        while (true) {
           System.out.println("Waiting for a message in the queue");
           messages = jedis.blpop(0, "histograph-queue");
           
@@ -52,15 +51,18 @@ public class Main {
           //  "data": {}
           // }
           
-          
-          System.out.println("Got the message");
-          System.out.println("KEY:" + messages.get(0) + " VALUE:" + messages.get(1));
           String payload = messages.get(1);
-          //Do some processing with the payload
-          System.out.println("Message received:" + payload);
+          System.out.println("Message received: " + payload);
+          
+          try {
+        	  JSONObject obj = new JSONObject(payload);
+        	  InputReader.parse(obj, client);
+          } catch (JSONException | IOException e) {
+        	  System.out.println("Error: " + e.getMessage());
+          }
           
           // Als er is dinges dan doe iets!
-          //ResultSet results = client.submit("g.V().label()");
+//          ResultSet results = client.submit("g.V().label()");
         }
 				
 	
