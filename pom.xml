@@ -16,6 +16,11 @@
       <artifactId>gremlin-server</artifactId>
       <version>3.0.0.M7</version>
     </dependency>
+    <dependency>
+   <groupId>com.tinkerpop</groupId>
+   <artifactId>gremlin-driver</artifactId>
+   <version>3.0.0.M7</version>
+</dependency>
   	<dependency>
   		<groupId>com.tinkerpop</groupId>
   		<artifactId>tinkerpop</artifactId>
