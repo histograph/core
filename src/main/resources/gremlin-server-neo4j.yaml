@@ -7,7 +7,7 @@ serializedResponseTimeout: 30000
 channelizer: com.tinkerpop.gremlin.server.channel.WebSocketChannelizer
 #channelizer: com.tinkerpop.gremlin.server.channel.HttpChannelizer
 graphs: {
-  g: /Users/rutger/Desktop/waag/git/histograph-core/src/main/resources/neo4j-empty.properties}
+  g: ./neo4j-empty.properties}
 plugins:
   - tinkerpop.neo4j
 scriptEngines: {
