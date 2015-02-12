@@ -1,16 +1,14 @@
 package org.waag.histograph;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.TimeoutException;
 
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import com.tinkerpop.gremlin.driver.Client;
 import com.tinkerpop.gremlin.driver.Cluster;
 import com.tinkerpop.gremlin.server.GremlinServer;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.waag.histograph.queue.InputReader;
 
@@ -26,24 +24,22 @@ public class Main {
 
 	private void start() {
 
-		//		try {
-		//			Settings settings = Settings.read(this.getClass().getResourceAsStream("/gremlin-server-neo4j.yaml"));
-		//			System.out.println(settings.graphs.get("g"));
-		//			s = new GremlinServer(settings);			
-		//			s.run();
-		//		} catch (Exception e) {
-		//			e.printStackTrace();
-		//		}
-
+		// Initialize Redis connection
 		jedis = new Jedis("localhost");
 
+		// Initialize Gremlin Server connection
 		Cluster cluster = Cluster.open();
 		Client client = cluster.connect(); 
 
 		List<String> messages = null;
 		System.out.println("Waiting for a message in the queue");
 		while (true) {
-			messages = jedis.blpop(0, "histograph-queue");
+			try {
+				messages = jedis.blpop(0, "histograph-queue");
+			} catch (JedisConnectionException e) {
+				System.out.println("Redis connection error: " + e.getMessage());
+				System.exit(1);
+			}
 
 			String payload = messages.get(1);
 			System.out.println("Message received: " + payload);

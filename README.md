@@ -91,6 +91,10 @@ lpush "histograph-queue" "{'action': 'delete', 'type': 'vertex', 'source': 'graa
 
 Delete edges:
 
+```
+lpush "histograph-queue" "{'action': 'delete', 'type': 'edge', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'type': 'knows' } }"
+```
+
 Update vertices:
 
 Update edges:

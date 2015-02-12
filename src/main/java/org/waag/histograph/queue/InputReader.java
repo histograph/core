@@ -99,17 +99,15 @@ public class InputReader {
 			params.put("hgidParam", source + "/" + data.get(NDJSONTokens.VertexTokens.ID).toString());
 			params.put("typeParam", data.get(NDJSONTokens.VertexTokens.TYPE).toString());
 
-			ResultSet r = client.submitAsync("g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam)", params).get();
+			ResultSet r = submitQuery(client, "g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam)", params);
 			verifyVertexAbsent(r, params.get("hgidParam").toString(), source);
 			
-			ResultSet r2 = client.submitAsync("g.addVertex('name', nameParam, 'hgid', hgidParam, 'type', typeParam)", params).get();
+			ResultSet r2 = submitQuery(client, "g.addVertex('name', nameParam, 'hgid', hgidParam, 'type', typeParam)", params);
 			for (Iterator<Result> i = r2.iterator(); i.hasNext(); ) {
 				System.out.println("Got result: " + i.next().getVertex());
 			}
 		} catch (JSONException e) {
 			throw new IOException("Vertex token(s) missing (name / id / type).");
-		} catch (InterruptedException | ExecutionException e) {
-			throw new IOException("Exception while executing remote query:", e);
 		}
 	}
 	
@@ -127,19 +125,19 @@ public class InputReader {
 			params.put("sourceParam", source);
 			
 			// Query 1: Get and verify Vertex OUT
-			ResultSet r = client.submitAsync("g.V().has('hgid', fromParam)", params).get();
+			ResultSet r = submitQuery(client, "g.V().has('hgid', fromParam)", params);
 			verifyVertexExists(r, fromHGid);
 			
 			// Query 2: Get and verify Vertex IN
-			ResultSet r2 = client.submitAsync("g.V().has('hgid', toParam)", params).get();
+			ResultSet r2 = submitQuery(client, "g.V().has('hgid', toParam)", params);
 			verifyVertexExists(r2, fromHGid);		
 			
 			// Query 3: Verify the absence of the new edge
-			ResultSet r3 = client.submitAsync("g.V().has('hgid', fromParam).outE().has(label, typeParam).has('source', sourceParam).inV().has('hgid', toParam)", params).get();
+			ResultSet r3 = submitQuery(client, "g.V().has('hgid', fromParam).outE().has(label, typeParam).has('source', sourceParam).inV().has('hgid', toParam)", params);
 			verifyEdgeAbsent(r3, fromHGid, type, toHGid, source);
 			
 			// Query 4: Create edge between Vertex OUT to IN with source
-			ResultSet r4 = client.submitAsync("g.V().has('hgid', fromParam).next().addEdge(typeParam, g.V().has('hgid', toParam).next(), 'source', sourceParam)", params).get();
+			ResultSet r4 = submitQuery(client, "g.V().has('hgid', fromParam).next().addEdge(typeParam, g.V().has('hgid', toParam).next(), 'source', sourceParam)", params);
 
 //			// Test
 //			ResultSet rt = client.submitAsync("g.V().has('hgid', fromParam).map {g.V().has('hgid', toParam).tryGet().orElse(false)}.is(neq, false).addInE(typeParam, fromParam)", params).get();
@@ -149,8 +147,6 @@ public class InputReader {
 			}
 		} catch (JSONException e) {
 			throw new IOException("Edge token(s) missing (from / to / type).");
-		} catch (InterruptedException | ExecutionException e) {
-			throw new IOException("Exception while executing remote query:", e);
 		}
 	}
 	
@@ -183,21 +179,27 @@ public class InputReader {
 			throw new IOException("Vertex token(s) missing (name / id / type).");
 		}
 		
-		try {
-			// Get and verify vertex
-			ResultSet r = client.submitAsync("g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam)", params).get();
-			verifyVertexExists(r, params.get("hgidParam").toString());
-			
-			// Remove vertex
-			client.submitAsync("g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam).remove()", params).get();
-		} catch (InterruptedException | ExecutionException e) {
-			throw new IOException("Exception while executing remote query:", e);
-		}
+		// Get and verify vertex
+		ResultSet r = submitQuery(client, "g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam)", params);
+		verifyVertexExists(r, params.get("hgidParam").toString());
+		
+		// Remove vertex
+		submitQuery(client, "g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam).remove()", params);
 		System.out.println("Vertex successfully deleted.");
 	}
 	
 	public static void deleteEdge(JSONObject data, String source, Client client) throws IOException {
-		throw new IOException("Delete edge command not yet implemented.");
+		
+		
+		
+	}
+	
+	private static ResultSet submitQuery(Client client, String query, Map<String, Object> params) throws IOException {
+		try {
+			return client.submitAsync(query, params).get();
+		} catch (InterruptedException | ExecutionException e) {
+			throw new IOException("Exception while executing remote query:", e);
+		}
 	}
 	
 	private static String parseHGid (String source, String id) {
