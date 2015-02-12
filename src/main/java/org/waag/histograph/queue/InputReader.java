@@ -12,6 +12,7 @@ import org.json.JSONObject;
 import com.tinkerpop.gremlin.driver.Client;
 import com.tinkerpop.gremlin.driver.Result;
 import com.tinkerpop.gremlin.driver.ResultSet;
+import com.tinkerpop.gremlin.structure.Vertex;
 
 public class InputReader {
 	
@@ -63,13 +64,20 @@ public class InputReader {
 	}
 	
 	public static void parseDelete(JSONObject obj, String source, Client client) throws IOException {		
+		JSONObject data;
+		try {
+			data = obj.getJSONObject(NDJSONTokens.General.DATA);
+		} catch (JSONException e) {
+			throw new IOException("No data in JSON input.");
+		}
+		
 		try {
 			switch (obj.get(NDJSONTokens.General.TYPE).toString()) {
 			case NDJSONTokens.Types.VERTEX:
-				deleteVertex(obj, source, client);
+				deleteVertex(data, source, client);
 				break;
 			case NDJSONTokens.Types.EDGE:
-				deleteEdge(obj, source, client);
+				deleteEdge(data, source, client);
 				break;
 			default:
 				throw new IOException("Invalid type received: " + obj.get(NDJSONTokens.General.TYPE).toString());
@@ -91,8 +99,11 @@ public class InputReader {
 			params.put("hgidParam", source + "/" + data.get(NDJSONTokens.VertexTokens.ID).toString());
 			params.put("typeParam", data.get(NDJSONTokens.VertexTokens.TYPE).toString());
 
-			ResultSet r = client.submitAsync("g.addVertex('name', nameParam, 'hgid', hgidParam, 'type', typeParam)", params).get();
-			for (Iterator<Result> i = r.iterator(); i.hasNext(); ) {
+			ResultSet r = client.submitAsync("g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam)", params).get();
+			verifyVertexAbsent(r, params.get("hgidParam").toString(), source);
+			
+			ResultSet r2 = client.submitAsync("g.addVertex('name', nameParam, 'hgid', hgidParam, 'type', typeParam)", params).get();
+			for (Iterator<Result> i = r2.iterator(); i.hasNext(); ) {
 				System.out.println("Got result: " + i.next().getVertex());
 			}
 		} catch (JSONException e) {
@@ -130,6 +141,9 @@ public class InputReader {
 			// Query 4: Create edge between Vertex OUT to IN with source
 			ResultSet r4 = client.submitAsync("g.V().has('hgid', fromParam).next().addEdge(typeParam, g.V().has('hgid', toParam).next(), 'source', sourceParam)", params).get();
 
+//			// Test
+//			ResultSet rt = client.submitAsync("g.V().has('hgid', fromParam).map {g.V().has('hgid', toParam).tryGet().orElse(false)}.is(neq, false).addInE(typeParam, fromParam)", params).get();
+			
 			for (Iterator<Result> i = r4.iterator(); i.hasNext(); ) {
 				System.out.println("Got result: " + i.next());
 			}
@@ -140,11 +154,17 @@ public class InputReader {
 		}
 	}
 	
-	private static void verifyVertexExists(ResultSet r, String hgID) throws IOException {
+	private static Vertex verifyVertexExists(ResultSet r, String hgID) throws IOException {
 		Iterator<Result> i = r.iterator();
 		if (!i.hasNext()) throw new IOException ("Vertex with hgID '" + hgID + "' not found in graph.");
-		i.next();
+		Vertex v = i.next().getVertex();
 		if (i.hasNext()) throw new IOException ("Multiple vertices with hgID '" + hgID + "' found in graph.");
+		return v;
+	}
+	
+	private static void verifyVertexAbsent(ResultSet r, String hgID, String source) throws IOException {
+		Iterator<Result> i = r.iterator();
+		if (i.hasNext()) throw new IOException ("Vertex with hgID '" + hgID + "' from source '" + source + "' already exists.");
 	}
 	
 	private static void verifyEdgeAbsent(ResultSet r, String from, String type, String to, String source) throws IOException {
@@ -152,20 +172,40 @@ public class InputReader {
 		if (i.hasNext()) throw new IOException ("Edge '" + from + " --" + type + "--> " + to + "' from source '" + source + "' already exists.");
 	}
 
+	public static void deleteVertex(JSONObject data, String source, Client client) throws IOException {
+		Map<String, Object> params = new HashMap<String, Object>();
+		
+		try {
+			params.put("nameParam", data.get(NDJSONTokens.VertexTokens.NAME).toString());
+			params.put("hgidParam", source + "/" + data.get(NDJSONTokens.VertexTokens.ID).toString());
+			params.put("typeParam", data.get(NDJSONTokens.VertexTokens.TYPE).toString());
+		} catch (JSONException e) {
+			throw new IOException("Vertex token(s) missing (name / id / type).");
+		}
+		
+		try {
+			// Get and verify vertex
+			ResultSet r = client.submitAsync("g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam)", params).get();
+			verifyVertexExists(r, params.get("hgidParam").toString());
+			
+			// Remove vertex
+			client.submitAsync("g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam).remove()", params).get();
+		} catch (InterruptedException | ExecutionException e) {
+			throw new IOException("Exception while executing remote query:", e);
+		}
+		System.out.println("Vertex successfully deleted.");
+	}
+	
+	public static void deleteEdge(JSONObject data, String source, Client client) throws IOException {
+		throw new IOException("Delete edge command not yet implemented.");
+	}
+	
 	private static String parseHGid (String source, String id) {
 		if (isNumeric(id)) {
 			return source + "/" + id;
 		} else {
 			return id;
 		}
-	}
-	
-	public static void deleteVertex(JSONObject obj, String source, Client client) throws IOException {
-		throw new IOException("Delete vertex command not yet implemented.");
-	}
-	
-	public static void deleteEdge(JSONObject obj, String source, Client client) throws IOException {
-		throw new IOException("Delete edge command not yet implemented.");
 	}
 	
 	private static boolean isNumeric(String string) { 

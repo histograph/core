@@ -38,20 +38,13 @@ JSON Vertex object:
      {
        "action": ["add", "delete", "update"],
        "type": "vertex",
-		 "source": String,
+		   "source": String,
        "data": {
-			"id": integer
-			"type": String
-			"name": String
-		 }
+			   "id": integer
+			   "type": String
+			   "name": String
+		   }
      }
-```
-  
-Redis example:
-
-```
-lpush "histograph-queue" "{'action': 'add', 'type': 'vertex', 'source': 'graafje', 'data': {'id': '123', 'name': 'Rutger', 'type': 'Human' } }"
-lpush "histograph-queue" "{'action': 'add', 'type': 'vertex', 'source': 'graafje', 'data': {'id': '321', 'name': 'Bert', 'type': 'Human' } }"
 ```
 	
 JSON Edge object:
@@ -60,23 +53,45 @@ JSON Edge object:
      {
        "action": ["add", "delete", "update"],
        "type": "edge",
-		 "source": string
+		   "source": string,
        "data": {
-	      "from": { 
+	       "from": { 
 	         "id": int,
 	         [optional: "source": source]
-	      }
-	      "to": { 
+	       },
+	       "to": { 
 	         "id": int,
 	         [optional: "source": source]
-	      }
-	      "type": String
-	   }
+	       },
+	       "type": String
+	     }
      }
 ```
-	
-Redis example:
+
+## I/O examples through Redis
+  
+Add vertices:
+
+```
+lpush "histograph-queue" "{'action': 'add', 'type': 'vertex', 'source': 'graafje', 'data': {'id': '123', 'name': 'Rutger', 'type': 'Human' } }"
+lpush "histograph-queue" "{'action': 'add', 'type': 'vertex', 'source': 'graafje', 'data': {'id': '321', 'name': 'Bert', 'type': 'Human' } }"
+```
+
+Add edges:
 
 ```
 lpush "histograph-queue" "{'action': 'add', 'type': 'edge', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'type': 'knows' } }"
 ```
+
+Delete vertices:
+
+```
+lpush "histograph-queue" "{'action': 'delete', 'type': 'vertex', 'source': 'graafje', 'data': { 'id': '321', 'name': 'Bert', 'type': 'Human' } }"
+```
+
+Delete edges:
+
+Update vertices:
+
+Update edges:
+

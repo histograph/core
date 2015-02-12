@@ -2,6 +2,7 @@ package org.waag.histograph;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import redis.clients.jedis.Jedis;
 
@@ -50,7 +51,7 @@ public class Main {
 			try {
 				JSONObject obj = new JSONObject(payload);
 				InputReader.parse(obj, client);
-			} catch (JSONException | IOException e) {
+			} catch (Exception e) {
 				System.out.println("Error: " + e.getMessage());
 			}
 		}
