@@ -4,7 +4,7 @@ public final class NDJSONTokens {
 	
 	public final class General {
 		public static final String DATA = "data";
-		public static final String SOURCE = "source";
+		public static final String LAYER = "layer";
 		public static final String TYPE = "type";
 		public static final String ACTION = "action";
 	}
@@ -29,6 +29,6 @@ public final class NDJSONTokens {
 	public final class EdgeTokens {
 		public static final String FROM = "from";
 		public static final String TO = "to";
-	    public static final String TYPE = "type";
+	    public static final String LABEL = "label";
 	}
 }
