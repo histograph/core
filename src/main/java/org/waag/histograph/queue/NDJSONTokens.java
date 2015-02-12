@@ -10,8 +10,8 @@ public final class NDJSONTokens {
 	}
 	
 	public final class Types {
-		public static final String VERTEX = "vertex";
-		public static final String EDGE = "edge";
+		public static final String PIT = "pit";
+		public static final String RELATION = "relation";
 	}
 	
 	public final class Actions {
