@@ -12,57 +12,70 @@ import org.json.JSONObject;
 import com.tinkerpop.gremlin.driver.Client;
 import com.tinkerpop.gremlin.driver.Result;
 import com.tinkerpop.gremlin.driver.ResultSet;
-import com.tinkerpop.gremlin.structure.Vertex;
 
 public class InputReader {
 	
-	public static void parse(JSONObject obj, Client client) throws IOException, JSONException {
+	public static void parse(JSONObject obj, Client client) throws IOException {
 		String source;
 		
 		try {
 			source = obj.get(NDJSONTokens.General.SOURCE).toString();
+			switch (obj.get(NDJSONTokens.General.ACTION).toString()) {
+			case NDJSONTokens.Actions.ADD:
+				parseAdd(obj, source, client);
+				break;
+			case NDJSONTokens.Actions.DELETE:
+				parseDelete(obj, source, client);
+				break;
+			case NDJSONTokens.Actions.UPDATE:
+				parseUpdate(obj, source, client);
+				break;
+			default:
+				throw new IOException("Invalid action received: " + obj.get(NDJSONTokens.General.ACTION).toString());
+			}
 		} catch (JSONException e) {
-			throw new IOException("No source in JSON input.");
+			throw new IOException("No source or action in JSON input.");
+		}	
+	}
+	
+	public static void parseAdd(JSONObject obj, String source, Client client) throws IOException {
+		JSONObject data;
+		try {
+			data = obj.getJSONObject(NDJSONTokens.General.DATA);
+		} catch (JSONException e) {
+			throw new IOException("No data in JSON input.");
 		}
 		
-		switch (obj.get(NDJSONTokens.General.ACTION).toString()) {
-		case NDJSONTokens.Actions.ADD:
-			parseAdd(obj, source, client);
-			break;
-		case NDJSONTokens.Actions.DELETE:
-			parseDelete(obj, source, client);
-			break;
-		case NDJSONTokens.Actions.UPDATE:
-			parseUpdate(obj, source, client);
-			break;
-		default:
-			throw new IOException("Invalid action received: " + (String) obj.get(NDJSONTokens.General.ACTION));
+		try {
+			switch (obj.get(NDJSONTokens.General.TYPE).toString()) {
+			case NDJSONTokens.Types.VERTEX:
+				addVertex(data, source, client);
+				break;
+			case NDJSONTokens.Types.EDGE:
+				addEdge(data, source, client);
+				break;
+			default:
+				throw new IOException("Invalid type received: " + obj.get(NDJSONTokens.General.TYPE).toString());
+			}
+		} catch (JSONException e) {
+			throw new IOException("No type in JSON input.");
 		}
 	}
 	
-	public static void parseAdd(JSONObject obj, String source, Client client) throws IOException, JSONException {
-		switch (obj.get(NDJSONTokens.General.TYPE).toString()) {
-		case NDJSONTokens.Types.VERTEX:
-			addVertex(obj, source, client);
-			break;
-		case NDJSONTokens.Types.EDGE:
-			addEdge(obj, source, client);
-			break;
-		default:
-			throw new IOException("Invalid type received: " + (String) obj.get(NDJSONTokens.General.TYPE));
-		}
-	}
-	
-	public static void parseDelete(JSONObject obj, String source, Client client) throws IOException, JSONException {		
-		switch (obj.get(NDJSONTokens.General.TYPE).toString()) {
-		case NDJSONTokens.Types.VERTEX:
-			deleteVertex(obj, source, client);
-			break;
-		case NDJSONTokens.Types.EDGE:
-			deleteEdge(obj, source, client);
-			break;
-		default:
-			throw new IOException("Invalid type received: " + (String) obj.get(NDJSONTokens.General.TYPE));
+	public static void parseDelete(JSONObject obj, String source, Client client) throws IOException {		
+		try {
+			switch (obj.get(NDJSONTokens.General.TYPE).toString()) {
+			case NDJSONTokens.Types.VERTEX:
+				deleteVertex(obj, source, client);
+				break;
+			case NDJSONTokens.Types.EDGE:
+				deleteEdge(obj, source, client);
+				break;
+			default:
+				throw new IOException("Invalid type received: " + obj.get(NDJSONTokens.General.TYPE).toString());
+			}
+		} catch (JSONException e) {
+			throw new IOException("No type in JSON input.");
 		}
 	}
 	
@@ -70,69 +83,73 @@ public class InputReader {
 		throw new IOException("Update command not yet implemented.");
 	}
 	
-	public static void addVertex(JSONObject obj, String source, Client client) throws IOException {		
+	public static void addVertex(JSONObject data, String source, Client client) throws IOException {		
 		try {
-			JSONObject data = obj.getJSONObject(NDJSONTokens.VertexTokens.DATA);
 			Map<String, Object> params = new HashMap<String, Object>();
 			
-			params.put("nameParam", (String) data.get(NDJSONTokens.VertexTokens.NAME));
-			params.put("hgidParam", source + "/" + (String) data.get(NDJSONTokens.VertexTokens.ID));
-			params.put("typeParam", (String) data.get(NDJSONTokens.VertexTokens.TYPE));
+			params.put("nameParam", data.get(NDJSONTokens.VertexTokens.NAME).toString());
+			params.put("hgidParam", source + "/" + data.get(NDJSONTokens.VertexTokens.ID).toString());
+			params.put("typeParam", data.get(NDJSONTokens.VertexTokens.TYPE).toString());
 
 			ResultSet r = client.submitAsync("g.addVertex('name', nameParam, 'hgid', hgidParam, 'type', typeParam)", params).get();
 			for (Iterator<Result> i = r.iterator(); i.hasNext(); ) {
 				System.out.println("Got result: " + i.next().getVertex());
 			}
 		} catch (JSONException e) {
-			throw new IOException("Vertex token(s) missing (data / name / id / type).");
+			throw new IOException("Vertex token(s) missing (name / id / type).");
 		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
+			throw new IOException("Exception while executing remote query:", e);
 		}
 	}
 	
-	public static void addEdge(JSONObject obj, String source, Client client) throws IOException, JSONException {
-		try {
-			JSONObject data = obj.getJSONObject(NDJSONTokens.EdgeTokens.DATA);
-			
+	public static void addEdge(JSONObject data, String source, Client client) throws IOException {
+		try {			
 			Map<String, Object> params = new HashMap<String, Object>();
 			
 			String fromHGid = parseHGid(source, data.get(NDJSONTokens.EdgeTokens.FROM).toString());
 			String toHGid = parseHGid(source, data.get(NDJSONTokens.EdgeTokens.TO).toString());
+			String type = data.get(NDJSONTokens.EdgeTokens.TYPE).toString();
 	
 			params.put("fromParam", fromHGid);
 			params.put("toParam", toHGid);
-			params.put("typeParam", (String) data.get(NDJSONTokens.EdgeTokens.TYPE));
-		
+			params.put("typeParam", type);
+			params.put("sourceParam", source);
+			
 			// Query 1: Get and verify Vertex OUT
 			ResultSet r = client.submitAsync("g.V().has('hgid', fromParam)", params).get();
-			Vertex outVertexID = verifyVertex(r, fromHGid);
+			verifyVertexExists(r, fromHGid);
 			
 			// Query 2: Get and verify Vertex IN
 			ResultSet r2 = client.submitAsync("g.V().has('hgid', toParam)", params).get();
-			Vertex inVertexID = verifyVertex(r2, fromHGid);
+			verifyVertexExists(r2, fromHGid);		
 			
-			params.put("outVertexIDparam", outVertexID);
-			params.put("inVertexIDparam", inVertexID);
-			params.put("sourceParam", source);
+			// Query 3: Verify the absence of the new edge
+			ResultSet r3 = client.submitAsync("g.V().has('hgid', fromParam).outE().has(label, typeParam).has('source', sourceParam).inV().has('hgid', toParam)", params).get();
+			verifyEdgeAbsent(r3, fromHGid, type, toHGid, source);
 			
-			// Query 3: Create edge between Vertex OUT to IN
-			ResultSet r3 = client.submitAsync("outVertexIDparam.attach(g).addEdge(typeParam, inVertexIDparam.attach(g), 'source', sourceParam)", params).get();
-			for (Iterator<Result> i = r3.iterator(); i.hasNext(); ) {
+			// Query 4: Create edge between Vertex OUT to IN with source
+			ResultSet r4 = client.submitAsync("g.V().has('hgid', fromParam).next().addEdge(typeParam, g.V().has('hgid', toParam).next(), 'source', sourceParam)", params).get();
+
+			for (Iterator<Result> i = r4.iterator(); i.hasNext(); ) {
 				System.out.println("Got result: " + i.next());
 			}
 		} catch (JSONException e) {
-			throw new IOException("Edge token(s) missing (data / from / to / type).");
+			throw new IOException("Edge token(s) missing (from / to / type).");
 		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
+			throw new IOException("Exception while executing remote query:", e);
 		}
 	}
 	
-	private static Vertex verifyVertex(ResultSet r, String hgID) throws IOException {
+	private static void verifyVertexExists(ResultSet r, String hgID) throws IOException {
 		Iterator<Result> i = r.iterator();
 		if (!i.hasNext()) throw new IOException ("Vertex with hgID '" + hgID + "' not found in graph.");
-		Vertex v = i.next().getVertex();
+		i.next();
 		if (i.hasNext()) throw new IOException ("Multiple vertices with hgID '" + hgID + "' found in graph.");
-		return v;
+	}
+	
+	private static void verifyEdgeAbsent(ResultSet r, String from, String type, String to, String source) throws IOException {
+		Iterator<Result> i = r.iterator();
+		if (i.hasNext()) throw new IOException ("Edge '" + from + " --" + type + "--> " + to + "' from source '" + source + "' already exists.");
 	}
 
 	private static String parseHGid (String source, String id) {
