@@ -12,6 +12,7 @@ import org.json.JSONObject;
 import com.tinkerpop.gremlin.driver.Client;
 import com.tinkerpop.gremlin.driver.Result;
 import com.tinkerpop.gremlin.driver.ResultSet;
+import com.tinkerpop.gremlin.structure.Edge;
 import com.tinkerpop.gremlin.structure.Vertex;
 
 public class InputReader {
@@ -92,61 +93,40 @@ public class InputReader {
 	}
 	
 	public static void addVertex(JSONObject data, String source, Client client) throws IOException {		
-		try {
-			Map<String, Object> params = new HashMap<String, Object>();
-			
-			params.put("nameParam", data.get(NDJSONTokens.VertexTokens.NAME).toString());
-			params.put("hgidParam", source + "/" + data.get(NDJSONTokens.VertexTokens.ID).toString());
-			params.put("typeParam", data.get(NDJSONTokens.VertexTokens.TYPE).toString());
+		Map<String, Object> params = getVertexParams(data, source);
 
-			ResultSet r = submitQuery(client, "g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam)", params);
-			verifyVertexAbsent(r, params.get("hgidParam").toString(), source);
-			
-			ResultSet r2 = submitQuery(client, "g.addVertex('name', nameParam, 'hgid', hgidParam, 'type', typeParam)", params);
-			for (Iterator<Result> i = r2.iterator(); i.hasNext(); ) {
-				System.out.println("Got result: " + i.next().getVertex());
-			}
-		} catch (JSONException e) {
-			throw new IOException("Vertex token(s) missing (name / id / type).");
+		ResultSet r = submitQuery(client, "g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam)", params);
+		verifyVertexAbsent(r, params.get("hgidParam").toString(), source);
+		
+		ResultSet r2 = submitQuery(client, "g.addVertex('name', nameParam, 'hgid', hgidParam, 'type', typeParam)", params);
+		for (Iterator<Result> i = r2.iterator(); i.hasNext(); ) {
+			System.out.println("Got result: " + i.next().getVertex());
 		}
 	}
 	
 	public static void addEdge(JSONObject data, String source, Client client) throws IOException {
-		try {			
-			Map<String, Object> params = new HashMap<String, Object>();
-			
-			String fromHGid = parseHGid(source, data.get(NDJSONTokens.EdgeTokens.FROM).toString());
-			String toHGid = parseHGid(source, data.get(NDJSONTokens.EdgeTokens.TO).toString());
-			String type = data.get(NDJSONTokens.EdgeTokens.TYPE).toString();
-	
-			params.put("fromParam", fromHGid);
-			params.put("toParam", toHGid);
-			params.put("typeParam", type);
-			params.put("sourceParam", source);
-			
-			// Query 1: Get and verify Vertex OUT
-			ResultSet r = submitQuery(client, "g.V().has('hgid', fromParam)", params);
-			verifyVertexExists(r, fromHGid);
-			
-			// Query 2: Get and verify Vertex IN
-			ResultSet r2 = submitQuery(client, "g.V().has('hgid', toParam)", params);
-			verifyVertexExists(r2, fromHGid);		
-			
-			// Query 3: Verify the absence of the new edge
-			ResultSet r3 = submitQuery(client, "g.V().has('hgid', fromParam).outE().has(label, typeParam).has('source', sourceParam).inV().has('hgid', toParam)", params);
-			verifyEdgeAbsent(r3, fromHGid, type, toHGid, source);
-			
-			// Query 4: Create edge between Vertex OUT to IN with source
-			ResultSet r4 = submitQuery(client, "g.V().has('hgid', fromParam).next().addEdge(typeParam, g.V().has('hgid', toParam).next(), 'source', sourceParam)", params);
+		Map<String, Object> params = getEdgeParams(data, source);
+		
+		// Query 1: Get and verify Vertex OUT
+		ResultSet r = submitQuery(client, "g.V().has('hgid', fromParam)", params);
+		verifyVertexExists(r, params.get("fromParam").toString());
+		
+		// Query 2: Get and verify Vertex IN
+		ResultSet r2 = submitQuery(client, "g.V().has('hgid', toParam)", params);
+		verifyVertexExists(r2, params.get("toParam").toString());		
+		
+		// Query 3: Verify the absence of the new edge
+		ResultSet r3 = submitQuery(client, "g.V().has('hgid', fromParam).outE().has(label, typeParam).has('source', sourceParam).inV().has('hgid', toParam)", params);
+		verifyEdgeAbsent(r3, params);
+		
+		// Query 4: Create edge between Vertex OUT to IN with source
+		ResultSet r4 = submitQuery(client, "g.V().has('hgid', fromParam).next().addEdge(typeParam, g.V().has('hgid', toParam).next(), 'source', sourceParam)", params);
 
-//			// Test
-//			ResultSet rt = client.submitAsync("g.V().has('hgid', fromParam).map {g.V().has('hgid', toParam).tryGet().orElse(false)}.is(neq, false).addInE(typeParam, fromParam)", params).get();
-			
-			for (Iterator<Result> i = r4.iterator(); i.hasNext(); ) {
-				System.out.println("Got result: " + i.next());
-			}
-		} catch (JSONException e) {
-			throw new IOException("Edge token(s) missing (from / to / type).");
+//		// Test
+//		ResultSet rt = client.submitAsync("g.V().has('hgid', fromParam).map {g.V().has('hgid', toParam).tryGet().orElse(false)}.is(neq, false).addInE(typeParam, fromParam)", params).get();
+		
+		for (Iterator<Result> i = r4.iterator(); i.hasNext(); ) {
+			System.out.println("Got result: " + i.next());
 		}
 	}
 	
@@ -158,26 +138,30 @@ public class InputReader {
 		return v;
 	}
 	
+	private static Edge verifyEdgeExists(ResultSet r, Map<String, Object> params) throws IOException {
+		Iterator<Result> i = r.iterator();
+		String edgeName = params.get("fromParam").toString() + " --" + params.get("typeParam").toString() + "--> " + params.get("toParam");
+		if (!i.hasNext()) throw new IOException ("Edge '" + edgeName + "' not found in graph.");
+		Edge e = i.next().getEdge();
+		if (i.hasNext()) throw new IOException ("Multiple edges '" + edgeName + "' found in graph.");
+		return e;
+	}
+	
 	private static void verifyVertexAbsent(ResultSet r, String hgID, String source) throws IOException {
 		Iterator<Result> i = r.iterator();
 		if (i.hasNext()) throw new IOException ("Vertex with hgID '" + hgID + "' from source '" + source + "' already exists.");
 	}
 	
-	private static void verifyEdgeAbsent(ResultSet r, String from, String type, String to, String source) throws IOException {
+	private static void verifyEdgeAbsent(ResultSet r, Map<String, Object> params) throws IOException {
 		Iterator<Result> i = r.iterator();
-		if (i.hasNext()) throw new IOException ("Edge '" + from + " --" + type + "--> " + to + "' from source '" + source + "' already exists.");
+		if (i.hasNext()) {
+			String edgeName = params.get("fromParam").toString() + " --" + params.get("typeParam").toString() + "--> " + params.get("toParam");
+			throw new IOException ("Edge '" + edgeName + "' from source '" + params.get("sourceParam") + "' already exists.");
+		}
 	}
 
 	public static void deleteVertex(JSONObject data, String source, Client client) throws IOException {
-		Map<String, Object> params = new HashMap<String, Object>();
-		
-		try {
-			params.put("nameParam", data.get(NDJSONTokens.VertexTokens.NAME).toString());
-			params.put("hgidParam", source + "/" + data.get(NDJSONTokens.VertexTokens.ID).toString());
-			params.put("typeParam", data.get(NDJSONTokens.VertexTokens.TYPE).toString());
-		} catch (JSONException e) {
-			throw new IOException("Vertex token(s) missing (name / id / type).");
-		}
+		Map<String, Object> params = getVertexParams(data, source);
 		
 		// Get and verify vertex
 		ResultSet r = submitQuery(client, "g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam)", params);
@@ -189,9 +173,43 @@ public class InputReader {
 	}
 	
 	public static void deleteEdge(JSONObject data, String source, Client client) throws IOException {
+		Map<String, Object> params = getEdgeParams(data, source);
+
+		// Verify edge exists
+		ResultSet r = submitQuery(client, "g.V().has('hgid', fromParam).outE().has(label, typeParam).has('source', sourceParam).as('x').inV().has('hgid', toParam).back('x')", params);
+		verifyEdgeExists(r, params);
 		
+		// Remove edge
+		submitQuery(client, "g.V().has('hgid', fromParam).outE().has(label, typeParam).has('source', sourceParam).as('x').inV().has('hgid', toParam).back('x').remove()", params);
+		System.out.println("Edge successfully deleted.");
+	}
+	
+	private static Map<String, Object> getVertexParams(JSONObject data, String source) throws IOException {
+		Map<String, Object> map = new HashMap<String, Object>();
 		
+		try {
+			map.put("nameParam", data.get(NDJSONTokens.VertexTokens.NAME).toString());
+			map.put("hgidParam", parseHGid(source, data.get(NDJSONTokens.VertexTokens.ID).toString()));
+			map.put("typeParam", data.get(NDJSONTokens.VertexTokens.TYPE).toString());
+			map.put("sourceParam", source);
+			return map;
+		} catch (JSONException e) {
+			throw new IOException("Vertex token(s) missing (name / id / type).");
+		}
+	}
+	
+	private static Map<String, Object> getEdgeParams(JSONObject data, String source) throws IOException {
+		Map<String, Object> map = new HashMap<String, Object>();
 		
+		try {
+			map.put("fromParam", parseHGid(source, data.get(NDJSONTokens.EdgeTokens.FROM).toString()));
+			map.put("toParam", parseHGid(source, data.get(NDJSONTokens.EdgeTokens.TO).toString()));
+			map.put("typeParam", data.get(NDJSONTokens.VertexTokens.TYPE).toString());
+			map.put("sourceParam", source);
+			return map;
+		} catch (JSONException e) {
+			throw new IOException("Edge token(s) missing (from / to / type).");
+		}
 	}
 	
 	private static ResultSet submitQuery(Client client, String query, Map<String, Object> params) throws IOException {
