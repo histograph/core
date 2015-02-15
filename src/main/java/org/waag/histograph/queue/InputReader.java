@@ -94,11 +94,11 @@ public class InputReader {
 	public static void addVertex(JSONObject data, String layer, Client client) throws IOException {		
 		Map<String, Object> params = getVertexParams(data, layer);
 
-		ResultSet r = ClientMethods.submitQuery(client, "g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam)", params);
-		ClientMethods.verifyVertexAbsent(r, params.get("hgidParam").toString(), layer);
+		// Verify absence of the new vertex
+		if (!ClientMethods.vertexAbsent(client, params.get("hgidParam").toString())) throw new IOException ("Vertex already exists.");
 		
-		ResultSet r2 = ClientMethods.submitQuery(client, "g.addVertex('name', nameParam, 'hgid', hgidParam, 'type', typeParam)", params);
-		for (Iterator<Result> i = r2.iterator(); i.hasNext(); ) {
+		ResultSet r = ClientMethods.submitQuery(client, "g.addVertex('name', nameParam, 'hgid', hgidParam, 'type', typeParam, 'layer', layerParam)", params);
+		for (Iterator<Result> i = r.iterator(); i.hasNext(); ) {
 			System.out.println("Got result: " + i.next().getVertex());
 		}
 	}
@@ -106,25 +106,17 @@ public class InputReader {
 	public static void addEdge(JSONObject data, String layer, Client client) throws IOException {
 		Map<String, Object> params = getEdgeParams(data, layer);
 		
-		// Query 1: Get and verify Vertex OUT
-		ResultSet r = ClientMethods.submitQuery(client, "g.V().has('hgid', fromParam)", params);
-		ClientMethods.verifyVertexExists(r, params.get("fromParam").toString());
+		// Verify both vertices exist
+		if (!ClientMethods.vertexExists(client, params.get("fromParam").toString())) throw new IOException("Vertex with hgID " + params.get("fromParam").toString() + " not found in graph.");
+		if (!ClientMethods.vertexExists(client, params.get("toParam").toString())) throw new IOException("Vertex with hgID " + params.get("toParam").toString() + " not found in graph.");		
 		
-		// Query 2: Get and verify Vertex IN
-		ResultSet r2 = ClientMethods.submitQuery(client, "g.V().has('hgid', toParam)", params);
-		ClientMethods.verifyVertexExists(r2, params.get("toParam").toString());		
+		// Verify the absence of the new edge
+		if (!ClientMethods.edgeAbsent(client, params)) throw new IOException ("Edge already exists.");
 		
-		// Query 3: Verify the absence of the new edge
-		ResultSet r3 = ClientMethods.submitQuery(client, "g.V().has('hgid', fromParam).outE().has(label, labelParam).has('layer', layerParam).inV().has('hgid', toParam)", params);
-		ClientMethods.verifyEdgeAbsent(r3, params);
-		
-		// Query 4: Create edge between Vertex OUT to IN with layer
-		ResultSet r4 = ClientMethods.submitQuery(client, "g.V().has('hgid', fromParam).next().addEdge(labelParam, g.V().has('hgid', toParam).next(), 'layer', layerParam)", params);
-
-//		// Test
-//		ResultSet rt = ClientMethods.submitQuery(client, "g.V().has('hgid', fromParam).map {g.V().has('hgid', toParam).tryGet().orElse(false)}.is(neq, false).addInE(labelParam, fromParam)", params);
-		
-		for (Iterator<Result> i = r4.iterator(); i.hasNext(); ) {
+		// Create edge between vertices with layer
+		ResultSet r = ClientMethods.submitQuery(client, "g.V().has('hgid', fromParam).next().addEdge(labelParam, g.V().has('hgid', toParam).next(), 'layer', layerParam)", params);
+	
+		for (Iterator<Result> i = r.iterator(); i.hasNext(); ) {
 			System.out.println("Got result: " + i.next());
 		}
 		
@@ -133,14 +125,18 @@ public class InputReader {
 	}
 
 	public static void deleteVertex(JSONObject data, String layer, Client client) throws IOException {
-		Map<String, Object> params = getVertexParams(data, layer);
-		
-		// Get and verify vertex
-		ResultSet r = ClientMethods.submitQuery(client, "g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam)", params);
-		ClientMethods.verifyVertexExists(r, params.get("hgidParam").toString());
+		String hgID;
+		try {
+			hgID = parseHGid(layer, data.get(NDJSONTokens.VertexTokens.ID).toString());
+		} catch (JSONException e) {
+			throw new IOException("Vertex id missing.");
+		}
+				
+		// Verify vertex exists
+		if (!ClientMethods.vertexExists(client, hgID)) throw new IOException("Vertex with hgID " + hgID + " not found in graph.");
 		
 		// Remove vertex
-		ClientMethods.submitQuery(client, "g.V().has('hgid', hgidParam).has('name', nameParam).has('type', typeParam).remove()", params);
+		ClientMethods.submitQuery(client, "g.V().has('hgid', '" + hgID + "').remove()", null);
 		System.out.println("Vertex successfully deleted.");
 	}
 	
@@ -148,12 +144,15 @@ public class InputReader {
 		Map<String, Object> params = getEdgeParams(data, layer);
 
 		// Verify edge exists
-		ResultSet r = ClientMethods.submitQuery(client, "g.V().has('hgid', fromParam).outE().has(label, labelParam).has('layer', layerParam).as('x').inV().has('hgid', toParam).back('x')", params);
-		ClientMethods.verifyEdgeExists(r, params);
+		if (!ClientMethods.edgeExists(client, params)) throw new IOException("Edge not found in graph.");
 		
 		// Remove edge
 		ClientMethods.submitQuery(client, "g.V().has('hgid', fromParam).outE().has(label, labelParam).has('layer', layerParam).as('x').inV().has('hgid', toParam).back('x').remove()", params);
-		System.out.println("Edge successfully deleted.");
+		ClientMethods.waitForEdgeAbsent(client, params); // To prevent concurrency issues
+		System.out.println("Edge " + params.get("labelParam").toString() + " successfully deleted.");
+		
+		// Remove inferred edges
+		AtomicInferencer.removeInferredAtomic(client, params);
 	}
 	
 	private static Map<String, Object> getVertexParams(JSONObject data, String layer) throws IOException {
@@ -183,8 +182,6 @@ public class InputReader {
 			throw new IOException("Edge token(s) missing (from / to / type).");
 		}
 	}
-	
-
 	
 	private static String parseHGid (String layer, String id) {
 		if (isNumeric(id)) {
