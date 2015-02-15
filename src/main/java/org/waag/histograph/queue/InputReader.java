@@ -88,7 +88,55 @@ public class InputReader {
 	}
 	
 	public static void parseUpdate(JSONObject obj, String layer, Client client) throws IOException {
-		throw new IOException("Update command not yet implemented.");
+		JSONObject data;
+		try {
+			data = obj.getJSONObject(NDJSONTokens.General.DATA);
+		} catch (JSONException e) {
+			throw new IOException("No data in JSON input.");
+		}
+		
+		try {
+			switch (obj.get(NDJSONTokens.General.TYPE).toString()) {
+			case NDJSONTokens.Types.PIT:
+				updateVertex(data, layer, client);
+				break;
+			case NDJSONTokens.Types.RELATION:
+				updateEdge(data, layer, client);
+				break;
+			default:
+				throw new IOException("Invalid type received: " + obj.get(NDJSONTokens.General.TYPE).toString());
+			}
+		} catch (JSONException e) {
+			throw new IOException("No type in JSON input.");
+		}
+	}
+	
+	public static void updateVertex(JSONObject data, String layer, Client client) throws IOException {
+		Map<String, Object> params = getVertexParams(data, layer);
+
+		// Verify existence of vertex
+		if (!ClientMethods.vertexExists(client, params.get("hgidParam").toString())) throw new IOException ("Vertex not found in graph.");
+		
+		// Update vertex
+		ClientMethods.submitQuery(client, "g.V().has('hgid', hgidParam).next().property('name', nameParam)", params);
+		ClientMethods.submitQuery(client, "g.V().has('hgid', hgidParam).next().property('type', typeParam)", params);
+		
+		System.out.println("Vertex updated.");
+	}
+	
+	public static void updateEdge(JSONObject data, String layer, Client client) throws IOException {
+		Map<String, Object> params = getEdgeParams(data, layer);
+
+		// TODO How to find previous edge when edge has changed?
+		
+		// Verify existence of edge
+		if (!ClientMethods.edgeExists(client, params)) throw new IOException("Edge not found in graph.");
+
+		// Remove edge
+		deleteEdge(data, layer, client);
+		
+		// Add new edge
+		
 	}
 	
 	public static void addVertex(JSONObject data, String layer, Client client) throws IOException {		
