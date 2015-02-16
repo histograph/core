@@ -97,5 +97,6 @@ lpush "histograph-queue" "{'action': 'delete', 'type': 'edge', 'source': 'graafj
 
 Update vertices:
 
-Update edges:
-
+```
+lpush "histograph-queue" "{'action': 'update', 'type': 'vertex', 'source': 'graafje', 'data': { 'id': '321', 'name': 'Frits', 'type': 'Human' } }"
+```
