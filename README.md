@@ -32,12 +32,12 @@ Utility that reads NDJSON objects from Redis' `histograph-queue`.
 
 ##Input JSON syntax (through Redis)
 
-JSON Vertex object:
+JSON PIT object:
 
 ```
      {
        "action": ["add", "delete", "update"],
-       "type": "vertex",
+       "type": "pit",
 		   "source": String,
        "data": {
 			   "id": integer
@@ -47,12 +47,12 @@ JSON Vertex object:
      }
 ```
 	
-JSON Edge object:
+JSON Relation object:
 
 ```
      {
-       "action": ["add", "delete", "update"],
-       "type": "edge",
+       "action": ["add", "delete"],
+       "type": "relation",
 		   "source": string,
        "data": {
 	       "from": { 
