@@ -125,18 +125,7 @@ public class InputReader {
 	}
 	
 	public static void updateEdge(JSONObject data, String layer, Client client) throws IOException {
-		Map<String, Object> params = getEdgeParams(data, layer);
-
-		// TODO How to find previous edge when edge has changed?
-		
-		// Verify existence of edge
-		if (!ClientMethods.edgeExists(client, params)) throw new IOException("Edge not found in graph.");
-
-		// Remove edge
-		deleteEdge(data, layer, client);
-		
-		// Add new edge
-		
+		throw new IOException("Updating edges not supported.");
 	}
 	
 	public static void addVertex(JSONObject data, String layer, Client client) throws IOException {		
