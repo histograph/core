@@ -20,13 +20,13 @@ public final class NDJSONTokens {
 		public static final String DELETE = "delete";
 	}
 	
-	public final class VertexTokens {
+	public final class PITTokens {
 	    public static final String ID = "id";
 	    public static final String TYPE = "type";
 	    public static final String NAME = "name";		
 	}
 	
-	public final class EdgeTokens {
+	public final class RelationTokens {
 		public static final String FROM = "from";
 		public static final String TO = "to";
 	    public static final String LABEL = "label";

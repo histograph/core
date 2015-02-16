@@ -164,7 +164,7 @@ public class InputReader {
 	public static void deleteVertex(JSONObject data, String layer, Client client) throws IOException {
 		String hgID;
 		try {
-			hgID = parseHGid(layer, data.get(NDJSONTokens.VertexTokens.ID).toString());
+			hgID = parseHGid(layer, data.get(NDJSONTokens.PITTokens.ID).toString());
 		} catch (JSONException e) {
 			throw new IOException("Vertex id missing.");
 		}
@@ -196,9 +196,9 @@ public class InputReader {
 		Map<String, Object> map = new HashMap<String, Object>();
 		
 		try {
-			map.put("nameParam", data.get(NDJSONTokens.VertexTokens.NAME).toString());
-			map.put("hgidParam", parseHGid(layer, data.get(NDJSONTokens.VertexTokens.ID).toString()));
-			map.put("typeParam", data.get(NDJSONTokens.VertexTokens.TYPE).toString());
+			map.put("nameParam", data.get(NDJSONTokens.PITTokens.NAME).toString());
+			map.put("hgidParam", parseHGid(layer, data.get(NDJSONTokens.PITTokens.ID).toString()));
+			map.put("typeParam", data.get(NDJSONTokens.PITTokens.TYPE).toString());
 			map.put("layerParam", layer);
 			return map;
 		} catch (JSONException e) {
@@ -210,9 +210,9 @@ public class InputReader {
 		Map<String, Object> map = new HashMap<String, Object>();
 		
 		try {
-			map.put("fromParam", parseHGid(layer, data.get(NDJSONTokens.EdgeTokens.FROM).toString()));
-			map.put("toParam", parseHGid(layer, data.get(NDJSONTokens.EdgeTokens.TO).toString()));
-			map.put("labelParam", data.get(NDJSONTokens.EdgeTokens.LABEL).toString());
+			map.put("fromParam", parseHGid(layer, data.get(NDJSONTokens.RelationTokens.FROM).toString()));
+			map.put("toParam", parseHGid(layer, data.get(NDJSONTokens.RelationTokens.TO).toString()));
+			map.put("labelParam", data.get(NDJSONTokens.RelationTokens.LABEL).toString());
 			map.put("layerParam", layer);
 			return map;
 		} catch (JSONException e) {
