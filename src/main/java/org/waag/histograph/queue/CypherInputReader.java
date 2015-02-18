@@ -264,19 +264,10 @@ public class CypherInputReader {
 	}
 	
 	private static String parseHGid (String layer, String id) {
-		if (isNumeric(id)) {
+		if (!id.startsWith(layer + "/")) {
 			return layer + "/" + id;
 		} else {
 			return id;
 		}
-	}
-	
-	private static boolean isNumeric(String string) { 
-		try { 
-			Integer.parseInt(string);  
-		} catch(NumberFormatException e) {
-			return false;  
-		}  
-		return true;  
 	}
 }

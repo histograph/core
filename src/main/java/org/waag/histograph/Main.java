@@ -7,7 +7,8 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import org.json.JSONObject;
 import org.waag.histograph.queue.CypherInputReader;
-
+import org.waag.histograph.queue.NDJSONTokens;
+import org.waag.histograph.reasoner.OntologyTokens;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
@@ -19,18 +20,18 @@ public class Main {
 		new Main().start();
 	}
 
-//	private void initializeIndices (Client client) {
-//		client.submit("g.getBaseGraph().index().getNodeAutoIndexer().startAutoIndexingProperty('name')");
-//		client.submit("g.getBaseGraph().index().getNodeAutoIndexer().startAutoIndexingProperty('hgid')");
-//		client.submit("g.getBaseGraph().index().getNodeAutoIndexer().setEnabled(true)");
-//		
-//		for (String relation : OntologyTokens.getAllRelations()) {
-//			System.out.println(relation);
-//			client.submit("g.getBaseGraph().index().getRelationshipAutoIndexer().startAutoIndexingProperty('" + relation + "')");
-//		}
-//		
-//		client.submit("g.getBaseGraph().index().getRelationshipAutoIndexer().setEnabled(true)");
-//	}
+	private void initializeIndices (GraphDatabaseService db) {
+		System.out.println("Initializing indices...");
+		db.index().getNodeAutoIndexer().startAutoIndexingProperty(NDJSONTokens.PITTokens.NAME);
+		db.index().getNodeAutoIndexer().startAutoIndexingProperty(NDJSONTokens.General.HGID);
+		db.index().getNodeAutoIndexer().setEnabled(true);
+		
+		for (String relation : OntologyTokens.getAllRelations()) {
+			db.index().getRelationshipAutoIndexer().startAutoIndexingProperty(relation);
+		}
+		
+		db.index().getRelationshipAutoIndexer().setEnabled(true);
+	}
 	
 	private void start() {		
 		System.out.println("Starting Histograph Core");
@@ -40,10 +41,12 @@ public class Main {
 		
         GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase("/tmp/histograph");
         CypherInputReader inputReader = new CypherInputReader(db);
+        
+        initializeIndices(db);
 
 		List<String> messages = null;
 		System.out.println("Waiting for a message in the queue");
-//		int messagesParsed = 0;
+		int messagesParsed = 0;
 		while (true) {
 			try {
 				messages = jedis.blpop(0, "histograph-queue");
@@ -61,11 +64,11 @@ public class Main {
 			} catch (Exception e) {
 				System.out.println("ERROR: " + e.getMessage());
 			}
-//			messagesParsed ++;
-//			if (messagesParsed % 100 == 0) {
-//				int messagesLeft = jedis.llen("histograph-queue").intValue();
-//				System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
-//			}
+			messagesParsed ++;
+			if (messagesParsed % 100 == 0) {
+				int messagesLeft = jedis.llen("histograph-queue").intValue();
+				System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
+			}
 		}
 	}
 }

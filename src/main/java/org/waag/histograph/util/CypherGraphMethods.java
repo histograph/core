@@ -46,7 +46,7 @@ public class CypherGraphMethods {
 	public Relationship getEdge(Map<String, String> params) throws IOException {
 		ExecutionResult result;
 		try (Transaction ignored = db.beginTx()) {
-			result = engine.execute( "match (a {" + NDJSONTokens.General.HGID + ": '" + params.get(NDJSONTokens.RelationTokens.FROM) + "'}) -[r:" + params.get(NDJSONTokens.RelationTokens.LABEL) + "]-> (b {" + NDJSONTokens.General.HGID + ": '" + params.get(NDJSONTokens.RelationTokens.TO) + "'}) return r" );
+			result = engine.execute( "match (a {" + NDJSONTokens.General.HGID + ": '" + params.get(NDJSONTokens.RelationTokens.FROM) + "'}) -[r:`" + params.get(NDJSONTokens.RelationTokens.LABEL) + "`]-> (b {" + NDJSONTokens.General.HGID + ": '" + params.get(NDJSONTokens.RelationTokens.TO) + "'}) return r" );
 			Iterator<Relationship> i = result.columnAs( "r" );
 
 			if (!i.hasNext()) return null;
