@@ -26,11 +26,21 @@ public class Main {
 		db.index().getNodeAutoIndexer().startAutoIndexingProperty(NDJSONTokens.General.HGID);
 		db.index().getNodeAutoIndexer().setEnabled(true);
 		
+		System.out.println("Auto-indexed node properties:");
+		for (String s : db.index().getNodeAutoIndexer().getAutoIndexedProperties()) {
+			System.out.println(s);
+		};
+		
 		for (String relation : OntologyTokens.getAllRelations()) {
 			db.index().getRelationshipAutoIndexer().startAutoIndexingProperty(relation);
 		}
 		
 		db.index().getRelationshipAutoIndexer().setEnabled(true);
+		
+		System.out.println("Auto-indexed relationship properties:");
+		for (String s : db.index().getRelationshipAutoIndexer().getAutoIndexedProperties()) {
+			System.out.println(s);
+		};
 	}
 	
 	private void start() {		
