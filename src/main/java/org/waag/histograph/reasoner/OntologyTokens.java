@@ -13,7 +13,7 @@ public final class OntologyTokens {
 	
 	private final static class AtomicInferences {
 		private final static String[] ATOMIC_SAMEAS = {"hgaConceptIdentical", "hgaTypeIdentical"};
-		private final static String[] ATOMIC_ABSORBED = {"hgaConceptIn", "hgaPeriodBefore", "hgaTypeIdentical", "hgaGeometryIntersects"};
+		private final static String[] ATOMIC_ABSORBEDBY = {"hgaConceptIn", "hgaPeriodBefore", "hgaTypeIdentical", "hgaGeometryIntersects"};
 		private final static String[] ATOMIC_ISUSEDFOR = {"hgaConceptIdentical", "hgaTypeIdentical"};
 		private final static String[] ATOMIC_LIESIN = {"hgaGeometryIntersects"};
 	}
@@ -23,7 +23,7 @@ public final class OntologyTokens {
 		case OntologyTokens.SAMEAS:
 			return OntologyTokens.AtomicInferences.ATOMIC_SAMEAS;
 		case OntologyTokens.ABSORBEDBY:
-			return OntologyTokens.AtomicInferences.ATOMIC_ABSORBED;
+			return OntologyTokens.AtomicInferences.ATOMIC_ABSORBEDBY;
 		case OntologyTokens.ISUSEDFOR:
 			return OntologyTokens.AtomicInferences.ATOMIC_ISUSEDFOR;
 		case OntologyTokens.LIESIN:

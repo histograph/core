@@ -199,21 +199,21 @@ public class CypherInputReader {
 		Node node = graphMethods.getVertex(hgID);
 		if (node == null) throw new IOException("Vertex with hgID " + hgID + " not found in graph.");
 
-		int relCounter = 0;
+//		int relCounter = 0;
 		
 		try (Transaction tx = db.beginTx(); ) {
 			// Remove all relationships
 			Iterable<Relationship> relationships = node.getRelationships();
 			for (Relationship rel : relationships) {
 				rel.delete();
-				relCounter++;
+//				relCounter++;
 			}
 			
 			// Remove node
 			node.delete();
 			tx.success();
 		}
-		System.out.println("Vertex successfully deleted -- " + relCounter + " edges removed in the process.");
+//		System.out.println("Vertex successfully deleted -- " + relCounter + " edges removed in the process.");
 	}
 	
 	private void deleteEdge(JSONObject data, String layer) throws IOException {
@@ -229,8 +229,8 @@ public class CypherInputReader {
 			tx.success();
 		}
 
-		String edgeLabel = params.get(NDJSONTokens.RelationTokens.FROM) + "--" + params.get(NDJSONTokens.RelationTokens.LABEL) + "-->" + params.get(NDJSONTokens.RelationTokens.TO);
-		System.out.println("Edge " + edgeLabel + " successfully deleted.");
+//		String edgeLabel = params.get(NDJSONTokens.RelationTokens.FROM) + "--" + params.get(NDJSONTokens.RelationTokens.LABEL) + "-->" + params.get(NDJSONTokens.RelationTokens.TO);
+//		System.out.println("Edge " + edgeLabel + " successfully deleted.");
 		
 		atomicInferencer.removeInferredAtomic(params);
 	}

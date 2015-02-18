@@ -53,7 +53,7 @@ public class Main {
 			}
 
 			String payload = messages.get(1);
-			System.out.println("Message received: " + payload);
+//			System.out.println("Message received: " + payload);
 			
 			try {
 				JSONObject obj = new JSONObject(payload);

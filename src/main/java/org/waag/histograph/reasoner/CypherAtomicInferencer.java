@@ -61,27 +61,27 @@ public class CypherAtomicInferencer {
 	
 	private void removeInferredAtomicEdges(Map<String, String> params, String[] labels) throws IOException {
 		HashMap<String, String> inferredEdgeParams = new HashMap<String, String>(params);
-		int removed = 0;
+//		int removed = 0;
 		for (String label : labels) {
 			inferredEdgeParams.put(NDJSONTokens.RelationTokens.LABEL, label);
 			
 			Relationship rel = graphMethods.getEdge(inferredEdgeParams);
-			if (rel == null) break;
+			if (rel == null) continue;
 			
 			if (atomicEdgeCanBeRemoved(inferredEdgeParams)) {
 				try (Transaction tx = db.beginTx(); ) {
 					rel.delete();
 					tx.success();
 				}
-				removed ++;
+//				removed ++;
 			}
 		}
 		
-		if (removed != 1) {
-			System.out.println("Removed " + removed + " atomic relation edges.");
-		} else {
-			System.out.println("Removed 1 atomic relation edge.");
-		}
+//		if (removed != 1) {
+//			System.out.println("Removed " + removed + " atomic relation edges.");
+//		} else {
+//			System.out.println("Removed 1 atomic relation edge.");
+//		}
 	}
 	
 	private static boolean atomicEdgeCanBeRemoved(HashMap<String, String> atomicEdgeParams) throws IOException {
@@ -100,13 +100,13 @@ public class CypherAtomicInferencer {
 
 	private void inferAtomicEdges(Map<String, String> params, String[] labels) throws IOException {
 		HashMap<String, String> inferredEdgeParams = new HashMap<String, String>(params);
-		int inferred = 0;
+//		int inferred = 0;
 		for (String label : labels) {
 			inferredEdgeParams.put(NDJSONTokens.RelationTokens.LABEL, label);
 			
-			// Break if edge already exists
-			if (graphMethods.edgeExists(inferredEdgeParams)) break;
-
+			// Take next label if edge already exists
+			if (graphMethods.edgeExists(inferredEdgeParams)) continue;
+			
 			// Get both vertices
 			Node fromNode = graphMethods.getVertex(inferredEdgeParams.get(NDJSONTokens.RelationTokens.FROM));
 			if (fromNode == null) throw new IOException("Vertex with hgID " + inferredEdgeParams.get(NDJSONTokens.RelationTokens.FROM) + " not found in graph.");
@@ -122,13 +122,13 @@ public class CypherAtomicInferencer {
 				tx.success();
 			}
 
-			inferred ++;
+//			inferred ++;
 		}
 		
-		if (inferred != 1) {
-			System.out.println("Inferred " + inferred + " atomic relation edges.");
-		} else {
-			System.out.println("Inferred 1 atomic relation edge.");
-		}
+//		if (inferred != 1) {
+//			System.out.println("Inferred " + inferred + " atomic relation edges.");
+//		} else {
+//			System.out.println("Inferred 1 atomic relation edge.");
+//		}
 	}
 }
