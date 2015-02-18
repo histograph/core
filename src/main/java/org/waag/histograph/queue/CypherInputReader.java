@@ -7,22 +7,28 @@ import java.util.Map.Entry;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
+import org.waag.histograph.reasoner.CypherAtomicInferencer;
 import org.waag.histograph.util.CypherGraphMethods;
 
 public class CypherInputReader {
 	
 	private GraphDatabaseService db;
+	private ExecutionEngine engine;
 	private static CypherGraphMethods graphMethods;
+	private static CypherAtomicInferencer atomicInferencer;
 	
 	public CypherInputReader(GraphDatabaseService db) {
 		this.db = db;
-		graphMethods = new CypherGraphMethods(db);
+		engine = new ExecutionEngine(db);
+		graphMethods = new CypherGraphMethods(db, engine);
+		atomicInferencer = new CypherAtomicInferencer(db, engine);
 	}
 	
 	public void parse(JSONObject obj) throws IOException {
@@ -120,18 +126,21 @@ public class CypherInputReader {
 		}
 	}
 	
-	// TODO NEO4J
 	private void updateVertex(JSONObject data, String layer) throws IOException {
-//		Map<String, String> params = getVertexParams(data, layer);
-//
-//		// Verify existence of vertex
-//		if (!graphMethods.vertexExists(params.get("hgid"))) throw new IOException ("Vertex not found in graph.");
-//		
-//		// Update vertex
-//		GraphMethods.submitQuery(db, "g.V().has('hgid', hgidParam).next().property('name', nameParam)", params);
-//		GraphMethods.submitQuery(db, "g.V().has('hgid', hgidParam).next().property('type', typeParam)", params);
-//		
-//		System.out.println("Vertex updated.");
+		Map<String, String> params = getVertexParams(data, layer);
+
+		// Verify vertex exists and get it
+		Node node = graphMethods.getVertex(params.get(NDJSONTokens.General.HGID));
+		if (node == null) throw new IOException ("Vertex " + params.get(NDJSONTokens.General.HGID) + " not found in graph.");
+		
+		// Update vertex
+		try (Transaction tx = db.beginTx(); ) {
+			node.setProperty(NDJSONTokens.PITTokens.NAME, params.get(NDJSONTokens.PITTokens.NAME));
+			node.setProperty(NDJSONTokens.PITTokens.TYPE, params.get(NDJSONTokens.PITTokens.TYPE));
+			tx.success();
+		}
+		
+		System.out.println("Vertex updated.");
 	}
 	
 	private void updateEdge(JSONObject data, String layer) throws IOException {
@@ -175,11 +184,9 @@ public class CypherInputReader {
 			tx.success();
 		}
 		
-//		// TODO Infer atomic relations from edge
-//		AtomicInferencer.inferAtomic(db, params);
+		atomicInferencer.inferAtomic(params);
 	}
 
-	// TODO TEST
 	private void deleteVertex(JSONObject data, String layer) throws IOException {
 		String hgID;
 		try {
@@ -192,21 +199,23 @@ public class CypherInputReader {
 		Node node = graphMethods.getVertex(hgID);
 		if (node == null) throw new IOException("Vertex with hgID " + hgID + " not found in graph.");
 
+		int relCounter = 0;
+		
 		try (Transaction tx = db.beginTx(); ) {
 			// Remove all relationships
 			Iterable<Relationship> relationships = node.getRelationships();
 			for (Relationship rel : relationships) {
 				rel.delete();
+				relCounter++;
 			}
 			
 			// Remove node
 			node.delete();
 			tx.success();
 		}
-		System.out.println("Vertex successfully deleted.");
+		System.out.println("Vertex successfully deleted -- " + relCounter + " edges removed in the process.");
 	}
 	
-	// TODO TEST
 	private void deleteEdge(JSONObject data, String layer) throws IOException {
 		Map<String, String> params = getEdgeParams(data, layer);
 
@@ -220,10 +229,10 @@ public class CypherInputReader {
 			tx.success();
 		}
 
-		System.out.println("Edge " + params.get("labelParam").toString() + " successfully deleted.");
+		String edgeLabel = params.get(NDJSONTokens.RelationTokens.FROM) + "--" + params.get(NDJSONTokens.RelationTokens.LABEL) + "-->" + params.get(NDJSONTokens.RelationTokens.TO);
+		System.out.println("Edge " + edgeLabel + " successfully deleted.");
 		
-//		// TODO: Remove inferred edges
-//		AtomicInferencer.removeInferredAtomic(db, params);
+		atomicInferencer.removeInferredAtomic(params);
 	}
 	
 	private static Map<String, String> getVertexParams(JSONObject data, String layer) throws IOException {
@@ -236,7 +245,7 @@ public class CypherInputReader {
 			map.put(NDJSONTokens.General.LAYER, layer);
 			return map;
 		} catch (JSONException e) {
-			throw new IOException("Vertex token(s) missing (name / id / type).");
+			throw new IOException("Vertex token(s) missing (" + NDJSONTokens.PITTokens.ID + "/" + NDJSONTokens.PITTokens.NAME + "/" + NDJSONTokens.PITTokens.TYPE + ").");
 		}
 	}
 	
@@ -250,7 +259,7 @@ public class CypherInputReader {
 			map.put(NDJSONTokens.General.LAYER, layer);
 			return map;
 		} catch (JSONException e) {
-			throw new IOException("Edge token(s) missing (from / to / label).");
+			throw new IOException("Edge token(s) missing (" + NDJSONTokens.RelationTokens.FROM + "/" + NDJSONTokens.RelationTokens.TO + "/" + NDJSONTokens.RelationTokens.LABEL + ").");
 		}
 	}
 	

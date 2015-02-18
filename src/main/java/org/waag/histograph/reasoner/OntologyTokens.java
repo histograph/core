@@ -4,25 +4,25 @@ import java.util.ArrayList;
 
 public final class OntologyTokens {
 	
-	public static final String SAMEAS = "hg:sameAs";
-	public static final String ABSORBED = "hg:absorbed";
-	public static final String ISUSEDFOR = "hg:isUsedFor";
-	public static final String LIESIN = "hg:liesIn";
+	public static final String SAMEAS = "hgSameAs";
+	public static final String ABSORBEDBY = "hgAbsorbedBy";
+	public static final String ISUSEDFOR = "hgIsUsedFor";
+	public static final String LIESIN = "hgLiesIn";
 	
-	public final static String[] PRIMARY_RELATIONS = {SAMEAS, ABSORBED, ISUSEDFOR, LIESIN};
+	public final static String[] PRIMARY_RELATIONS = {SAMEAS, ABSORBEDBY, ISUSEDFOR, LIESIN};
 	
 	private final static class AtomicInferences {
-		private final static String[] ATOMIC_SAMEAS = {"hga:conceptIdentical", "hga:typeIdentical"};
-		private final static String[] ATOMIC_ABSORBED = {"hga:conceptIn", "hga:periodBefore", "hga:typeIdentical", "hga:geometryIntersects"};
-		private final static String[] ATOMIC_ISUSEDFOR = {"hga:conceptIdentical", "hga:typeIdentical"};
-		private final static String[] ATOMIC_LIESIN = {"hga:geometryIntersects"};
+		private final static String[] ATOMIC_SAMEAS = {"hgaConceptIdentical", "hgaTypeIdentical"};
+		private final static String[] ATOMIC_ABSORBED = {"hgaConceptIn", "hgaPeriodBefore", "hgaTypeIdentical", "hgaGeometryIntersects"};
+		private final static String[] ATOMIC_ISUSEDFOR = {"hgaConceptIdentical", "hgaTypeIdentical"};
+		private final static String[] ATOMIC_LIESIN = {"hgaGeometryIntersects"};
 	}
 	
 	public static String[] getAtomicRelationsFromLabel(String label) {
 		switch (label) {
 		case OntologyTokens.SAMEAS:
 			return OntologyTokens.AtomicInferences.ATOMIC_SAMEAS;
-		case OntologyTokens.ABSORBED:
+		case OntologyTokens.ABSORBEDBY:
 			return OntologyTokens.AtomicInferences.ATOMIC_ABSORBED;
 		case OntologyTokens.ISUSEDFOR:
 			return OntologyTokens.AtomicInferences.ATOMIC_ISUSEDFOR;

@@ -31,10 +31,12 @@ public class ClientMethods {
 	public static boolean edgeExists(Client client, Map<String, Object> params) throws IOException {
 		ResultSet r = ClientMethods.submitQuery(client, "g.V().has('hgid', fromParam).outE().has(label, labelParam).has('layer', layerParam).as('x').inV().has('hgid', toParam).back('x')", params);
 		Iterator<Result> i = r.iterator();
-		String edgeName = params.get("fromParam").toString() + " --" + params.get("labelParam").toString() + "--> " + params.get("toParam");
 		if (!i.hasNext()) return false;
 		i.next();
-		if (i.hasNext()) throw new IOException ("Multiple edges '" + edgeName + "' found in graph.");
+		if (i.hasNext()) {
+			String edgeName = params.get("fromParam").toString() + " --" + params.get("labelParam").toString() + "--> " + params.get("toParam");
+			throw new IOException ("Multiple edges '" + edgeName + "' found in graph.");
+		}
 		return true;
 	}
 	
@@ -63,5 +65,4 @@ public class ClientMethods {
 		while (edgeExists(client, params)) {}
 		return;
 	}
-	
 }
