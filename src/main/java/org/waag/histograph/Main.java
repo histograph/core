@@ -5,34 +5,45 @@ import java.util.List;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
-import com.tinkerpop.gremlin.driver.Client;
-import com.tinkerpop.gremlin.driver.Cluster;
-import com.tinkerpop.gremlin.server.GremlinServer;
-
 import org.json.JSONObject;
-import org.waag.histograph.queue.InputReader;
+import org.waag.histograph.queue.CypherInputReader;
+
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 public class Main {
 
-	GremlinServer s;
 	Jedis jedis;
 
 	public static void main(String[] argv) {
 		new Main().start();
-		System.out.println("Starting Histograph Core");
 	}
 
-	private void start() {
+//	private void initializeIndices (Client client) {
+//		client.submit("g.getBaseGraph().index().getNodeAutoIndexer().startAutoIndexingProperty('name')");
+//		client.submit("g.getBaseGraph().index().getNodeAutoIndexer().startAutoIndexingProperty('hgid')");
+//		client.submit("g.getBaseGraph().index().getNodeAutoIndexer().setEnabled(true)");
+//		
+//		for (String relation : OntologyTokens.getAllRelations()) {
+//			System.out.println(relation);
+//			client.submit("g.getBaseGraph().index().getRelationshipAutoIndexer().startAutoIndexingProperty('" + relation + "')");
+//		}
+//		
+//		client.submit("g.getBaseGraph().index().getRelationshipAutoIndexer().setEnabled(true)");
+//	}
+	
+	private void start() {		
+		System.out.println("Starting Histograph Core");
 
 		// Initialize Redis connection
 		jedis = new Jedis("localhost");
-
-		// Initialize Gremlin Server connection
-		Cluster cluster = Cluster.open();
-		Client client = cluster.connect(); 
+		
+        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase("/tmp/histograph");
+        CypherInputReader inputReader = new CypherInputReader(db);
 
 		List<String> messages = null;
 		System.out.println("Waiting for a message in the queue");
+//		int messagesParsed = 0;
 		while (true) {
 			try {
 				messages = jedis.blpop(0, "histograph-queue");
@@ -43,13 +54,18 @@ public class Main {
 
 			String payload = messages.get(1);
 			System.out.println("Message received: " + payload);
-
+			
 			try {
 				JSONObject obj = new JSONObject(payload);
-				InputReader.parse(obj, client);
+				inputReader.parse(obj);				
 			} catch (Exception e) {
-				System.out.println("Error: " + e.getMessage());
+				System.out.println("ERROR: " + e.getMessage());
 			}
+//			messagesParsed ++;
+//			if (messagesParsed % 100 == 0) {
+//				int messagesLeft = jedis.llen("histograph-queue").intValue();
+//				System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
+//			}
 		}
 	}
 }
