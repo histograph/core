@@ -33,6 +33,22 @@ public final class OntologyTokens {
 		}
 	}
 	
+	public static String[] getAllRelations () {
+		ArrayList<String> relations = new ArrayList<String>();
+		for (String s : PRIMARY_RELATIONS) {
+			relations.add(s);
+			String[] atomics = getAtomicRelationsFromLabel(s);
+			for (String a : atomics) {
+				if (!relations.contains(a)) {
+					relations.add(a);
+				}
+			}
+		}
+		String[] out = new String[relations.size()];
+		out = relations.toArray(out);
+		return out;
+	}
+	
 	public static String[] getPrimaryRelationsFromAtomic(String relation) {
 		ArrayList<String> labels = new ArrayList<String>();
 		for (String primary : PRIMARY_RELATIONS) {
