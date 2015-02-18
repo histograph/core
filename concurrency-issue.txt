@@ -1,0 +1,65 @@
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/Users/rutger/.m2/repository/org/slf4j/slf4j-log4j12/1.7.7/slf4j-log4j12-1.7.7.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/Users/rutger/.m2/repository/ch/qos/logback/logback-classic/1.1.2/logback-classic-1.1.2.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+log4j:WARN No appenders could be found for logger (io.netty.util.internal.logging.InternalLoggerFactory).
+log4j:WARN Please initialize the log4j system properly.
+log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
+Waiting for a message in the queue
+Message received: {'action': 'add', 'type': 'pit', 'layer': 'graafje', 'data': {'id': '4321', 'name': 'Rutger', 'type': 'Human' } }
+Got result: v[0]
+Message received: {'action': 'add', 'type': 'pit', 'layer': 'graafje', 'data': {'id': '1234', 'name': 'Bert', 'type': 'Human' } }
+Got result: v[1]
+Message received: {'action': 'add', 'type': 'relation', 'layer': 'graafje', 'data': { 'from': 1234, 'to': 4321, 'label': 'hg:absorbed' } }
+Got result: result{object=e[0][1-hg:absorbed->0] class=com.tinkerpop.gremlin.structure.util.detached.DetachedEdge}
+Got result: result{object=e[1][1-hga:conceptIn->0] class=com.tinkerpop.gremlin.structure.util.detached.DetachedEdge}
+Got result: result{object=e[2][1-hga:periodBefore->0] class=com.tinkerpop.gremlin.structure.util.detached.DetachedEdge}
+Got result: result{object=e[3][1-hga:typeIdentical->0] class=com.tinkerpop.gremlin.structure.util.detached.DetachedEdge}
+Got result: result{object=e[4][1-hga:geometryIntersects->0] class=com.tinkerpop.gremlin.structure.util.detached.DetachedEdge}
+Inferred 4 atomic relation edges.
+Message received: {'action': 'add', 'type': 'relation', 'layer': 'graafje', 'data': { 'from': 1234, 'to': 4321, 'label': 'hg:liesIn' } }
+Got result: result{object=e[5][1-hg:liesIn->0] class=com.tinkerpop.gremlin.structure.util.detached.DetachedEdge}
+Inferred 0 atomic relation edges.
+Message received: {'action': 'delete', 'type': 'relation', 'layer': 'graafje', 'data': { 'from': 1234, 'to': 4321, 'label': 'hg:absorbed' } }
+Edge successfully deleted.
+Edge hga:conceptIn exists.
+Now checking if hga:conceptIn can be removed.
+Primary relations for this label found:
+  - hg:absorbed
+Now checking if hg:absorbed exists.
+It does. Therefore, hga:conceptIn cannot be removed.
+Edge hga:conceptIn can NOT be removed.
+Edge hga:periodBefore exists.
+Now checking if hga:periodBefore can be removed.
+Primary relations for this label found:
+  - hg:absorbed
+Now checking if hg:absorbed exists.
+It does not.
+Now, hga:periodBefore can be removed.
+Edge hga:periodBefore can be removed.
+Edge hga:typeIdentical exists.
+Now checking if hga:typeIdentical can be removed.
+Primary relations for this label found:
+  - hg:sameAs
+  - hg:absorbed
+  - hg:isUsedFor
+Now checking if hg:sameAs exists.
+It does not.
+Now checking if hg:absorbed exists.
+It does not.
+Now checking if hg:isUsedFor exists.
+It does not.
+Now, hga:typeIdentical can be removed.
+Edge hga:typeIdentical can be removed.
+Edge hga:geometryIntersects exists.
+Now checking if hga:geometryIntersects can be removed.
+Primary relations for this label found:
+  - hg:absorbed
+  - hg:liesIn
+Now checking if hg:absorbed exists.
+It does not.
+Now checking if hg:liesIn exists.
+It does. Therefore, hga:geometryIntersects cannot be removed.
+Edge hga:geometryIntersects can NOT be removed.
+Removed 2 atomic relation edges.
