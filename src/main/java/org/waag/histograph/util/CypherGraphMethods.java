@@ -9,8 +9,10 @@ import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.queue.NDJSONTokens;
+import org.waag.histograph.reasoner.GraphTypes;
 
 public class CypherGraphMethods {
 	
@@ -23,15 +25,13 @@ public class CypherGraphMethods {
 	}
 	
 	public Node getVertex(String hgID) throws IOException {
-        ExecutionResult result;
         try (Transaction ignored = db.beginTx()) {
-            result = engine.execute( "match (n {" + NDJSONTokens.General.HGID + ": '" + hgID + "'}) return n" );
-            Iterator<Node> i = result.columnAs( "n" );
-            
-            if (!i.hasNext()) return null;
-            Node out = i.next();
-          	if (i.hasNext()) throw new IOException ("Multiple vertices with hgID '" + hgID + "' found in graph.");
-            return out;
+        	try (ResourceIterator<Node> i = db.findNodesByLabelAndProperty(GraphTypes.NodeType.PIT, NDJSONTokens.General.HGID, hgID).iterator()) {
+        		if (!i.hasNext()) return null;
+        		Node out = i.next();
+        		if (i.hasNext()) throw new IOException ("Multiple vertices with hgID '" + hgID + "' found in graph.");
+        		return out;
+        	}
         }
 	}
 	
@@ -46,7 +46,7 @@ public class CypherGraphMethods {
 	public Relationship getEdge(Map<String, String> params) throws IOException {
 		ExecutionResult result;
 		try (Transaction ignored = db.beginTx()) {
-			result = engine.execute( "match (a {" + NDJSONTokens.General.HGID + ": '" + params.get(NDJSONTokens.RelationTokens.FROM) + "'}) -[r:`" + params.get(NDJSONTokens.RelationTokens.LABEL) + "`]-> (b {" + NDJSONTokens.General.HGID + ": '" + params.get(NDJSONTokens.RelationTokens.TO) + "'}) return r" );
+			result = engine.execute( "match (p:" + GraphTypes.NodeType.PIT.toString() + " {" + NDJSONTokens.General.HGID + ": '" + params.get(NDJSONTokens.RelationTokens.FROM) + "'}) -[r:`" + GraphTypes.RelationType.fromLabel(params.get(NDJSONTokens.RelationTokens.LABEL)) + "`]-> (q:" + GraphTypes.NodeType.PIT.toString() + " {" + NDJSONTokens.General.HGID + ": '" + params.get(NDJSONTokens.RelationTokens.TO) + "'}) return r" );
 			Iterator<Relationship> i = result.columnAs( "r" );
 
 			if (!i.hasNext()) return null;

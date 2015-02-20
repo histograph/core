@@ -1,6 +1,7 @@
 package org.waag.histograph;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
@@ -8,9 +9,11 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 import org.json.JSONObject;
 import org.waag.histograph.queue.CypherInputReader;
 import org.waag.histograph.queue.NDJSONTokens;
-import org.waag.histograph.reasoner.OntologyTokens;
+import org.waag.histograph.reasoner.GraphTypes;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.schema.Schema;
 
 public class Main {
 
@@ -21,41 +24,57 @@ public class Main {
 	}
 
 	private void initializeIndices (GraphDatabaseService db) {
-		System.out.println("Initializing indices...");
-		db.index().getNodeAutoIndexer().startAutoIndexingProperty(NDJSONTokens.PITTokens.NAME);
-		db.index().getNodeAutoIndexer().startAutoIndexingProperty(NDJSONTokens.General.HGID);
-		db.index().getNodeAutoIndexer().setEnabled(true);
+		System.out.println("Initializing schema and indices...");
 		
-		System.out.println("Auto-indexed node properties:");
-		for (String s : db.index().getNodeAutoIndexer().getAutoIndexedProperties()) {
-			System.out.println(s);
-		};
-		
-		for (String relation : OntologyTokens.getAllRelations()) {
-			db.index().getRelationshipAutoIndexer().startAutoIndexingProperty(relation);
+		// Create indices
+		try (Transaction tx = db.beginTx()) {
+			Schema schema = db.schema();
+			if (!schema.getConstraints(GraphTypes.NodeType.PIT).iterator().hasNext()) {
+				schema.constraintFor(GraphTypes.NodeType.PIT).assertPropertyIsUnique(NDJSONTokens.General.HGID).create();
+				schema.indexFor(GraphTypes.NodeType.PIT).on(NDJSONTokens.PITTokens.NAME).create();
+			}
+			tx.success();
 		}
 		
-		db.index().getRelationshipAutoIndexer().setEnabled(true);
-		
-		System.out.println("Auto-indexed relationship properties:");
-		for (String s : db.index().getRelationshipAutoIndexer().getAutoIndexedProperties()) {
-			System.out.println(s);
-		};
+		try (Transaction tx = db.beginTx()) {
+		    Schema schema = db.schema();
+		    schema.awaitIndexesOnline(10, TimeUnit.MINUTES);
+		    tx.success();
+		}
+	}
+	
+	private void printAsciiArt () {
+		System.out.println("    ●───────●");
+		System.out.println("   /║       ║\\");
+		System.out.println("  / ║       ║ \\");
+		System.out.println(" ●  ║═══════║  ●    Histograph Core v0.1.0");
+		System.out.println("  \\ ║       ║ /");
+		System.out.println("   \\║       ║/");
+		System.out.println("    ●───────●");
 	}
 	
 	private void start() {		
-		System.out.println("Starting Histograph Core");
+		printAsciiArt();
 
+		System.out.println("Connecting to Redis server...");
 		// Initialize Redis connection
 		jedis = new Jedis("localhost");
 		
+		try {
+			jedis.ping();
+		} catch (JedisConnectionException e) {
+			System.out.println("Could not connect to Redis server.");
+			System.exit(1);
+		}
+		
+		System.out.println("Initializing Neo4j database...");
         GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase("/tmp/histograph");
         CypherInputReader inputReader = new CypherInputReader(db);
         
         initializeIndices(db);
 
 		List<String> messages = null;
-		System.out.println("Waiting for a message in the queue");
+		System.out.println("Ready to take messages.");
 		int messagesParsed = 0;
 		while (true) {
 			try {
@@ -75,8 +94,8 @@ public class Main {
 				System.out.println("ERROR: " + e.getMessage());
 			}
 			messagesParsed ++;
+			int messagesLeft = jedis.llen("histograph-queue").intValue();
 			if (messagesParsed % 100 == 0) {
-				int messagesLeft = jedis.llen("histograph-queue").intValue();
 				System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
 			}
 		}

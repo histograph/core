@@ -8,13 +8,13 @@ import java.util.Map.Entry;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
-import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
+import org.waag.histograph.queue.NDJSONTokens.RelationTokens;
 import org.waag.histograph.reasoner.CypherAtomicInferencer;
+import org.waag.histograph.reasoner.GraphTypes;
 import org.waag.histograph.util.CypherGraphMethods;
 
 public class CypherInputReader {
@@ -150,10 +150,10 @@ public class CypherInputReader {
 	private void addVertex(JSONObject data, String layer) throws IOException {		
 		Map<String, String> params = getVertexParams(data, layer);
 		
-		if (!graphMethods.vertexAbsent(params.get(NDJSONTokens.General.HGID))) throw new IOException ("Vertex " + params.get(NDJSONTokens.General.HGID) + " already exists.");
-		
+		// Vertex lookup is omitted due to uniqueness constraint
 		try (Transaction tx = db.beginTx(); ) {
 			Node newPIT = db.createNode();
+			newPIT.addLabel(GraphTypes.NodeType.PIT);
 			
 			for (Entry <String,String> entry : params.entrySet()) {
 				newPIT.setProperty(entry.getKey(), entry.getValue());
@@ -169,22 +169,24 @@ public class CypherInputReader {
 		// Verify both vertices exist and get them
 		Node fromNode = graphMethods.getVertex(params.get(NDJSONTokens.RelationTokens.FROM));
 		if (fromNode == null) throw new IOException("Vertex with hgID " + params.get(NDJSONTokens.RelationTokens.FROM) + " not found in graph.");
-		
-		Node toNode = graphMethods.getVertex(params.get(NDJSONTokens.RelationTokens.TO));
+
+		Node toNode = graphMethods.getVertex(params.get(NDJSONTokens.RelationTokens.TO));		
 		if (toNode == null) throw new IOException("Vertex with hgID " + params.get(NDJSONTokens.RelationTokens.TO) + " not found in graph.");		
-		
+
 		// Verify the absence of the new edge
-		if (!graphMethods.edgeAbsent(params)) throw new IOException ("Edge already exists.");
-		
+		if (!graphMethods.edgeAbsent(params)) { 
+			String edgeName = params.get(RelationTokens.FROM + " --" + RelationTokens.LABEL + "--> " + RelationTokens.TO);
+			throw new IOException ("Edge '" + edgeName + "' already exists.");
+		}
+
 		// Create edge between vertices
 		try (Transaction tx = db.beginTx(); ) {
-			RelationshipType relType = DynamicRelationshipType.withName(params.get(NDJSONTokens.RelationTokens.LABEL));
-			Relationship rel = fromNode.createRelationshipTo(toNode, relType);
+			Relationship rel = fromNode.createRelationshipTo(toNode, GraphTypes.RelationType.fromLabel(params.get(NDJSONTokens.RelationTokens.LABEL)));
 			rel.setProperty(NDJSONTokens.General.LAYER, params.get(NDJSONTokens.General.LAYER));
 			tx.success();
 		}
-		
-		atomicInferencer.inferAtomic(params);
+
+		atomicInferencer.inferAtomic(params, fromNode, toNode);
 	}
 
 	private void deleteVertex(JSONObject data, String layer) throws IOException {
@@ -198,22 +200,18 @@ public class CypherInputReader {
 		// Verify vertex exists and get it
 		Node node = graphMethods.getVertex(hgID);
 		if (node == null) throw new IOException("Vertex with hgID " + hgID + " not found in graph.");
-
-//		int relCounter = 0;
 		
 		try (Transaction tx = db.beginTx(); ) {
 			// Remove all relationships
 			Iterable<Relationship> relationships = node.getRelationships();
 			for (Relationship rel : relationships) {
 				rel.delete();
-//				relCounter++;
 			}
 			
 			// Remove node
 			node.delete();
 			tx.success();
 		}
-//		System.out.println("Vertex successfully deleted -- " + relCounter + " edges removed in the process.");
 	}
 	
 	private void deleteEdge(JSONObject data, String layer) throws IOException {
@@ -229,9 +227,6 @@ public class CypherInputReader {
 			tx.success();
 		}
 
-//		String edgeLabel = params.get(NDJSONTokens.RelationTokens.FROM) + "--" + params.get(NDJSONTokens.RelationTokens.LABEL) + "-->" + params.get(NDJSONTokens.RelationTokens.TO);
-//		System.out.println("Edge " + edgeLabel + " successfully deleted.");
-		
 		atomicInferencer.removeInferredAtomic(params);
 	}
 	
