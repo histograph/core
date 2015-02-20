@@ -14,6 +14,8 @@ import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.queue.NDJSONTokens;
 import org.waag.histograph.reasoner.GraphTypes;
 
+import org.apache.commons.lang.StringEscapeUtils;
+
 public class CypherGraphMethods {
 	
 	private GraphDatabaseService db;
@@ -46,7 +48,8 @@ public class CypherGraphMethods {
 	public Relationship getEdge(Map<String, String> params) throws IOException {
 		ExecutionResult result;
 		try (Transaction ignored = db.beginTx()) {
-			result = engine.execute( "match (p:" + GraphTypes.NodeType.PIT.toString() + " {" + NDJSONTokens.General.HGID + ": '" + params.get(NDJSONTokens.RelationTokens.FROM) + "'}) -[r:`" + GraphTypes.RelationType.fromLabel(params.get(NDJSONTokens.RelationTokens.LABEL)) + "`]-> (q:" + GraphTypes.NodeType.PIT.toString() + " {" + NDJSONTokens.General.HGID + ": '" + params.get(NDJSONTokens.RelationTokens.TO) + "'}) return r" );
+			String query = "match (p:" + GraphTypes.NodeType.PIT.toString() + " {" + NDJSONTokens.General.HGID + ": '" + escapeString(params.get(NDJSONTokens.RelationTokens.FROM)) + "'}) -[r:`" + GraphTypes.RelationType.fromLabel(params.get(NDJSONTokens.RelationTokens.LABEL)) + "`]-> (q:" + GraphTypes.NodeType.PIT.toString() + " {" + NDJSONTokens.General.HGID + ": '" + escapeString(params.get(NDJSONTokens.RelationTokens.TO)) + "'}) return r";
+			result = engine.execute(query);
 			Iterator<Relationship> i = result.columnAs( "r" );
 
 			if (!i.hasNext()) return null;
@@ -66,4 +69,9 @@ public class CypherGraphMethods {
 	public boolean edgeAbsent(Map<String, String> params) throws IOException {
 		return (getEdge(params) == null);
 	}
+	
+	public String escapeString(String input) {
+		return input.replaceAll("'", "\\\\'");
+	}
+	
 }
