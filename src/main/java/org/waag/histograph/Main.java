@@ -1,5 +1,7 @@
 package org.waag.histograph;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -70,34 +72,38 @@ public class Main {
 		System.out.println("Initializing Neo4j database...");
         GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase("/tmp/histograph");
         CypherInputReader inputReader = new CypherInputReader(db);
-        
         initializeIndices(db);
 
 		List<String> messages = null;
-		System.out.println("Ready to take messages.");
 		int messagesParsed = 0;
-		while (true) {
-			try {
-				messages = jedis.blpop(0, "histograph-queue");
-			} catch (JedisConnectionException e) {
-				System.out.println("Redis connection error: " + e.getMessage());
-				System.exit(1);
+		
+		try (FileWriter fileOut = new FileWriter("errors.txt", true)) {
+			System.out.println("Ready to take messages.");
+			while (true) {
+				try {
+					messages = jedis.blpop(0, "histograph-queue");
+				} catch (JedisConnectionException e) {
+					System.out.println("Redis connection error: " + e.getMessage());
+					System.exit(1);
+				}
+	
+				String payload = messages.get(1);
+	//			System.out.println("Message received: " + payload);
+				
+				try {
+					JSONObject obj = new JSONObject(payload);
+					inputReader.parse(obj);				
+				} catch (IOException e) {
+					fileOut.write("ERROR: " + e.getMessage() + "\n");
+				}
+				messagesParsed ++;
+				int messagesLeft = jedis.llen("histograph-queue").intValue();
+				if (messagesParsed % 100 == 0) {
+					System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
+				}
 			}
-
-			String payload = messages.get(1);
-//			System.out.println("Message received: " + payload);
-			
-			try {
-				JSONObject obj = new JSONObject(payload);
-				inputReader.parse(obj);				
-			} catch (Exception e) {
-				System.out.println("ERROR: " + e.getMessage());
-			}
-			messagesParsed ++;
-			int messagesLeft = jedis.llen("histograph-queue").intValue();
-			if (messagesParsed % 100 == 0) {
-				System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
-			}
+		} catch (IOException e) {
+			System.out.println("Error: " + e.getMessage());
 		}
 	}
 }
