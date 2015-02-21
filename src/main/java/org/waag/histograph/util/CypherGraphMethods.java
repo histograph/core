@@ -14,8 +14,6 @@ import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.queue.NDJSONTokens;
 import org.waag.histograph.reasoner.GraphTypes;
 
-import org.apache.commons.lang.StringEscapeUtils;
-
 public class CypherGraphMethods {
 	
 	private GraphDatabaseService db;
