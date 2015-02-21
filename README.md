@@ -1,34 +1,20 @@
 #Histograph-Core
 
-Utility that reads NDJSON objects from Redis' `histograph-queue`.
+Utility that parses NDJSON objects from Redis' `histograph-queue`, adds it to the Neo4j graph and performs inferencing.
 
 ##Preliminaries
 
-###Redis 
+### Building
 
-- Redis needs to be running 
+- To build Histograph-Core, you need to install [Apache Maven](http://maven.apache.org/) first
 
-###Downloading and building Tinkerpop
+### Running
 
-- Download [Tinkerpop 3.0.0.M7](https://github.com/tinkerpop/tinkerpop3/archive/3.0.0.M7.zip)
-- Build by running `mvn clean install` (takes a while)
+- To run Histograph-Core, Redis needs to be running
 
-###Setup neo4j Gremlin Server
+## Building
 
-- Go to `gremlin-server` directory in Tinkerpop directory
-- Install neo4j plugin by running `bin/gremlin-server.sh -i com.tinkerpop neo4j-gremlin 3.0.0.M7`
-
-###Running neo4j Gremlin Server
-
-- Go to `gremlin-server` directory in Tinkerpop directory
-- Start server: `bin/gremlin-server.sh conf/gremlin-server-neo4j.yaml`
-
-###(Optional) Connecting to server with Gremlin Console
-
-- Go to `gremlin-console` directory in Tinkerpop directory
-- `:install com.tinkerpop neo4j-gremlin 3.0.0.M7`
-- `:plugin use tinkerpop.neo4j`
-- `:remote connect tinkerpop.server conf/remote-objects.yaml`
+Build the project by running `mvn clean install` in the `core` directory.
 
 ##Input JSON syntax (through Redis)
 
@@ -80,7 +66,7 @@ rpush "histograph-queue" "{'action': 'add', 'type': 'vertex', 'source': 'graafje
 Add edges:
 
 ```
-rpush "histograph-queue" "{'action': 'add', 'type': 'edge', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'type': 'knows' } }"
+rpush "histograph-queue" "{'action': 'add', 'type': 'edge', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'type': 'hg:absorbedBy' } }"
 ```
 
 Delete vertices:
