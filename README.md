@@ -4,17 +4,16 @@ Utility that parses NDJSON objects from Redis' `histograph-queue`, adds it to th
 
 ##Preliminaries
 
-### Building
-
 - To build Histograph-Core, you need to install [Apache Maven](http://maven.apache.org/) first
+- To run Histograph-Core, Redis server (`redis-server`) needs to be running
 
-### Running
-
-- To run Histograph-Core, Redis needs to be running
-
-## Building
+## Building Histograph-Core
 
 Build the project by running `mvn clean install` in the `core` directory.
+
+## Running Histograph-Core
+
+Run the program by executing `bin/histograph-core.sh`.
 
 ##Input JSON syntax (through Redis)
 
