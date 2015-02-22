@@ -13,22 +13,22 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.queue.NDJSONTokens.RelationTokens;
-import org.waag.histograph.reasoner.CypherAtomicInferencer;
+import org.waag.histograph.reasoner.AtomicInferencer;
 import org.waag.histograph.reasoner.GraphTypes;
-import org.waag.histograph.util.CypherGraphMethods;
+import org.waag.histograph.util.GraphMethods;
 
-public class CypherInputReader {
+public class InputReader {
 	
 	private GraphDatabaseService db;
 	private ExecutionEngine engine;
-	private static CypherGraphMethods graphMethods;
-	private static CypherAtomicInferencer atomicInferencer;
+	private static GraphMethods graphMethods;
+	private static AtomicInferencer atomicInferencer;
 	
-	public CypherInputReader(GraphDatabaseService db) {
+	public InputReader(GraphDatabaseService db) {
 		this.db = db;
 		engine = new ExecutionEngine(db);
-		graphMethods = new CypherGraphMethods(db, engine);
-		atomicInferencer = new CypherAtomicInferencer(db, engine);
+		graphMethods = new GraphMethods(db, engine);
+		atomicInferencer = new AtomicInferencer(db, engine);
 	}
 	
 	public void parse(JSONObject obj) throws IOException {

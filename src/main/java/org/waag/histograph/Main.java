@@ -9,7 +9,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import org.json.JSONObject;
-import org.waag.histograph.queue.CypherInputReader;
+import org.waag.histograph.queue.InputReader;
 import org.waag.histograph.queue.NDJSONTokens;
 import org.waag.histograph.reasoner.GraphTypes;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -71,7 +71,7 @@ public class Main {
 		
 		System.out.println("Initializing Neo4j database...");
         GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase("/tmp/histograph");
-        CypherInputReader inputReader = new CypherInputReader(db);
+        InputReader inputReader = new InputReader(db);
         initializeIndices(db);
 
 		List<String> messages = null;

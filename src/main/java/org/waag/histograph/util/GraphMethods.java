@@ -9,17 +9,18 @@ import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.queue.NDJSONTokens;
 import org.waag.histograph.reasoner.GraphTypes;
 
-public class CypherGraphMethods {
+public class GraphMethods {
 	
 	private GraphDatabaseService db;
 	private ExecutionEngine engine;
 	
-	public CypherGraphMethods (GraphDatabaseService db, ExecutionEngine engine) {
+	public GraphMethods (GraphDatabaseService db, ExecutionEngine engine) {
 		this.db = db;
 		this.engine = engine;
 	}
@@ -62,6 +63,13 @@ public class CypherGraphMethods {
 	
 	public boolean edgeExists(Map<String, String> params) throws IOException {
 		return (getEdge(params) != null);
+	}
+	
+	public boolean edgeExists(Node n1, Node n2, RelationshipType type) throws IOException {
+		for (Relationship r : n1.getRelationships(type)) {
+			if (r.getOtherNode(n1).equals(n2)) return true;
+		}
+		return false;
 	}
 	
 	public boolean edgeAbsent(Map<String, String> params) throws IOException {

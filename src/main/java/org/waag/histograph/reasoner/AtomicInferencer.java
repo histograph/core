@@ -11,16 +11,16 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.queue.NDJSONTokens;
-import org.waag.histograph.util.CypherGraphMethods;
+import org.waag.histograph.util.GraphMethods;
 
-public class CypherAtomicInferencer {
+public class AtomicInferencer {
 
 	private GraphDatabaseService db;
-	private static CypherGraphMethods graphMethods;
+	private static GraphMethods graphMethods;
 	
-	public CypherAtomicInferencer (GraphDatabaseService db, ExecutionEngine engine) {
+	public AtomicInferencer (GraphDatabaseService db, ExecutionEngine engine) {
 		this.db = db;
-		graphMethods = new CypherGraphMethods(db, engine);
+		graphMethods = new GraphMethods(db, engine);
 	}
 	
 	public void inferAtomic(Map<String, String> params, Node fromNode, Node toNode) throws IOException {
