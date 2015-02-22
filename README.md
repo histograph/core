@@ -4,7 +4,13 @@ Utility that parses NDJSON objects from Redis' `histograph-queue`, adds it to th
 
 ##Preliminaries
 
-- To build Histograph-Core, you need to install [Apache Maven](http://maven.apache.org/) first
+- To build Histograph-Core:
+  - You'll need Java 7 or 8 (Download JDK [here](http://www.oracle.com/technetwork/java/javase/downloads/index.html))
+  - You need to install [Apache Maven](http://maven.apache.org/)
+  - Make sure `$JAVA_HOME` is set to JDK 7 or 8
+    - OS X: `export JAVA_HOME=$(/usr/libexec/java_home -v 1.7` or `-v 1.8`
+    - Linux: `TODO`
+  - Double check with `mvn -v` if Maven uses the correct Java version
 - To run Histograph-Core, Redis server (`redis-server`) needs to be running
 
 ## Building Histograph-Core
