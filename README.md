@@ -26,37 +26,32 @@ Run the program by executing `bin/histograph-core.sh`.
 JSON PIT object:
 
 ```
-     {
-       "action": ["add", "delete", "update"],
-       "type": "pit",
-		   "source": String,
-       "data": {
-			   "id": integer
-			   "type": String
-			   "name": String
-		   }
-     }
+	{
+		"action": ["add", "delete", "update"],
+		"type": "pit",
+		"layer": String,
+		"data":
+			"id": integer,
+			"type": String,
+			"name": String,
+			"geometry": String (optional)
+		}
+	}
 ```
 	
 JSON Relation object:
 
 ```
-     {
-       "action": ["add", "delete"],
-       "type": "relation",
-		   "source": string,
-       "data": {
-	       "from": { 
-	         "id": int,
-	         [optional: "source": source]
-	       },
-	       "to": { 
-	         "id": int,
-	         [optional: "source": source]
-	       },
-	       "type": String
-	     }
-     }
+	{
+		"action": ["add", "delete"],
+		"type": "relation",
+		"source": String,
+		"data": {
+			"from": [int | String], (internal ID or hgID)
+			"to": [int | String] (internal ID or hgID)
+			"type": String
+		}
+	}
 ```
 
 ## I/O examples through Redis
