@@ -12,6 +12,9 @@ import org.json.JSONObject;
 import org.waag.histograph.queue.InputReader;
 import org.waag.histograph.queue.NDJSONTokens;
 import org.waag.histograph.reasoner.GraphTypes;
+import org.waag.histograph.reasoner.TransitiveInferencer;
+import org.neo4j.cypher.javacompat.ExecutionEngine;
+import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
@@ -78,6 +81,11 @@ public class Main {
 		int messagesParsed = 0;
 		
 		try (FileWriter fileOut = new FileWriter("errors.txt", true)) {
+			
+//			ExecutionEngine engine = new ExecutionEngine(db);
+//			TransitiveInferencer ti = new TransitiveInferencer(db, engine);
+//			ti.inferTransitiveEdges();
+			
 			System.out.println("Ready to take messages.");
 			while (true) {
 				try {
@@ -95,6 +103,8 @@ public class Main {
 					inputReader.parse(obj);				
 				} catch (IOException e) {
 					fileOut.write("ERROR: " + e.getMessage() + "\n");
+				} catch (ConstraintViolationException e) {
+					fileOut.write("Duplicate vertex: " + e.getMessage() + "\n");
 				}
 				messagesParsed ++;
 				int messagesLeft = jedis.llen("histograph-queue").intValue();
@@ -103,7 +113,7 @@ public class Main {
 				}
 			}
 		} catch (IOException e) {
-			System.out.println("Error: " + e.getMessage());
+			System.out.println("Error: " + e.getMessage()); 
 		}
 	}
 }
