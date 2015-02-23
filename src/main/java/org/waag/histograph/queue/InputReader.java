@@ -135,8 +135,16 @@ public class InputReader {
 		
 		// Update vertex
 		try (Transaction tx = db.beginTx(); ) {
-			node.setProperty(NDJSONTokens.PITTokens.NAME, params.get(NDJSONTokens.PITTokens.NAME));
-			node.setProperty(NDJSONTokens.PITTokens.TYPE, params.get(NDJSONTokens.PITTokens.TYPE));
+			// Remove all old properties
+			for (String key : node.getPropertyKeys()) {
+				node.removeProperty(key);
+			}
+			
+			// Add all new properties
+			for (Entry<String, String> entry : params.entrySet()) {
+				node.setProperty(entry.getKey(), entry.getValue());
+			}
+			
 			tx.success();
 		}
 		
@@ -202,7 +210,7 @@ public class InputReader {
 		if (node == null) throw new IOException("Vertex with hgID " + hgID + " not found in graph.");
 		
 		try (Transaction tx = db.beginTx(); ) {
-			// Remove all relationships
+			// Remove all associated relationships
 			Iterable<Relationship> relationships = node.getRelationships();
 			for (Relationship rel : relationships) {
 				rel.delete();
@@ -238,8 +246,14 @@ public class InputReader {
 			map.put(NDJSONTokens.General.HGID, parseHGid(layer, data.get(NDJSONTokens.PITTokens.ID).toString()));
 			map.put(NDJSONTokens.PITTokens.TYPE, data.get(NDJSONTokens.PITTokens.TYPE).toString());
 			map.put(NDJSONTokens.General.LAYER, layer);
+			
+			if (data.has(NDJSONTokens.PITTokens.GEOMETRY)) {
+				map.put(NDJSONTokens.PITTokens.GEOMETRY, data.get(NDJSONTokens.PITTokens.GEOMETRY).toString());
+			}
+			
 			return map;
 		} catch (JSONException e) {
+			System.out.println("Error: " + e.getMessage());
 			throw new IOException("Vertex token(s) missing (" + NDJSONTokens.PITTokens.ID + "/" + NDJSONTokens.PITTokens.NAME + "/" + NDJSONTokens.PITTokens.TYPE + ").");
 		}
 	}
@@ -251,7 +265,7 @@ public class InputReader {
 			map.put(NDJSONTokens.RelationTokens.FROM, parseHGid(layer, data.get(NDJSONTokens.RelationTokens.FROM).toString()));
 			map.put(NDJSONTokens.RelationTokens.TO, parseHGid(layer, data.get(NDJSONTokens.RelationTokens.TO).toString()));
 			map.put(NDJSONTokens.RelationTokens.LABEL, data.get(NDJSONTokens.RelationTokens.LABEL).toString());
-			map.put(NDJSONTokens.General.LAYER, layer);
+			map.put(NDJSONTokens.General.LAYER, layer);			
 			return map;
 		} catch (JSONException e) {
 			throw new IOException("Edge token(s) missing (" + NDJSONTokens.RelationTokens.FROM + "/" + NDJSONTokens.RelationTokens.TO + "/" + NDJSONTokens.RelationTokens.LABEL + ").");

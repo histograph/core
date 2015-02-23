@@ -80,37 +80,37 @@ public class Main {
 		List<String> messages = null;
 		int messagesParsed = 0;
 					
-//			ExecutionEngine engine = new ExecutionEngine(db);
-//			TransitiveInferencer ti = new TransitiveInferencer(db, engine);
-//			ti.inferTransitiveEdges();
+//		ExecutionEngine engine = new ExecutionEngine(db);
+//		TransitiveInferencer ti = new TransitiveInferencer(db, engine);
+//		ti.inferTransitiveEdges();
 			
-			System.out.println("Ready to take messages.");
-			while (true) {
-				try {
-					messages = jedis.blpop(0, "histograph-queue");
-				} catch (JedisConnectionException e) {
-					System.out.println("Redis connection error: " + e.getMessage());
-					System.exit(1);
-				}
-	
-				String payload = messages.get(1);
-	//			System.out.println("Message received: " + payload);
-				
-				try {
-					JSONObject obj = new JSONObject(payload);
-					inputReader.parse(obj);				
-				} catch (IOException e) {
-					writeToFile("errors.txt", "Error: ", e.getMessage());
-				} catch (ConstraintViolationException e) {
-					writeToFile("duplicates.txt", "Duplicate vertex: ", e.getMessage());
-				}
-				messagesParsed ++;
-				int messagesLeft = jedis.llen("histograph-queue").intValue();
-				if (messagesParsed % 100 == 0) {
-					System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
-				}
+		System.out.println("Ready to take messages.");
+		while (true) {
+			try {
+				messages = jedis.blpop(0, "histograph-queue");
+			} catch (JedisConnectionException e) {
+				System.out.println("Redis connection error: " + e.getMessage());
+				System.exit(1);
+			}
+
+			String payload = messages.get(1);
+//			System.out.println("Message received: " + payload);
+			
+			try {
+				JSONObject obj = new JSONObject(payload);
+				inputReader.parse(obj);				
+			} catch (IOException e) {
+				writeToFile("errors.txt", "Error: ", e.getMessage());
+			} catch (ConstraintViolationException e) {
+				writeToFile("duplicates.txt", "Duplicate vertex: ", e.getMessage());
+			}
+			messagesParsed ++;
+			int messagesLeft = jedis.llen("histograph-queue").intValue();
+			if (messagesParsed % 100 == 0) {
+				System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
 			}
 		}
+	}
 	
 	private void writeToFile(String fileName, String header, String message) {
 		try {

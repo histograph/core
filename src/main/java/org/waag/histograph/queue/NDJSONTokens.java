@@ -24,7 +24,8 @@ public final class NDJSONTokens {
 	public final class PITTokens {
 	    public static final String ID = "id";
 	    public static final String TYPE = "type";
-	    public static final String NAME = "name";		
+	    public static final String NAME = "name";
+	    public static final String GEOMETRY = "geometry";
 	}
 	
 	public final class RelationTokens {
