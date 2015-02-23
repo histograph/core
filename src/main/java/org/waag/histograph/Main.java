@@ -79,9 +79,7 @@ public class Main {
 
 		List<String> messages = null;
 		int messagesParsed = 0;
-		
-		try (FileWriter fileOut = new FileWriter("errors.txt", true)) {
-			
+					
 //			ExecutionEngine engine = new ExecutionEngine(db);
 //			TransitiveInferencer ti = new TransitiveInferencer(db, engine);
 //			ti.inferTransitiveEdges();
@@ -102,9 +100,9 @@ public class Main {
 					JSONObject obj = new JSONObject(payload);
 					inputReader.parse(obj);				
 				} catch (IOException e) {
-					fileOut.write("ERROR: " + e.getMessage() + "\n");
+					writeToFile("errors.txt", "Error: ", e.getMessage());
 				} catch (ConstraintViolationException e) {
-					fileOut.write("Duplicate vertex: " + e.getMessage() + "\n");
+					writeToFile("duplicates.txt", "Duplicate vertex: ", e.getMessage());
 				}
 				messagesParsed ++;
 				int messagesLeft = jedis.llen("histograph-queue").intValue();
@@ -112,8 +110,15 @@ public class Main {
 					System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
 				}
 			}
-		} catch (IOException e) {
-			System.out.println("Error: " + e.getMessage()); 
 		}
-	}
+	
+	private void writeToFile(String fileName, String header, String message) {
+		try {
+			FileWriter fileOut = new FileWriter(fileName, true);
+			fileOut.write(header + message + "\n");
+			fileOut.close();
+		} catch (Exception e) {
+			System.out.println("Unable to write '" + message + "' to file '" + fileName + "'.");
+		}	
+	}	
 }

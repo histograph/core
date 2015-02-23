@@ -1,6 +1,7 @@
 target
 dump.rdb
 errors.txt
+duplicates.txt
 .settings
 .classpath
 .project
