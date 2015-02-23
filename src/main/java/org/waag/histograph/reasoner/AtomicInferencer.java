@@ -92,6 +92,7 @@ public class AtomicInferencer {
 		HashMap<String, String> inferredEdgeParams = new HashMap<String, String>(params);
 		for (String label : labels) {
 			inferredEdgeParams.put(NDJSONTokens.RelationTokens.LABEL, label);
+			inferredEdgeParams.put(NDJSONTokens.General.LAYER, "inferred_from_" + params.get(NDJSONTokens.General.LAYER));
 			
 			// Take next label if edge already exists
 			if (graphMethods.edgeExists(inferredEdgeParams)) continue;
