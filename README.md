@@ -19,7 +19,8 @@ Build the project by running `mvn clean install` in the `core` directory.
 
 ## Running Histograph-Core
 
-Run the program by executing `bin/histograph-core.sh`.
+- Run the program by executing `bin/histograph-core.sh`.
+- Run the program with verbose output by executing `bin/histograph-core.sh -v`.
 
 ##Input JSON syntax (through Redis)
 
@@ -47,8 +48,8 @@ JSON Relation object:
 		"type": "relation",
 		"source": String,
 		"data": {
-			"from": [int | String], (internal ID or hgID)
-			"to": [int | String] (internal ID or hgID)
+			"from": [integer | String], (internal ID or hgID)
+			"to": [integer | String], (internal ID or hgID)
 			"type": String
 		}
 	}
