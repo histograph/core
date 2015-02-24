@@ -4,15 +4,18 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
+import org.eclipse.jetty.util.log.Log;
 import org.json.JSONObject;
 import org.waag.histograph.queue.InputReader;
 import org.waag.histograph.queue.NDJSONTokens;
 import org.waag.histograph.reasoner.GraphTypes;
 import org.waag.histograph.reasoner.TransitiveInferencer;
+import org.waag.histograph.util.NoLogging;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -27,11 +30,19 @@ import org.neo4j.server.configuration.ServerConfigurator;
 @SuppressWarnings("deprecation")
 public class Main {
 
-	Jedis jedis;
 	private final String VERSION = "0.1.0";
 	private final String NEO4J_PATH = "/tmp/histograph";
+	
+	private final String WEBSERVER_ADDRESS = "localhost";
+	private final String WEBSERVER_PORT = "7474";
+	
+	Jedis jedis;
 
 	public static void main(String[] argv) {
+		if (!(argv.length > 0 && argv[0].equals("-v"))) {
+			disableLogging();
+		}
+			
 		new Main().start();
 	}
 
@@ -45,7 +56,7 @@ public class Main {
 		System.out.println("    ●───────●");
 	}
 	
-	private void start() {		
+	private void start() {
 		printAsciiArt();
 
 		System.out.println("Connecting to Redis server...");
@@ -60,8 +71,16 @@ public class Main {
 		}
 		
 		System.out.println("Initializing Neo4j database...");
-        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(NEO4J_PATH);
-        
+		
+		GraphDatabaseService db = null;
+		
+		try {
+			db = new GraphDatabaseFactory().newEmbeddedDatabase(NEO4J_PATH);
+		} catch (RuntimeException e) {
+			System.out.println("Unable to start graph database on " + NEO4J_PATH + ".");
+			System.exit(1);
+		}
+		
         initializeIndices(db);
         initializeServer(db);
         
@@ -107,14 +126,16 @@ public class Main {
         try {
         	GraphDatabaseAPI api = (GraphDatabaseAPI) db;
         	ServerConfigurator config = new ServerConfigurator(api);
-            config.configuration().addProperty(Configurator.WEBSERVER_ADDRESS_PROPERTY_KEY, "localhost");
-            config.configuration().addProperty(Configurator.WEBSERVER_PORT_PROPERTY_KEY, "7474");
+            config.configuration().addProperty(Configurator.WEBSERVER_ADDRESS_PROPERTY_KEY, WEBSERVER_ADDRESS);
+            config.configuration().addProperty(Configurator.WEBSERVER_PORT_PROPERTY_KEY, WEBSERVER_PORT);
         
             neoServerBootstrapper = new WrappingNeoServerBootstrapper(api, config);
             neoServerBootstrapper.start();
         } catch (Exception e) {
         	System.out.println("Server exception: " + e.getMessage());
         }
+        
+        System.out.println("Neo4j listening on http://" + WEBSERVER_ADDRESS + ":" + WEBSERVER_PORT + "/");
 	}
 	
 	private void writeToFile(String fileName, String header, String message) {
@@ -142,5 +163,11 @@ public class Main {
 		    schema.awaitIndexesOnline(10, TimeUnit.MINUTES);
 		    tx.success();
 		}
+	}
+	
+	private static void disableLogging () {
+		Logger globalLogger = Logger.getLogger("");
+		globalLogger.setLevel(java.util.logging.Level.OFF);
+		Log.setLog(new NoLogging());
 	}
 }
