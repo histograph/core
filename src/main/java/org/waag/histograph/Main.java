@@ -19,40 +19,27 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.schema.Schema;
+import org.neo4j.kernel.GraphDatabaseAPI;
+import org.neo4j.server.WrappingNeoServerBootstrapper;
+import org.neo4j.server.configuration.Configurator;
+import org.neo4j.server.configuration.ServerConfigurator;
 
+@SuppressWarnings("deprecation")
 public class Main {
 
 	Jedis jedis;
+	private final String VERSION = "0.1.0";
+	private final String NEO4J_PATH = "/tmp/histograph";
 
 	public static void main(String[] argv) {
 		new Main().start();
 	}
 
-	private void initializeIndices (GraphDatabaseService db) {
-		System.out.println("Initializing schema and indices...");
-		
-		// Create indices
-		try (Transaction tx = db.beginTx()) {
-			Schema schema = db.schema();
-			if (!schema.getConstraints(GraphTypes.NodeType.PIT).iterator().hasNext()) {
-				schema.constraintFor(GraphTypes.NodeType.PIT).assertPropertyIsUnique(NDJSONTokens.General.HGID).create();
-				schema.indexFor(GraphTypes.NodeType.PIT).on(NDJSONTokens.PITTokens.NAME).create();
-			}
-			tx.success();
-		}
-		
-		try (Transaction tx = db.beginTx()) {
-		    Schema schema = db.schema();
-		    schema.awaitIndexesOnline(10, TimeUnit.MINUTES);
-		    tx.success();
-		}
-	}
-	
 	private void printAsciiArt () {
 		System.out.println("    ●───────●");
 		System.out.println("   /║       ║\\");
 		System.out.println("  / ║       ║ \\");
-		System.out.println(" ●  ║═══════║  ●    Histograph Core v0.1.0");
+		System.out.println(" ●  ║═══════║  ●    Histograph Core v" + VERSION);
 		System.out.println("  \\ ║       ║ /");
 		System.out.println("   \\║       ║/");
 		System.out.println("    ●───────●");
@@ -73,17 +60,19 @@ public class Main {
 		}
 		
 		System.out.println("Initializing Neo4j database...");
-        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase("/tmp/histograph");
-        InputReader inputReader = new InputReader(db);
+        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(NEO4J_PATH);
+        
         initializeIndices(db);
-
+        initializeServer(db);
+        
+        InputReader inputReader = new InputReader(db);
 		List<String> messages = null;
 		int messagesParsed = 0;
 					
 //		ExecutionEngine engine = new ExecutionEngine(db);
 //		TransitiveInferencer ti = new TransitiveInferencer(db, engine);
 //		ti.inferTransitiveEdges();
-			
+		
 		System.out.println("Ready to take messages.");
 		while (true) {
 			try {
@@ -112,6 +101,22 @@ public class Main {
 		}
 	}
 	
+	private void initializeServer (GraphDatabaseService db) {
+		WrappingNeoServerBootstrapper neoServerBootstrapper;
+        
+        try {
+        	GraphDatabaseAPI api = (GraphDatabaseAPI) db;
+        	ServerConfigurator config = new ServerConfigurator(api);
+            config.configuration().addProperty(Configurator.WEBSERVER_ADDRESS_PROPERTY_KEY, "localhost");
+            config.configuration().addProperty(Configurator.WEBSERVER_PORT_PROPERTY_KEY, "7474");
+        
+            neoServerBootstrapper = new WrappingNeoServerBootstrapper(api, config);
+            neoServerBootstrapper.start();
+        } catch (Exception e) {
+        	System.out.println("Server exception: " + e.getMessage());
+        }
+	}
+	
 	private void writeToFile(String fileName, String header, String message) {
 		try {
 			FileWriter fileOut = new FileWriter(fileName, true);
@@ -120,5 +125,22 @@ public class Main {
 		} catch (Exception e) {
 			System.out.println("Unable to write '" + message + "' to file '" + fileName + "'.");
 		}	
-	}	
+	}
+	
+	private void initializeIndices (GraphDatabaseService db) {		
+		try (Transaction tx = db.beginTx()) {
+			Schema schema = db.schema();
+			if (!schema.getConstraints(GraphTypes.NodeType.PIT).iterator().hasNext()) {
+				schema.constraintFor(GraphTypes.NodeType.PIT).assertPropertyIsUnique(NDJSONTokens.General.HGID).create();
+				schema.indexFor(GraphTypes.NodeType.PIT).on(NDJSONTokens.PITTokens.NAME).create();
+			}
+			tx.success();
+		}
+		
+		try (Transaction tx = db.beginTx()) {
+		    Schema schema = db.schema();
+		    schema.awaitIndexesOnline(10, TimeUnit.MINUTES);
+		    tx.success();
+		}
+	}
 }
