@@ -14,7 +14,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.queue.NDJSONTokens.RelationTokens;
 import org.waag.histograph.reasoner.AtomicInferencer;
-import org.waag.histograph.reasoner.GraphTypes;
+import org.waag.histograph.reasoner.GraphDefinitions;
 import org.waag.histograph.util.GraphMethods;
 
 public class InputReader {
@@ -161,7 +161,7 @@ public class InputReader {
 		// Vertex lookup is omitted due to uniqueness constraint
 		try (Transaction tx = db.beginTx(); ) {
 			Node newPIT = db.createNode();
-			newPIT.addLabel(GraphTypes.NodeType.PIT);
+			newPIT.addLabel(GraphDefinitions.NodeType.PIT);
 			
 			for (Entry <String,String> entry : params.entrySet()) {
 				newPIT.setProperty(entry.getKey(), entry.getValue());
@@ -189,7 +189,7 @@ public class InputReader {
 
 		// Create edge between vertices
 		try (Transaction tx = db.beginTx(); ) {
-			Relationship rel = fromNode.createRelationshipTo(toNode, GraphTypes.RelationType.fromLabel(params.get(NDJSONTokens.RelationTokens.LABEL)));
+			Relationship rel = fromNode.createRelationshipTo(toNode, GraphDefinitions.RelationType.fromLabel(params.get(NDJSONTokens.RelationTokens.LABEL)));
 			rel.setProperty(NDJSONTokens.General.LAYER, params.get(NDJSONTokens.General.LAYER));
 			tx.success();
 		}

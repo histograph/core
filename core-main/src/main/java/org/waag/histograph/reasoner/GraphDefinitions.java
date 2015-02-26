@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 
-public final class GraphTypes {
+public final class GraphDefinitions {
 	
 	public enum NodeType implements Label {
 		PIT;
@@ -44,25 +44,49 @@ public final class GraphTypes {
 		}
 	}
 	
-	public final static String[] PRIMARY_RELATIONS = {RelationType.SAMEAS.getLabel(), RelationType.ABSORBEDBY.getLabel(), RelationType.ISUSEDFOR.getLabel(), RelationType.LIESIN.getLabel()};
+	// All primary relations as defined in http://histograph.github.io/
+	public final static String[] PRIMARY_RELATIONS = {		RelationType.SAMEAS.getLabel(),
+															RelationType.ABSORBEDBY.getLabel(),
+															RelationType.ISUSEDFOR.getLabel(),
+															RelationType.LIESIN.getLabel()
+													};
 	
+	// All transitive relations, i.e. (a) --[rel]--> (b) --[rel]--> (c) IMPL (a) --[rel]--> (c)
+	public final static String[] TRANSITIVE_RELATIONS = {	RelationType.LIESIN.getLabel(), 
+															RelationType.PERIODBEFORE.getLabel(), 
+															RelationType.CONCEPTIN.getLabel()
+													};
+
+	// All atomic inferences as defined in http://histograph.github.io/
 	private final static class AtomicInferences {
-		private final static String[] ATOMIC_SAMEAS = {RelationType.CONCEPTIDENTICAL.getLabel(), RelationType.TYPEIDENTICAL.getLabel()};
-		private final static String[] ATOMIC_ABSORBEDBY = {RelationType.CONCEPTIN.getLabel(), RelationType.PERIODBEFORE.getLabel(), RelationType.TYPEIDENTICAL.getLabel(), RelationType.GEOMETRYINTERSECTS.getLabel()};
-		private final static String[] ATOMIC_ISUSEDFOR = {RelationType.CONCEPTIDENTICAL.getLabel(), RelationType.TYPEIDENTICAL.getLabel()};
-		private final static String[] ATOMIC_LIESIN = {RelationType.GEOMETRYINTERSECTS.getLabel()};
+		private final static String[] ATOMIC_SAMEAS = {		RelationType.CONCEPTIDENTICAL.getLabel(), 
+															RelationType.TYPEIDENTICAL.getLabel()
+													};
+		
+		private final static String[] ATOMIC_ABSORBEDBY = {	RelationType.CONCEPTIN.getLabel(), 
+															RelationType.PERIODBEFORE.getLabel(),
+															RelationType.TYPEIDENTICAL.getLabel(),
+															RelationType.GEOMETRYINTERSECTS.getLabel()
+													};
+		
+		private final static String[] ATOMIC_ISUSEDFOR = {	RelationType.CONCEPTIDENTICAL.getLabel(), 
+															RelationType.TYPEIDENTICAL.getLabel()
+													};
+		
+		private final static String[] ATOMIC_LIESIN = {		RelationType.GEOMETRYINTERSECTS.getLabel()
+													};
 	}
 	
 	public static String[] getAtomicRelationsFromLabel(String label) {
 		switch (RelationType.fromLabel(label)) {
 		case SAMEAS:
-			return GraphTypes.AtomicInferences.ATOMIC_SAMEAS;
+			return GraphDefinitions.AtomicInferences.ATOMIC_SAMEAS;
 		case ABSORBEDBY:
-			return GraphTypes.AtomicInferences.ATOMIC_ABSORBEDBY;
+			return GraphDefinitions.AtomicInferences.ATOMIC_ABSORBEDBY;
 		case ISUSEDFOR:
-			return GraphTypes.AtomicInferences.ATOMIC_ISUSEDFOR;
+			return GraphDefinitions.AtomicInferences.ATOMIC_ISUSEDFOR;
 		case LIESIN:
-			return GraphTypes.AtomicInferences.ATOMIC_LIESIN;
+			return GraphDefinitions.AtomicInferences.ATOMIC_LIESIN;
 		default:
 			return null;
 		}

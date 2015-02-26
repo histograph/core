@@ -29,16 +29,20 @@ public class TransitiveInferencer {
 		int roundCount, inferredCount = 0;
 		do {
 			roundCount = 0;
-			for (Relationship r : graphOps.getAllRelationships()) {
-				if (r.isType(GraphTypes.RelationType.SAMEAS)) {
-					Node n = r.getStartNode();
-					Node n2 = r.getEndNode();
-					
-					roundCount += inferSameAsTransitivity(n, n2);
-					roundCount += inferSameAsTransitivity(n2, n);
+			try (Transaction tx = db.beginTx();) {
+				for (Relationship r : graphOps.getAllRelationships()) {
+					if (r.isType(GraphDefinitions.RelationType.SAMEAS)) {
+						Node n = r.getStartNode();
+						Node n2 = r.getEndNode();
+						
+						roundCount += inferSameAsTransitivity(n, n2);
+						roundCount += inferSameAsTransitivity(n2, n);
+					}
 				}
+				inferredCount += roundCount;
+				System.out.println("  Inferred " + roundCount + " transitive edges this round.");
+				tx.success();
 			}
-			inferredCount += roundCount;
 		} while (roundCount > 0);
 		System.out.println("Inferred " + inferredCount + " transitive edges.");
 	}
@@ -46,20 +50,19 @@ public class TransitiveInferencer {
 	private int inferSameAsTransitivity(Node n1, Node n2) throws IOException {
 		String layer = "inferredTransitiveSameAsEdge";
 		int inferred = 0;
+		// (n1) --[SAMEAS]-- (n2) --[REL]--> (n3) should infer (n1) --[REL]--> (n3)
 		for (Relationship r : n2.getRelationships(Direction.OUTGOING)) {
 			Node n3 = r.getOtherNode(n2);
 			if (!n1.equals(n3)) {
 				RelationshipType type = r.getType();
 				if (!graphMethods.edgeExists(n1, n3, type)) {
-					try (Transaction tx = db.beginTx(); ) {
-						Relationship rel = n1.createRelationshipTo(n3, type);
-						rel.setProperty(NDJSONTokens.General.LAYER, layer);
-						tx.success();
-					}
+					Relationship rel = n1.createRelationshipTo(n3, type);
+					rel.setProperty(NDJSONTokens.General.LAYER, layer);
 					inferred++;
 				}
 			}
 		}
+		// (n1) --[SAMEAS]-- (n2) <--[REL]-- (n3) should infer (n1) <--[REL]-- (n3)
 		for (Relationship r : n2.getRelationships(Direction.INCOMING)) {
 			Node n3 = r.getOtherNode(n2);
 			if (!n1.equals(n3)) {

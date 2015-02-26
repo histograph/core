@@ -13,10 +13,8 @@ import org.eclipse.jetty.util.log.Log;
 import org.json.JSONObject;
 import org.waag.histograph.queue.InputReader;
 import org.waag.histograph.queue.NDJSONTokens;
-import org.waag.histograph.reasoner.GraphTypes;
-import org.waag.histograph.reasoner.TransitiveInferencer;
+import org.waag.histograph.reasoner.GraphDefinitions;
 import org.waag.histograph.util.NoLogging;
-import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
@@ -30,13 +28,15 @@ import org.neo4j.server.configuration.ServerConfigurator;
 @SuppressWarnings("deprecation")
 public class Main {
 
-	private final String VERSION = "0.1.0";
-	private final String NEO4J_PATH = "/tmp/histograph";
+	private static final String VERSION = "0.1.0";
+	private static final String NEO4J_PATH = "/tmp/histograph";
+	private static final String REDIS_QUEUE = "histograph-queue";
 	
-	private final String WEBSERVER_ADDRESS = "localhost";
-	private final String WEBSERVER_PORT = "7474";
+	private static final String WEBSERVER_ADDRESS = "localhost";
+	private static final String WEBSERVER_PORT = "7474";
 	
 	Jedis jedis;
+	GraphDatabaseService db;
 
 	public static void main(String[] argv) {
 		if (!(argv.length > 0 && argv[0].equals("-v"))) {
@@ -58,44 +58,21 @@ public class Main {
 	
 	private void start() {
 		printAsciiArt();
-
-		System.out.println("Connecting to Redis server...");
-		// Initialize Redis connection
-		jedis = new Jedis("localhost");
 		
-		try {
-			jedis.ping();
-		} catch (JedisConnectionException e) {
-			System.out.println("Could not connect to Redis server.");
-			System.exit(1);
-		}
+		System.out.println("Connecting to Redis server...");
+		initRedis();
 		
 		System.out.println("Initializing Neo4j database...");
-		
-		GraphDatabaseService db = null;
-		
-		try {
-			db = new GraphDatabaseFactory().newEmbeddedDatabase(NEO4J_PATH);
-		} catch (RuntimeException e) {
-			System.out.println("Unable to start graph database on " + NEO4J_PATH + ".");
-			System.exit(1);
-		}
-		
-        initializeIndices(db);
-        initializeServer(db);
+		initNeo4j();
         
         InputReader inputReader = new InputReader(db);
 		List<String> messages = null;
 		int messagesParsed = 0;
 					
-//		ExecutionEngine engine = new ExecutionEngine(db);
-//		TransitiveInferencer ti = new TransitiveInferencer(db, engine);
-//		ti.inferTransitiveEdges();
-		
 		System.out.println("Ready to take messages.");
 		while (true) {
 			try {
-				messages = jedis.blpop(0, "histograph-queue");
+				messages = jedis.blpop(0, REDIS_QUEUE);
 			} catch (JedisConnectionException e) {
 				System.out.println("Redis connection error: " + e.getMessage());
 				System.exit(1);
@@ -113,11 +90,36 @@ public class Main {
 				writeToFile("duplicates.txt", "Duplicate vertex: ", e.getMessage());
 			}
 			messagesParsed ++;
-			int messagesLeft = jedis.llen("histograph-queue").intValue();
+			int messagesLeft = jedis.llen(REDIS_QUEUE).intValue();
 			if (messagesParsed % 100 == 0) {
 				System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
 			}
 		}
+	}
+	
+	private void initRedis () {
+		// Initialize Redis connection
+		jedis = new Jedis("localhost");
+		
+		try {
+			jedis.ping();
+		} catch (JedisConnectionException e) {
+			System.out.println("Could not connect to Redis server.");
+			System.exit(1);
+		}
+	}
+	
+	private void initNeo4j () {		
+		try {
+			db = new GraphDatabaseFactory().newEmbeddedDatabase(NEO4J_PATH);
+		} catch (RuntimeException e) {
+			System.out.println("Unable to start graph database on " + NEO4J_PATH + ".");
+			e.printStackTrace();
+			System.exit(1);
+		}
+		
+        initializeIndices(db);
+        initializeServer(db);
 	}
 	
 	private void initializeServer (GraphDatabaseService db) {
@@ -151,9 +153,9 @@ public class Main {
 	private void initializeIndices (GraphDatabaseService db) {		
 		try (Transaction tx = db.beginTx()) {
 			Schema schema = db.schema();
-			if (!schema.getConstraints(GraphTypes.NodeType.PIT).iterator().hasNext()) {
-				schema.constraintFor(GraphTypes.NodeType.PIT).assertPropertyIsUnique(NDJSONTokens.General.HGID).create();
-				schema.indexFor(GraphTypes.NodeType.PIT).on(NDJSONTokens.PITTokens.NAME).create();
+			if (!schema.getConstraints(GraphDefinitions.NodeType.PIT).iterator().hasNext()) {
+				schema.constraintFor(GraphDefinitions.NodeType.PIT).assertPropertyIsUnique(NDJSONTokens.General.HGID).create();
+				schema.indexFor(GraphDefinitions.NodeType.PIT).on(NDJSONTokens.PITTokens.NAME).create();
 			}
 			tx.success();
 		}

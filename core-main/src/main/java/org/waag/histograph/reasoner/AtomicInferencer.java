@@ -31,7 +31,7 @@ public class AtomicInferencer {
 			throw new IOException ("Label missing from edge.");
 		}
 		
-		String[] atomicLabels = GraphTypes.getAtomicRelationsFromLabel(label);
+		String[] atomicLabels = GraphDefinitions.getAtomicRelationsFromLabel(label);
 		if (atomicLabels == null) {
 			System.out.println("No atomic relations associated with label " + label);
 			return;
@@ -48,7 +48,7 @@ public class AtomicInferencer {
 			throw new IOException ("Label missing from edge.");
 		}
 		
-		String[] atomicLabels = GraphTypes.getAtomicRelationsFromLabel(label);
+		String[] atomicLabels = GraphDefinitions.getAtomicRelationsFromLabel(label);
 		if (atomicLabels == null) {
 			System.out.println("No atomic relations associated with label " + label);
 			return;
@@ -77,7 +77,7 @@ public class AtomicInferencer {
 	
 	private boolean atomicEdgeCanBeRemoved(HashMap<String, String> atomicEdgeParams) throws IOException {
 		String edgeLabel = atomicEdgeParams.get(NDJSONTokens.RelationTokens.LABEL);
-		String[] primaryRels = GraphTypes.getPrimaryRelationsFromAtomic(edgeLabel);
+		String[] primaryRels = GraphDefinitions.getPrimaryRelationsFromAtomic(edgeLabel);
 		
 		for (String primaryRel : primaryRels) {
 			HashMap<String, String> primaryEdgeParams = new HashMap<String, String>(atomicEdgeParams);
@@ -99,7 +99,7 @@ public class AtomicInferencer {
 			
 			// Create edge between vertices
 			try (Transaction tx = db.beginTx(); ) {
-				Relationship rel = fromNode.createRelationshipTo(toNode, GraphTypes.RelationType.fromLabel(inferredEdgeParams.get(NDJSONTokens.RelationTokens.LABEL)));
+				Relationship rel = fromNode.createRelationshipTo(toNode, GraphDefinitions.RelationType.fromLabel(inferredEdgeParams.get(NDJSONTokens.RelationTokens.LABEL)));
 				rel.setProperty(NDJSONTokens.General.LAYER, inferredEdgeParams.get(NDJSONTokens.General.LAYER));
 				tx.success();
 			}

@@ -13,7 +13,7 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.queue.NDJSONTokens;
-import org.waag.histograph.reasoner.GraphTypes;
+import org.waag.histograph.reasoner.GraphDefinitions;
 
 public class GraphMethods {
 	
@@ -27,7 +27,7 @@ public class GraphMethods {
 	
 	public Node getVertex(String hgID) throws IOException {
         try (Transaction ignored = db.beginTx()) {
-        	try (ResourceIterator<Node> i = db.findNodesByLabelAndProperty(GraphTypes.NodeType.PIT, NDJSONTokens.General.HGID, hgID).iterator()) {
+        	try (ResourceIterator<Node> i = db.findNodesByLabelAndProperty(GraphDefinitions.NodeType.PIT, NDJSONTokens.General.HGID, hgID).iterator()) {
         		if (!i.hasNext()) return null;
         		Node out = i.next();
         		if (i.hasNext()) throw new IOException ("Multiple vertices with hgID '" + hgID + "' found in graph.");
@@ -47,7 +47,7 @@ public class GraphMethods {
 	public Relationship getEdge(Map<String, String> params) throws IOException {
 		ExecutionResult result;
 		try (Transaction ignored = db.beginTx()) {
-			String query = "match (p:" + GraphTypes.NodeType.PIT.toString() + " {" + NDJSONTokens.General.HGID + ": '" + escapeString(params.get(NDJSONTokens.RelationTokens.FROM)) + "'}) -[r:`" + GraphTypes.RelationType.fromLabel(params.get(NDJSONTokens.RelationTokens.LABEL)) + "`]-> (q:" + GraphTypes.NodeType.PIT.toString() + " {" + NDJSONTokens.General.HGID + ": '" + escapeString(params.get(NDJSONTokens.RelationTokens.TO)) + "'}) return r";
+			String query = "match (p:" + GraphDefinitions.NodeType.PIT.toString() + " {" + NDJSONTokens.General.HGID + ": '" + escapeString(params.get(NDJSONTokens.RelationTokens.FROM)) + "'}) -[r:`" + GraphDefinitions.RelationType.fromLabel(params.get(NDJSONTokens.RelationTokens.LABEL)) + "`]-> (q:" + GraphDefinitions.NodeType.PIT.toString() + " {" + NDJSONTokens.General.HGID + ": '" + escapeString(params.get(NDJSONTokens.RelationTokens.TO)) + "'}) return r";
 			result = engine.execute(query);
 			Iterator<Relationship> i = result.columnAs( "r" );
 
