@@ -12,7 +12,7 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 public class Main {
 	
 	Jedis jedis;
-	private static final String REDIS_ES_QUEUE = "histograph-es-queue";
+	private static final String REDIS_QUEUE = "histograph-es-queue";
 
 	public static void main (String[] argv) {
 		new Main().start();
@@ -33,7 +33,7 @@ public class Main {
 			
 			while (true) {
 				try {
-					messages = jedis.blpop(0, REDIS_ES_QUEUE);
+					messages = jedis.blpop(0, REDIS_QUEUE);
 				} catch (JedisConnectionException e) {
 					System.out.println("Redis connection error: " + e.getMessage());
 					System.exit(1);
@@ -45,7 +45,7 @@ public class Main {
 	//			inputReader.parse(obj);				
 				
 				messagesParsed ++;
-				int messagesLeft = jedis.llen(REDIS_ES_QUEUE).intValue();
+				int messagesLeft = jedis.llen(REDIS_QUEUE).intValue();
 				if (messagesParsed % 100 == 0) {
 					System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
 				}

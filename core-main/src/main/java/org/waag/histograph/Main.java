@@ -30,7 +30,9 @@ public class Main {
 
 	private static final String VERSION = "0.1.0";
 	private static final String NEO4J_PATH = "/tmp/histograph";
-	private static final String REDIS_QUEUE = "histograph-queue";
+	
+	private static final String IMPORT_QUEUE = "histograph-queue";
+	private static final String ES_QUEUE = "histograph-es-queue";
 	
 	private static final String WEBSERVER_ADDRESS = "localhost";
 	private static final String WEBSERVER_PORT = "7474";
@@ -67,18 +69,20 @@ public class Main {
         
         InputReader inputReader = new InputReader(db);
 		List<String> messages = null;
+		String payload = null;
 		int messagesParsed = 0;
 					
 		System.out.println("Ready to take messages.");
 		while (true) {
 			try {
-				messages = jedis.blpop(0, REDIS_QUEUE);
+				messages = jedis.blpop(0, IMPORT_QUEUE);
+				payload = messages.get(1);
+				jedis.rpush(ES_QUEUE, payload);
 			} catch (JedisConnectionException e) {
 				System.out.println("Redis connection error: " + e.getMessage());
 				System.exit(1);
 			}
 
-			String payload = messages.get(1);
 //			System.out.println("Message received: " + payload);
 			
 			try {
@@ -90,7 +94,7 @@ public class Main {
 				writeToFile("duplicates.txt", "Duplicate vertex: ", e.getMessage());
 			}
 			messagesParsed ++;
-			int messagesLeft = jedis.llen(REDIS_QUEUE).intValue();
+			int messagesLeft = jedis.llen(IMPORT_QUEUE).intValue();
 			if (messagesParsed % 100 == 0) {
 				System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
 			}
