@@ -26,6 +26,8 @@ public final class NDJSONTokens {
 	    public static final String TYPE = "type";
 	    public static final String NAME = "name";
 	    public static final String GEOMETRY = "geometry";
+	    public static final String STARTDATE = "startDate";
+	    public static final String ENDDATE = "endDate";
 	}
 	
 	public final class RelationTokens {
