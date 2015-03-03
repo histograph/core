@@ -7,7 +7,7 @@ Utility that parses NDJSON objects from Redis' `histograph-queue`, adds it to th
 - To build Histograph-Core:
   - You'll need Java 7 or 8 (Download JDK [here](http://www.oracle.com/technetwork/java/javase/downloads/index.html))
   - You'll need [Apache Maven](http://maven.apache.org/)
-  - You'll need a Histograph [configuration file](https://github.com/histograph/config), either set as environment variable `HISTOGRAPH_CONFIG` or as argument when running
+  - You'll need a Histograph [configuration file](https://github.com/histograph/config), with either an environment variable `HISTOGRAPH_CONFIG` pointing to it, or passed on as an argument
   - Make sure `$JAVA_HOME` is set to JDK 7 or 8
     - OS X: `export JAVA_HOME=$(/usr/libexec/java_home -v 1.7)` (or `-v 1.8`)
     - Linux: `TODO`
@@ -23,7 +23,7 @@ Build the project by running `mvn clean install` in the `core` directory.
 - Run the program by executing `bin/histograph-core.sh`.
 - Arguments:
   - `-v` or `-verbose`: Toggle verbose output
-  - `-config <file>`: Run with provided configuration file, like [this](https://github.com/histograph/config).
+  - `-config <file>`: Run with a configuration file, structured like [this](https://github.com/histograph/config).
 
 NOTE: The argument `-config` is optional -- the `HISTOGRAPH_CONFIG` environment variable is read if it is omitted.
 
