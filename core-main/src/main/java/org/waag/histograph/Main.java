@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import org.waag.histograph.queue.InputReader;
 import org.waag.histograph.queue.NDJSONTokens;
 import org.waag.histograph.reasoner.GraphDefinitions;
+import org.waag.histograph.util.HistographConfiguration;
 import org.waag.histograph.util.NoLogging;
 import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -28,21 +29,46 @@ import org.neo4j.server.configuration.ServerConfigurator;
 @SuppressWarnings("deprecation")
 public class Main {
 
-	private static final String VERSION = "0.1.0";
-	private static final String NEO4J_PATH = "/tmp/histograph";
-	
-	private static final String IMPORT_QUEUE = "histograph-queue";
-	private static final String ES_QUEUE = "histograph-es-queue";
-	
-	private static final String WEBSERVER_ADDRESS = "localhost";
-	private static final String WEBSERVER_PORT = "7474";
+	private static final String VERSION = "0.1.1";
 	
 	Jedis jedis;
 	GraphDatabaseService db;
+	
+	static HistographConfiguration configuration;
 
 	public static void main(String[] argv) {
-		if (!(argv.length > 0 && argv[0].equals("-v"))) {
+		boolean fromFile = false;
+		boolean logging = false;
+		
+		for (int i=0; i<argv.length; i++) {
+			if (argv[i].equals("-v") || argv[i].equals("-verbose")) {
+				logging = true;
+			}
+			if (argv[i].equals("-config")) {
+				try {
+					configuration = HistographConfiguration.fromFile(argv[i+1]);
+					fromFile = true;
+				} catch (ArrayIndexOutOfBoundsException e) {
+					System.out.println("Error: No config file provided.");
+					System.exit(1);
+				} catch (IOException e) {
+					System.out.println("Error: " + e.getMessage());
+					System.exit(1);
+				}
+			}
+		}
+		
+		if (!logging) {
 			disableLogging();
+		}
+		
+		if (!fromFile) {
+			try {
+				configuration = HistographConfiguration.fromEnv();
+			} catch (IOException e) {
+				System.out.println("Error: " + e.getMessage());
+				System.exit(1);
+			}
 		}
 			
 		new Main().start();
@@ -75,9 +101,9 @@ public class Main {
 		System.out.println("Ready to take messages.");
 		while (true) {
 			try {
-				messages = jedis.blpop(0, IMPORT_QUEUE);
+				messages = jedis.blpop(0, configuration.REDIS_HISTOGRAPH_QUEUE);
 				payload = messages.get(1);
-				jedis.rpush(ES_QUEUE, payload);
+				jedis.rpush(configuration.REDIS_ES_QUEUE, payload);
 			} catch (JedisConnectionException e) {
 				System.out.println("Redis connection error: " + e.getMessage());
 				System.exit(1);
@@ -94,7 +120,7 @@ public class Main {
 				writeToFile("duplicates.txt", "Duplicate vertex: ", e.getMessage());
 			}
 			messagesParsed ++;
-			int messagesLeft = jedis.llen(IMPORT_QUEUE).intValue();
+			int messagesLeft = jedis.llen(configuration.REDIS_HISTOGRAPH_QUEUE).intValue();
 			if (messagesParsed % 100 == 0) {
 				System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
 			}
@@ -115,9 +141,9 @@ public class Main {
 	
 	private void initNeo4j () {		
 		try {
-			db = new GraphDatabaseFactory().newEmbeddedDatabase(NEO4J_PATH);
+			db = new GraphDatabaseFactory().newEmbeddedDatabase(configuration.NEO4J_FILEPATH);
 		} catch (RuntimeException e) {
-			System.out.println("Unable to start graph database on " + NEO4J_PATH + ".");
+			System.out.println("Unable to start graph database on " + configuration.NEO4J_FILEPATH + ".");
 			e.printStackTrace();
 			System.exit(1);
 		}
@@ -132,8 +158,8 @@ public class Main {
         try {
         	GraphDatabaseAPI api = (GraphDatabaseAPI) db;
         	ServerConfigurator config = new ServerConfigurator(api);
-            config.configuration().addProperty(Configurator.WEBSERVER_ADDRESS_PROPERTY_KEY, WEBSERVER_ADDRESS);
-            config.configuration().addProperty(Configurator.WEBSERVER_PORT_PROPERTY_KEY, WEBSERVER_PORT);
+            config.configuration().addProperty(Configurator.WEBSERVER_ADDRESS_PROPERTY_KEY, "localhost");
+            config.configuration().addProperty(Configurator.WEBSERVER_PORT_PROPERTY_KEY, configuration.NEO4J_PORT);
         
             neoServerBootstrapper = new WrappingNeoServerBootstrapper(api, config);
             neoServerBootstrapper.start();
@@ -141,7 +167,7 @@ public class Main {
         	System.out.println("Server exception: " + e.getMessage());
         }
         
-        System.out.println("Neo4j listening on http://" + WEBSERVER_ADDRESS + ":" + WEBSERVER_PORT + "/");
+        System.out.println("Neo4j listening on http://localhost:" + configuration.NEO4J_PORT + "/");
 	}
 	
 	private void writeToFile(String fileName, String header, String message) {
