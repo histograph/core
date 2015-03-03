@@ -247,7 +247,7 @@ public class InputReader {
 			map.put(NDJSONTokens.PITTokens.TYPE, data.get(NDJSONTokens.PITTokens.TYPE).toString());
 			map.put(NDJSONTokens.General.LAYER, layer);
 			
-			// Optional tokens
+			// Optional predefined tokens
 			if (data.has(NDJSONTokens.PITTokens.GEOMETRY)) {
 				map.put(NDJSONTokens.PITTokens.GEOMETRY, data.get(NDJSONTokens.PITTokens.GEOMETRY).toString());
 			}
@@ -256,6 +256,11 @@ public class InputReader {
 			}
 			if (data.has(NDJSONTokens.PITTokens.ENDDATE)) {
 				map.put(NDJSONTokens.PITTokens.ENDDATE, data.get(NDJSONTokens.PITTokens.ENDDATE).toString());
+			}
+			
+			// Other specific data, add as single string
+			if (data.has(NDJSONTokens.PITTokens.DATA)) {
+				map.put(NDJSONTokens.PITTokens.DATA, data.getJSONObject(NDJSONTokens.PITTokens.DATA).toString());
 			}
 			
 			return map;
