@@ -257,6 +257,9 @@ public class InputReader {
 			if (data.has(NDJSONTokens.PITTokens.ENDDATE)) {
 				map.put(NDJSONTokens.PITTokens.ENDDATE, data.get(NDJSONTokens.PITTokens.ENDDATE).toString());
 			}
+			if (data.has(NDJSONTokens.PITTokens.URI)) {
+				map.put(NDJSONTokens.PITTokens.URI, data.get(NDJSONTokens.PITTokens.URI).toString());
+			}
 			
 			// Other specific data, add as single string
 			if (data.has(NDJSONTokens.PITTokens.DATA)) {

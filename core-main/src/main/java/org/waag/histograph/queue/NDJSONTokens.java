@@ -7,7 +7,7 @@ public final class NDJSONTokens {
 		public static final String LAYER = "layer";
 		public static final String TYPE = "type";
 		public static final String ACTION = "action";
-	    public static final String HGID = "hgID";
+	    public static final String HGID = "hgid";
 	}
 	
 	public final class Types {
@@ -25,6 +25,7 @@ public final class NDJSONTokens {
 	    public static final String ID = "id";
 	    public static final String TYPE = "type";
 	    public static final String NAME = "name";
+	    public static final String URI = "uri";
 	    public static final String GEOMETRY = "geometry";
 	    public static final String STARTDATE = "startDate";
 	    public static final String ENDDATE = "endDate";
