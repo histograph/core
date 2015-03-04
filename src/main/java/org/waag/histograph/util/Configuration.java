@@ -7,7 +7,7 @@ import java.nio.file.Paths;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class HistographConfiguration {
+public class Configuration {
 
 	public String ELASTICSEARCH_HOST;
 	public String ELASTICSEARCH_PORT;
@@ -17,9 +17,10 @@ public class HistographConfiguration {
 	public String REDIS_PORT;
 	public String REDIS_HISTOGRAPH_QUEUE;
 	public String REDIS_ES_QUEUE;
+	public String SCHEMA_DIR;
 	
-	public HistographConfiguration (String es_host, String es_port, String neo4j_filepath, String neo4j_port, String redis_host, 
-									String redis_port, String redis_histograph_queue, String redis_es_queue) {
+	public Configuration (String es_host, String es_port, String neo4j_filepath, String neo4j_port, String redis_host, 
+									String redis_port, String redis_histograph_queue, String redis_es_queue, String schema_dir) {
 		ELASTICSEARCH_HOST = es_host;
 		ELASTICSEARCH_PORT = es_port;
 		NEO4J_FILEPATH = neo4j_filepath;
@@ -28,9 +29,10 @@ public class HistographConfiguration {
 		REDIS_PORT = redis_port;
 		REDIS_HISTOGRAPH_QUEUE = redis_histograph_queue;
 		REDIS_ES_QUEUE = redis_es_queue;
+		SCHEMA_DIR = schema_dir;
 	}
 	
-	public static HistographConfiguration fromFile(String filePath) throws IOException {
+	public static Configuration fromFile(String filePath) throws IOException {
 		try {
 			String contents = new String(Files.readAllBytes(Paths.get(filePath)));
 			JSONObject configObj = new JSONObject(contents);
@@ -40,7 +42,7 @@ public class HistographConfiguration {
 		}
 	}
 	
-	public static HistographConfiguration fromEnv() throws IOException {
+	public static Configuration fromEnv() throws IOException {
 		try {
 			String filePath = System.getenv("HISTOGRAPH_CONFIG");
 			String contents = new String(Files.readAllBytes(Paths.get(filePath)));
@@ -51,7 +53,7 @@ public class HistographConfiguration {
 		}
 	}
 	
-	private static HistographConfiguration getConfigFromJSON(JSONObject configObj) throws IOException {
+	private static Configuration getConfigFromJSON(JSONObject configObj) throws IOException {
 		try {
 			String es_host = configObj.getJSONObject("elasticsearch").getString("host");
 			String es_port = configObj.getJSONObject("elasticsearch").get("port").toString();
@@ -61,8 +63,9 @@ public class HistographConfiguration {
 			String redis_port = configObj.getJSONObject("redis").get("port").toString();
 			String redis_histograph_queue = configObj.getJSONObject("redis").getJSONObject("queues").getString("core");
 			String redis_es_queue = configObj.getJSONObject("redis").getJSONObject("queues").getString("elasticsearch");
+			String schema_dir = configObj.getJSONObject("schemas").getString("dir");
 			
-			return new HistographConfiguration(es_host, es_port, neo4j_filepath, neo4j_port, redis_host, redis_port, redis_histograph_queue, redis_es_queue);
+			return new Configuration(es_host, es_port, neo4j_filepath, neo4j_port, redis_host, redis_port, redis_histograph_queue, redis_es_queue, schema_dir);
 		} catch (JSONException e) {
 			throw new IOException("Invalid configuration file: " + e.getMessage());
 		}

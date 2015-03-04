@@ -14,7 +14,7 @@ import org.json.JSONObject;
 import org.waag.histograph.queue.InputReader;
 import org.waag.histograph.queue.NDJSONTokens;
 import org.waag.histograph.reasoner.GraphDefinitions;
-import org.waag.histograph.util.HistographConfiguration;
+import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.NoLogging;
 import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -32,9 +32,7 @@ public class Main {
 	private static final String VERSION = "0.1.1";
 	
 	Jedis jedis;
-	GraphDatabaseService db;
-	
-	static HistographConfiguration configuration;
+	static Configuration config;
 
 	public static void main(String[] argv) {
 		boolean fromFile = false;
@@ -46,7 +44,7 @@ public class Main {
 			}
 			if (argv[i].equals("-config")) {
 				try {
-					configuration = HistographConfiguration.fromFile(argv[i+1]);
+					config = Configuration.fromFile(argv[i+1]);
 					fromFile = true;
 				} catch (ArrayIndexOutOfBoundsException e) {
 					System.out.println("Error: No config file provided.");
@@ -64,7 +62,7 @@ public class Main {
 		
 		if (!fromFile) {
 			try {
-				configuration = HistographConfiguration.fromEnv();
+				config = Configuration.fromEnv();
 			} catch (IOException e) {
 				System.out.println("Error: " + e.getMessage());
 				System.exit(1);
@@ -90,9 +88,15 @@ public class Main {
 		System.out.println("Connecting to Redis server...");
 		initRedis();
 		
-		System.out.println("Initializing Neo4j database...");
-		initNeo4j();
-        
+		System.out.println("Initializing Neo4j server...");
+		GraphDatabaseService db = initNeo4j();		
+		
+		System.out.println("Initializing Neo4j thread...");
+		initNeo4jThread(db);
+		
+		System.out.println("Initializing Elasticsearch thread...");
+		initESThread();
+		
         InputReader inputReader = new InputReader(db);
 		List<String> messages = null;
 		String payload = null;
@@ -101,9 +105,9 @@ public class Main {
 		System.out.println("Ready to take messages.");
 		while (true) {
 			try {
-				messages = jedis.blpop(0, configuration.REDIS_HISTOGRAPH_QUEUE);
+				messages = jedis.blpop(0, config.REDIS_HISTOGRAPH_QUEUE);
 				payload = messages.get(1);
-				jedis.rpush(configuration.REDIS_ES_QUEUE, payload);
+				jedis.rpush(config.REDIS_ES_QUEUE, payload);
 			} catch (JedisConnectionException e) {
 				System.out.println("Redis connection error: " + e.getMessage());
 				System.exit(1);
@@ -120,7 +124,7 @@ public class Main {
 				writeToFile("duplicates.txt", "Duplicate vertex: ", e.getMessage());
 			}
 			messagesParsed ++;
-			int messagesLeft = jedis.llen(configuration.REDIS_HISTOGRAPH_QUEUE).intValue();
+			int messagesLeft = jedis.llen(config.REDIS_HISTOGRAPH_QUEUE).intValue();
 			if (messagesParsed % 100 == 0) {
 				System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
 			}
@@ -139,17 +143,18 @@ public class Main {
 		}
 	}
 	
-	private void initNeo4j () {		
+	private GraphDatabaseService initNeo4j () {
 		try {
-			db = new GraphDatabaseFactory().newEmbeddedDatabase(configuration.NEO4J_FILEPATH);
+			GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(config.NEO4J_FILEPATH);
+	        initializeIndices(db);
+	        initializeServer(db);
+	        return db;
 		} catch (RuntimeException e) {
-			System.out.println("Unable to start graph database on " + configuration.NEO4J_FILEPATH + ".");
+			System.out.println("Unable to start graph database on " + config.NEO4J_FILEPATH + ".");
 			e.printStackTrace();
 			System.exit(1);
+			return null;
 		}
-		
-        initializeIndices(db);
-        initializeServer(db);
 	}
 	
 	private void initializeServer (GraphDatabaseService db) {
@@ -157,17 +162,21 @@ public class Main {
         
         try {
         	GraphDatabaseAPI api = (GraphDatabaseAPI) db;
-        	ServerConfigurator config = new ServerConfigurator(api);
-            config.configuration().addProperty(Configurator.WEBSERVER_ADDRESS_PROPERTY_KEY, "localhost");
-            config.configuration().addProperty(Configurator.WEBSERVER_PORT_PROPERTY_KEY, configuration.NEO4J_PORT);
+        	ServerConfigurator serverConfig = new ServerConfigurator(api);
+            serverConfig.configuration().addProperty(Configurator.WEBSERVER_ADDRESS_PROPERTY_KEY, "localhost");
+            serverConfig.configuration().addProperty(Configurator.WEBSERVER_PORT_PROPERTY_KEY, config.NEO4J_PORT);
         
-            neoServerBootstrapper = new WrappingNeoServerBootstrapper(api, config);
+            neoServerBootstrapper = new WrappingNeoServerBootstrapper(api, serverConfig);
             neoServerBootstrapper.start();
         } catch (Exception e) {
         	System.out.println("Server exception: " + e.getMessage());
         }
         
-        System.out.println("Neo4j listening on http://localhost:" + configuration.NEO4J_PORT + "/");
+        System.out.println("Neo4j listening on http://localhost:" + config.NEO4J_PORT + "/");
+	}
+	
+	private void initNeo4jThread(GraphDatabaseService db) {
+		
 	}
 	
 	private void writeToFile(String fileName, String header, String message) {
@@ -195,6 +204,10 @@ public class Main {
 		    schema.awaitIndexesOnline(10, TimeUnit.MINUTES);
 		    tx.success();
 		}
+	}
+	
+	private void initESThread () {
+		
 	}
 	
 	private static void disableLogging () {
