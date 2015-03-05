@@ -18,14 +18,12 @@ public class Configuration {
 	public String NEO4J_PORT;
 	public String REDIS_HOST;
 	public String REDIS_PORT;
-	public String REDIS_HISTOGRAPH_QUEUE;
-	public String REDIS_ES_QUEUE;
+	public String REDIS_QUEUE;
 	public String SCHEMA_DIR;
 	
 	public Configuration (String es_host, String es_port, String es_index, String es_type, 
 							String neo4j_filepath, String neo4j_port, 
-							String redis_host, String redis_port, String redis_histograph_queue, String redis_es_queue, 
-							String schema_dir) {
+							String redis_host, String redis_port, String redis_queue, String schema_dir) {
 		ELASTICSEARCH_HOST = es_host;
 		ELASTICSEARCH_PORT = es_port;
 		ELASTICSEARCH_INDEX = es_index;
@@ -34,8 +32,7 @@ public class Configuration {
 		NEO4J_PORT = neo4j_port;
 		REDIS_HOST = redis_host;
 		REDIS_PORT = redis_port;
-		REDIS_HISTOGRAPH_QUEUE = redis_histograph_queue;
-		REDIS_ES_QUEUE = redis_es_queue;
+		REDIS_QUEUE = redis_queue;
 		SCHEMA_DIR = schema_dir;
 	}
 	
@@ -70,11 +67,10 @@ public class Configuration {
 			String neo4j_port = configObj.getJSONObject("neo4j").get("port").toString();
 			String redis_host = configObj.getJSONObject("redis").getString("host");
 			String redis_port = configObj.getJSONObject("redis").get("port").toString();
-			String redis_histograph_queue = configObj.getJSONObject("redis").getJSONObject("queues").getString("core");
-			String redis_es_queue = configObj.getJSONObject("redis").getJSONObject("queues").getString("elasticsearch");
+			String redis_queue = configObj.getJSONObject("redis").getString("queue");
 			String schema_dir = configObj.getJSONObject("schemas").getString("dir");
 			
-			return new Configuration(es_host, es_port, es_index, es_type, neo4j_filepath, neo4j_port, redis_host, redis_port, redis_histograph_queue, redis_es_queue, schema_dir);
+			return new Configuration(es_host, es_port, es_index, es_type, neo4j_filepath, neo4j_port, redis_host, redis_port, redis_queue, schema_dir);
 		} catch (JSONException e) {
 			throw new IOException("Invalid configuration file: " + e.getMessage());
 		}

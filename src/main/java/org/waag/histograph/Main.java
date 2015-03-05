@@ -105,9 +105,8 @@ public class Main {
 		System.out.println("Ready to take messages.");
 		while (true) {
 			try {
-				messages = jedis.blpop(0, config.REDIS_HISTOGRAPH_QUEUE);
+				messages = jedis.blpop(0, config.REDIS_QUEUE);
 				payload = messages.get(1);
-				jedis.rpush(config.REDIS_ES_QUEUE, payload);
 			} catch (JedisConnectionException e) {
 				System.out.println("Redis connection error: " + e.getMessage());
 				System.exit(1);
@@ -139,7 +138,7 @@ public class Main {
 				if (verbose) {
 					messagesParsed ++;
 					if (messagesParsed % 100 == 0) {
-						int messagesLeft = jedis.llen(config.REDIS_HISTOGRAPH_QUEUE).intValue();
+						int messagesLeft = jedis.llen(config.REDIS_QUEUE).intValue();
 						System.out.println("[MainThread] Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
 					}
 				}
