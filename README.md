@@ -36,15 +36,16 @@ JSON PIT object:
 		"action": ["add", "delete", "update"],
 		"type": "pit",
 		"layer": String,
+		"target": ["graph", "es"], 			// Optional, omit to send to both
 		"data":
 			"id": integer,
 			"type": String,
 			"name": String,
-			"uri": String, (optional)
-			"startDate": xsd:date, (optional) 
-			"endDate": xsd:date, (optional)
-			"geometry": GeoJSON string, (optional)
-			"data": { (optional)
+			"uri": String, 					// Optional
+			"startDate": xsd:date, 			// Optional 
+			"endDate": xsd:date, 			// Optional
+			"geometry": GeoJSON string, 	// Optional
+			"data": { 						// Optional
 				...additional keys/values
 			}
 		}
