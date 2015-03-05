@@ -41,11 +41,11 @@ JSON PIT object:
 			"id": integer,
 			"type": String,
 			"name": String,
-			"uri": String, 				// Optional
+			"uri": String, 					// Optional
 			"startDate": xsd:date, 			// Optional 
 			"endDate": xsd:date, 			// Optional
-			"geometry": GeoJSON string, 		// Optional
-			"data": { 				// Optional
+			"geometry": GeoJSON string, 	// Optional
+			"data": { 						// Optional
 				...additional keys/values
 			}
 		}
