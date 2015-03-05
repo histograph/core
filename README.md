@@ -27,8 +27,13 @@ Build the project by running `mvn clean install` in the `core` directory.
   - `-v` or `-verbose`: Toggle verbose output (including messages left)
   - `-config <file>`: Run with a configuration file, structured like [this](https://github.com/histograph/config).
 
-NOTE: The argument `-config` is optional -- the `HISTOGRAPH_CONFIG` environment variable is read if it is omitted.
-NOTE: No progress output is provided if the `-verbose` argument is omitted. Because of this, you will not be able to see whether data import has completed. Killing the program prematurely results in an inconsistent state between the Neo4j graph, the Elasticsearch index and the Redis queue. 
+__NOTES:__
+- The argument `-config` is optional -- the `HISTOGRAPH_CONFIG` environment variable is read if it is omitted.
+- No progress output is provided if the `-verbose` argument is omitted. Because of this, you will not be able to see whether data import has completed. Killing the program prematurely results in an inconsistent state between the Neo4j graph, the Elasticsearch index and the Redis queue. So if you need to be certain that the program is done, run the program with `-verbose`.
+
+## Cleaning up before / after running
+- Run `bin/delete-index.sh` to remove the Elasticsearch index
+- Run `rm -rf /tmp/histograph` to remove the (standard) Neo4j database path. TODO create script that uses path from `config` repo
 
 ##Input JSON syntax (through Redis)
 
