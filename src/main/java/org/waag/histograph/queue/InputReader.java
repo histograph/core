@@ -2,50 +2,43 @@ package org.waag.histograph.queue;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.neo4j.cypher.javacompat.ExecutionEngine;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
-import org.waag.histograph.queue.NDJSONTokens.RelationTokens;
-import org.waag.histograph.reasoner.AtomicInferencer;
-import org.waag.histograph.reasoner.GraphDefinitions;
-import org.waag.histograph.util.GraphMethods;
 
 public class InputReader {
 	
-	private GraphDatabaseService db;
-	private ExecutionEngine engine;
-	private static GraphMethods graphMethods;
-	private static AtomicInferencer atomicInferencer;
-	
-	public InputReader(GraphDatabaseService db) {
-		this.db = db;
-		engine = new ExecutionEngine(db);
-		graphMethods = new GraphMethods(db, engine);
-		atomicInferencer = new AtomicInferencer(db, engine);
-	}
-	
-	public void parse(JSONObject obj) throws IOException {
+	public static QueueAction parse(JSONObject obj) throws IOException {
 		String layer;
+		ActionHandler handler;
+		
+		try {
+			switch (obj.get(NDJSONTokens.General.TARGET).toString()) {
+			case NDJSONTokens.Targets.GRAPH:
+				handler = ActionHandler.GRAPH;
+				break;
+			case NDJSONTokens.Targets.ELASTICSEARCH:
+				handler = ActionHandler.ELASTICSEARCH;
+				break;
+			default:
+				throw new IOException("Invalid target received: " + obj.get(NDJSONTokens.General.ACTION).toString());
+			}
+		} catch (JSONException e) {
+			handler = ActionHandler.BOTH;
+		}
 		
 		try {
 			layer = obj.get(NDJSONTokens.General.LAYER).toString();
 			switch (obj.get(NDJSONTokens.General.ACTION).toString()) {
 			case NDJSONTokens.Actions.ADD:
-				parseAdd(obj, layer);
-				break;
+				return parseAdd(obj, layer, handler);
 			case NDJSONTokens.Actions.DELETE:
-				parseDelete(obj, layer);
-				break;
+				return parseDelete(obj, layer, handler);
 			case NDJSONTokens.Actions.UPDATE:
-				parseUpdate(obj, layer);
-				break;
+				return parseUpdate(obj, layer, handler);
 			default:
 				throw new IOException("Invalid action received: " + obj.get(NDJSONTokens.General.ACTION).toString());
 			}
@@ -54,7 +47,7 @@ public class InputReader {
 		}	
 	}
 	
-	private void parseAdd(JSONObject obj, String layer) throws IOException {
+	private static QueueAction parseAdd(JSONObject obj, String layer, ActionHandler handler) throws IOException {
 		JSONObject data;
 		try {
 			data = obj.getJSONObject(NDJSONTokens.General.DATA);
@@ -65,11 +58,9 @@ public class InputReader {
 		try {
 			switch (obj.get(NDJSONTokens.General.TYPE).toString()) {
 			case NDJSONTokens.Types.PIT:
-				addVertex(data, layer);
-				break;
+				return addVertex(data, layer, handler);
 			case NDJSONTokens.Types.RELATION:
-				addEdge(data, layer);
-				break;
+				return addEdge(data, layer, handler);
 			default:
 				throw new IOException("Invalid type received: " + obj.get(NDJSONTokens.General.TYPE).toString());
 			}
@@ -78,7 +69,7 @@ public class InputReader {
 		}
 	}
 	
-	private void parseDelete(JSONObject obj, String layer) throws IOException {		
+	private static QueueAction parseDelete(JSONObject obj, String layer, ActionHandler handler) throws IOException {		
 		JSONObject data;
 		try {
 			data = obj.getJSONObject(NDJSONTokens.General.DATA);
@@ -89,11 +80,9 @@ public class InputReader {
 		try {
 			switch (obj.get(NDJSONTokens.General.TYPE).toString()) {
 			case NDJSONTokens.Types.PIT:
-				deleteVertex(data, layer);
-				break;
+				return deleteVertex(data, layer, handler);
 			case NDJSONTokens.Types.RELATION:
-				deleteEdge(data, layer);
-				break;
+				return deleteEdge(data, layer, handler);
 			default:
 				throw new IOException("Invalid type received: " + obj.get(NDJSONTokens.General.TYPE).toString());
 			}
@@ -102,7 +91,7 @@ public class InputReader {
 		}
 	}
 	
-	private void parseUpdate(JSONObject obj, String layer) throws IOException {
+	private static QueueAction parseUpdate(JSONObject obj, String layer, ActionHandler handler) throws IOException {
 		JSONObject data;
 		try {
 			data = obj.getJSONObject(NDJSONTokens.General.DATA);
@@ -113,11 +102,9 @@ public class InputReader {
 		try {
 			switch (obj.get(NDJSONTokens.General.TYPE).toString()) {
 			case NDJSONTokens.Types.PIT:
-				updateVertex(data, layer);
-				break;
+				return updateVertex(data, layer, handler);
 			case NDJSONTokens.Types.RELATION:
-				updateEdge(data, layer);
-				break;
+				return updateEdge(data, layer, handler);
 			default:
 				throw new IOException("Invalid type received: " + obj.get(NDJSONTokens.General.TYPE).toString());
 			}
@@ -126,116 +113,39 @@ public class InputReader {
 		}
 	}
 	
-	private void updateVertex(JSONObject data, String layer) throws IOException {
+	private static QueueAction addVertex(JSONObject data, String layer, ActionHandler handler) throws IOException {		
+		Map<String, String> params = getVertexParams(data, layer);		
+		return new QueueAction(handler, NDJSONTokens.Types.PIT, NDJSONTokens.Actions.ADD, params);
+	}
+	
+	private static QueueAction updateVertex(JSONObject data, String layer, ActionHandler handler) throws IOException {
 		Map<String, String> params = getVertexParams(data, layer);
-
-		// Verify vertex exists and get it
-		Node node = graphMethods.getVertex(params.get(NDJSONTokens.General.HGID));
-		if (node == null) throw new IOException ("Vertex " + params.get(NDJSONTokens.General.HGID) + " not found in graph.");
-		
-		// Update vertex
-		try (Transaction tx = db.beginTx(); ) {
-			// Remove all old properties
-			for (String key : node.getPropertyKeys()) {
-				node.removeProperty(key);
-			}
-			
-			// Add all new properties
-			for (Entry<String, String> entry : params.entrySet()) {
-				node.setProperty(entry.getKey(), entry.getValue());
-			}
-			
-			tx.success();
-		}
-		
-		System.out.println("Vertex updated.");
+		return new QueueAction(handler, NDJSONTokens.Types.PIT, NDJSONTokens.Actions.UPDATE, params);
 	}
 	
-	private void updateEdge(JSONObject data, String layer) throws IOException {
-		throw new IOException("Updating edges not supported.");
-	}
-	
-	private void addVertex(JSONObject data, String layer) throws IOException {		
-		Map<String, String> params = getVertexParams(data, layer);
-		
-		// Vertex lookup is omitted due to uniqueness constraint
-		try (Transaction tx = db.beginTx(); ) {
-			Node newPIT = db.createNode();
-			newPIT.addLabel(GraphDefinitions.NodeType.PIT);
-			
-			for (Entry <String,String> entry : params.entrySet()) {
-				newPIT.setProperty(entry.getKey(), entry.getValue());
-			}
-			
-			tx.success();
-		}
-	}
-	
-	private void addEdge(JSONObject data, String layer) throws IOException {
-		Map<String, String> params = getEdgeParams(data, layer);
-		
-		// Verify both vertices exist and get them
-		Node fromNode = graphMethods.getVertex(params.get(NDJSONTokens.RelationTokens.FROM));
-		if (fromNode == null) throw new IOException("Vertex with hgID " + params.get(NDJSONTokens.RelationTokens.FROM) + " not found in graph.");
-
-		Node toNode = graphMethods.getVertex(params.get(NDJSONTokens.RelationTokens.TO));		
-		if (toNode == null) throw new IOException("Vertex with hgID " + params.get(NDJSONTokens.RelationTokens.TO) + " not found in graph.");		
-
-		// Verify the absence of the new edge
-		if (!graphMethods.edgeAbsent(params)) { 
-			String edgeName = params.get(RelationTokens.FROM + " --" + RelationTokens.LABEL + "--> " + RelationTokens.TO);
-			throw new IOException ("Edge '" + edgeName + "' already exists.");
-		}
-
-		// Create edge between vertices
-		try (Transaction tx = db.beginTx(); ) {
-			Relationship rel = fromNode.createRelationshipTo(toNode, GraphDefinitions.RelationType.fromLabel(params.get(NDJSONTokens.RelationTokens.LABEL)));
-			rel.setProperty(NDJSONTokens.General.LAYER, params.get(NDJSONTokens.General.LAYER));
-			tx.success();
-		}
-
-		atomicInferencer.inferAtomic(params, fromNode, toNode);
-	}
-
-	private void deleteVertex(JSONObject data, String layer) throws IOException {
-		String hgID;
+	private static QueueAction deleteVertex(JSONObject data, String layer, ActionHandler handler) throws IOException {
 		try {
-			hgID = parseHGid(layer, data.get(NDJSONTokens.PITTokens.ID).toString());
+			String hgid = parseHGid(layer, data.get(NDJSONTokens.PITTokens.ID).toString());
+			Map<String, String> params = new HashMap<String, String>();
+			params.put(NDJSONTokens.General.HGID, hgid);
+			return new QueueAction(handler, NDJSONTokens.Types.PIT, NDJSONTokens.Actions.DELETE, params);
 		} catch (JSONException e) {
 			throw new IOException("Vertex ID missing.");
 		}
-		
-		// Verify vertex exists and get it
-		Node node = graphMethods.getVertex(hgID);
-		if (node == null) throw new IOException("Vertex with hgID " + hgID + " not found in graph.");
-		
-		try (Transaction tx = db.beginTx(); ) {
-			// Remove all associated relationships
-			Iterable<Relationship> relationships = node.getRelationships();
-			for (Relationship rel : relationships) {
-				rel.delete();
-			}
-			
-			// Remove node
-			node.delete();
-			tx.success();
-		}
 	}
 	
-	private void deleteEdge(JSONObject data, String layer) throws IOException {
+	private static QueueAction addEdge(JSONObject data, String layer, ActionHandler handler) throws IOException {
 		Map<String, String> params = getEdgeParams(data, layer);
-
-		// Verify edge exists and get it
-		Relationship rel = graphMethods.getEdge(params); 
-		if (rel == null) throw new IOException("Edge not found in graph.");
-		
-		// Remove edge
-		try (Transaction tx = db.beginTx(); ) {
-			rel.delete();
-			tx.success();
-		}
-
-		atomicInferencer.removeInferredAtomic(params);
+		return new QueueAction(handler, NDJSONTokens.Types.RELATION, NDJSONTokens.Actions.ADD, params);
+	}
+	
+	private static QueueAction updateEdge(JSONObject data, String layer, ActionHandler handler) throws IOException {
+		throw new IOException("Updating edges not supported.");
+	}
+	
+	private static QueueAction deleteEdge(JSONObject data, String layer, ActionHandler handler) throws IOException {
+		Map<String, String> params = getEdgeParams(data, layer);
+		return new QueueAction(handler, NDJSONTokens.Types.RELATION, NDJSONTokens.Actions.DELETE, params);
 	}
 	
 	private static Map<String, String> getVertexParams(JSONObject data, String layer) throws IOException {
@@ -265,6 +175,19 @@ public class InputReader {
 			if (data.has(NDJSONTokens.PITTokens.DATA)) {
 				map.put(NDJSONTokens.PITTokens.DATA, data.getJSONObject(NDJSONTokens.PITTokens.DATA).toString());
 			}
+			
+			// Remove keys with empty values
+			Iterator<Entry<String, String>> iter = map.entrySet().iterator();
+			while (iter.hasNext()) {
+				Entry<String, String> entry = iter.next();
+				if (entry.getValue().equals("")) iter.remove();
+			}
+			
+			// Validate existence of compulsory keys
+			if (!map.containsKey(NDJSONTokens.PITTokens.NAME)) throw new IOException("Vertex token " + NDJSONTokens.PITTokens.NAME + " missing.");
+			if (!map.containsKey(NDJSONTokens.General.HGID)) throw new IOException("Vertex token " + NDJSONTokens.General.HGID + " missing.");
+			if (!map.containsKey(NDJSONTokens.PITTokens.TYPE)) throw new IOException("Vertex token " + NDJSONTokens.PITTokens.TYPE + " missing.");
+			if (!map.containsKey(NDJSONTokens.General.LAYER)) throw new IOException("Vertex token " + NDJSONTokens.General.LAYER + " missing.");
 			
 			return map;
 		} catch (JSONException e) {
@@ -297,7 +220,7 @@ public class InputReader {
 	}
 	
 	private static boolean isNumeric(String string) { 
-		try { 
+		try {
 			Integer.parseInt(string);  
 		} catch(NumberFormatException e) {
 			return false;  

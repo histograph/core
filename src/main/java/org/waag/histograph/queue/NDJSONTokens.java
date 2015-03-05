@@ -8,6 +8,7 @@ public final class NDJSONTokens {
 		public static final String TYPE = "type";
 		public static final String ACTION = "action";
 	    public static final String HGID = "hgid";
+	    public static final String TARGET = "target";
 	}
 	
 	public final class Types {
@@ -19,6 +20,11 @@ public final class NDJSONTokens {
 		public static final String ADD = "add";
 		public static final String UPDATE = "update";
 		public static final String DELETE = "delete";
+	}
+	
+	public final class Targets {
+		public static final String GRAPH = "graph";
+		public static final String ELASTICSEARCH = "es";
 	}
 	
 	public final class PITTokens {

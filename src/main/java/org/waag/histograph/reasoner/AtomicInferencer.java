@@ -10,20 +10,13 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.waag.histograph.graph.GraphMethods;
 import org.waag.histograph.queue.NDJSONTokens;
-import org.waag.histograph.util.GraphMethods;
 
 public class AtomicInferencer {
 
-	private GraphDatabaseService db;
-	private static GraphMethods graphMethods;
-	
-	public AtomicInferencer (GraphDatabaseService db, ExecutionEngine engine) {
-		this.db = db;
-		graphMethods = new GraphMethods(db, engine);
-	}
-	
-	public void inferAtomic(Map<String, String> params, Node fromNode, Node toNode) throws IOException {
+	public static void inferAtomic(GraphDatabaseService db, ExecutionEngine engine, 
+								Map<String, String> params, Node fromNode, Node toNode) throws IOException {
 		String label;
 		try {	
 			label = params.get(NDJSONTokens.RelationTokens.LABEL);
@@ -31,16 +24,17 @@ public class AtomicInferencer {
 			throw new IOException ("Label missing from edge.");
 		}
 		
-		String[] atomicLabels = GraphDefinitions.getAtomicRelationsFromLabel(label);
+		String[] atomicLabels = ReasoningDefinitions.getAtomicRelationsFromLabel(label);
 		if (atomicLabels == null) {
 			System.out.println("No atomic relations associated with label " + label);
 			return;
 		} else {
-			inferAtomicEdges(params, atomicLabels, fromNode, toNode);
+			inferAtomicEdges(db, engine, params, atomicLabels, fromNode, toNode);
 		}
 	}
 	
-	public void removeInferredAtomic(Map<String, String> params) throws IOException {
+	public static void removeInferredAtomic(GraphDatabaseService db, ExecutionEngine engine, 
+												Map<String, String> params) throws IOException {
 		String label;
 		try {
 			label = params.get(NDJSONTokens.RelationTokens.LABEL);
@@ -48,26 +42,27 @@ public class AtomicInferencer {
 			throw new IOException ("Label missing from edge.");
 		}
 		
-		String[] atomicLabels = GraphDefinitions.getAtomicRelationsFromLabel(label);
+		String[] atomicLabels = ReasoningDefinitions.getAtomicRelationsFromLabel(label);
 		if (atomicLabels == null) {
 			System.out.println("No atomic relations associated with label " + label);
 			return;
 		} else {
-			removeInferredAtomicEdges(params, atomicLabels);
+			removeInferredAtomicEdges(db, engine, params, atomicLabels);
 		}
 	}
 	
-	private void removeInferredAtomicEdges(Map<String, String> params, String[] labels) throws IOException {
+	private static void removeInferredAtomicEdges(GraphDatabaseService db, ExecutionEngine engine,
+									Map<String, String> params, String[] labels) throws IOException {
 		HashMap<String, String> inferredEdgeParams = new HashMap<String, String>(params);
 
 		for (String label : labels) {
 			inferredEdgeParams.put(NDJSONTokens.RelationTokens.LABEL, label);
 			
-			Relationship rel = graphMethods.getEdge(inferredEdgeParams);
+			Relationship rel = GraphMethods.getEdge(db, engine, inferredEdgeParams);
 			if (rel == null) continue;
 			
-			if (atomicEdgeCanBeRemoved(inferredEdgeParams)) {
-				try (Transaction tx = db.beginTx(); ) {
+			if (atomicEdgeCanBeRemoved(db, engine, inferredEdgeParams)) {
+				try (Transaction tx = db.beginTx()) {
 					rel.delete();
 					tx.success();
 				}
@@ -75,31 +70,33 @@ public class AtomicInferencer {
 		}
 	}
 	
-	private boolean atomicEdgeCanBeRemoved(HashMap<String, String> atomicEdgeParams) throws IOException {
+	private static boolean atomicEdgeCanBeRemoved(GraphDatabaseService db, ExecutionEngine engine, 
+								Map<String, String> atomicEdgeParams) throws IOException {
 		String edgeLabel = atomicEdgeParams.get(NDJSONTokens.RelationTokens.LABEL);
-		String[] primaryRels = GraphDefinitions.getPrimaryRelationsFromAtomic(edgeLabel);
+		String[] primaryRels = ReasoningDefinitions.getPrimaryRelationsFromAtomic(edgeLabel);
 		
 		for (String primaryRel : primaryRels) {
 			HashMap<String, String> primaryEdgeParams = new HashMap<String, String>(atomicEdgeParams);
 			primaryEdgeParams.put(NDJSONTokens.RelationTokens.LABEL, primaryRel);
 
-			if (graphMethods.edgeExists(primaryEdgeParams)) return false;
+			if (GraphMethods.edgeExists(db, engine, primaryEdgeParams)) return false;
 		}
 		return true;
 	}
 
-	private void inferAtomicEdges(Map<String, String> params, String[] labels, Node fromNode, Node toNode) throws IOException {
+	private static void inferAtomicEdges(GraphDatabaseService db, ExecutionEngine engine, 
+							Map<String, String> params, String[] labels, Node fromNode, Node toNode) throws IOException {
 		HashMap<String, String> inferredEdgeParams = new HashMap<String, String>(params);
 		for (String label : labels) {
 			inferredEdgeParams.put(NDJSONTokens.RelationTokens.LABEL, label);
 			inferredEdgeParams.put(NDJSONTokens.General.LAYER, "inferred_from_" + params.get(NDJSONTokens.General.LAYER));
 			
 			// Take next label if edge already exists
-			if (graphMethods.edgeExists(inferredEdgeParams)) continue;
+			if (GraphMethods.edgeExists(db, engine, inferredEdgeParams)) continue;
 			
 			// Create edge between vertices
-			try (Transaction tx = db.beginTx(); ) {
-				Relationship rel = fromNode.createRelationshipTo(toNode, GraphDefinitions.RelationType.fromLabel(inferredEdgeParams.get(NDJSONTokens.RelationTokens.LABEL)));
+			try (Transaction tx = db.beginTx()) {
+				Relationship rel = fromNode.createRelationshipTo(toNode, ReasoningDefinitions.RelationType.fromLabel(inferredEdgeParams.get(NDJSONTokens.RelationTokens.LABEL)));
 				rel.setProperty(NDJSONTokens.General.LAYER, inferredEdgeParams.get(NDJSONTokens.General.LAYER));
 				tx.success();
 			}

@@ -11,6 +11,9 @@ public class Configuration {
 
 	public String ELASTICSEARCH_HOST;
 	public String ELASTICSEARCH_PORT;
+	public String ELASTICSEARCH_INDEX;
+	public String ELASTICSEARCH_TYPE;
+	
 	public String NEO4J_FILEPATH;
 	public String NEO4J_PORT;
 	public String REDIS_HOST;
@@ -19,10 +22,14 @@ public class Configuration {
 	public String REDIS_ES_QUEUE;
 	public String SCHEMA_DIR;
 	
-	public Configuration (String es_host, String es_port, String neo4j_filepath, String neo4j_port, String redis_host, 
-									String redis_port, String redis_histograph_queue, String redis_es_queue, String schema_dir) {
+	public Configuration (String es_host, String es_port, String es_index, String es_type, 
+							String neo4j_filepath, String neo4j_port, 
+							String redis_host, String redis_port, String redis_histograph_queue, String redis_es_queue, 
+							String schema_dir) {
 		ELASTICSEARCH_HOST = es_host;
 		ELASTICSEARCH_PORT = es_port;
+		ELASTICSEARCH_INDEX = es_index;
+		ELASTICSEARCH_TYPE = es_type;
 		NEO4J_FILEPATH = neo4j_filepath;
 		NEO4J_PORT = neo4j_port;
 		REDIS_HOST = redis_host;
@@ -57,6 +64,8 @@ public class Configuration {
 		try {
 			String es_host = configObj.getJSONObject("elasticsearch").getString("host");
 			String es_port = configObj.getJSONObject("elasticsearch").get("port").toString();
+			String es_index = configObj.getJSONObject("elasticsearch").getString("index");
+			String es_type = configObj.getJSONObject("elasticsearch").getString("type");
 			String neo4j_filepath = configObj.getJSONObject("neo4j").getString("path");
 			String neo4j_port = configObj.getJSONObject("neo4j").get("port").toString();
 			String redis_host = configObj.getJSONObject("redis").getString("host");
@@ -65,7 +74,7 @@ public class Configuration {
 			String redis_es_queue = configObj.getJSONObject("redis").getJSONObject("queues").getString("elasticsearch");
 			String schema_dir = configObj.getJSONObject("schemas").getString("dir");
 			
-			return new Configuration(es_host, es_port, neo4j_filepath, neo4j_port, redis_host, redis_port, redis_histograph_queue, redis_es_queue, schema_dir);
+			return new Configuration(es_host, es_port, es_index, es_type, neo4j_filepath, neo4j_port, redis_host, redis_port, redis_histograph_queue, redis_es_queue, schema_dir);
 		} catch (JSONException e) {
 			throw new IOException("Invalid configuration file: " + e.getMessage());
 		}

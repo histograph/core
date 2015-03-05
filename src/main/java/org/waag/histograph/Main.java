@@ -1,9 +1,12 @@
 package org.waag.histograph;
 
+import io.searchbox.client.JestClient;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
 
 import redis.clients.jedis.Jedis;
@@ -11,36 +14,30 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import org.eclipse.jetty.util.log.Log;
 import org.json.JSONObject;
+import org.waag.histograph.es.ESInit;
+import org.waag.histograph.es.ESThread;
+import org.waag.histograph.graph.GraphInit;
+import org.waag.histograph.graph.GraphThread;
 import org.waag.histograph.queue.InputReader;
-import org.waag.histograph.queue.NDJSONTokens;
-import org.waag.histograph.reasoner.GraphDefinitions;
+import org.waag.histograph.queue.QueueAction;
 import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.NoLogging;
-import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.graphdb.schema.Schema;
-import org.neo4j.kernel.GraphDatabaseAPI;
-import org.neo4j.server.WrappingNeoServerBootstrapper;
-import org.neo4j.server.configuration.Configurator;
-import org.neo4j.server.configuration.ServerConfigurator;
 
-@SuppressWarnings("deprecation")
 public class Main {
 
-	private static final String VERSION = "0.1.1";
+	private static final String VERSION = "0.2.0";
 	
-	Jedis jedis;
 	static Configuration config;
+	private static boolean verbose;
 
 	public static void main(String[] argv) {
 		boolean fromFile = false;
-		boolean logging = false;
+		verbose = false;
 		
 		for (int i=0; i<argv.length; i++) {
 			if (argv[i].equals("-v") || argv[i].equals("-verbose")) {
-				logging = true;
+				verbose = true;
 			}
 			if (argv[i].equals("-config")) {
 				try {
@@ -56,7 +53,7 @@ public class Main {
 			}
 		}
 		
-		if (!logging) {
+		if (!verbose) {
 			disableLogging();
 		}
 		
@@ -86,18 +83,21 @@ public class Main {
 		printAsciiArt();
 		
 		System.out.println("Connecting to Redis server...");
-		initRedis();
+		Jedis jedis = initRedis();
+		
+		System.out.println("Initializing Elasticsearch client...");
+		JestClient client = ESInit.initES(config);
 		
 		System.out.println("Initializing Neo4j server...");
-		GraphDatabaseService db = initNeo4j();		
+		GraphDatabaseService db = GraphInit.initNeo4j(config);
 		
-		System.out.println("Initializing Neo4j thread...");
-		initNeo4jThread(db);
+		System.out.println("Creating threads...");
+		BlockingQueue<QueueAction> graphQueue = new LinkedBlockingQueue<QueueAction>();		
+		new Thread(new GraphThread(db, graphQueue, verbose)).start();
+
+		BlockingQueue<QueueAction> esQueue = new LinkedBlockingQueue<QueueAction>();
+		new Thread(new ESThread(client, esQueue, config.ELASTICSEARCH_INDEX, config.ELASTICSEARCH_TYPE, verbose)).start();
 		
-		System.out.println("Initializing Elasticsearch thread...");
-		initESThread();
-		
-        InputReader inputReader = new InputReader(db);
 		List<String> messages = null;
 		String payload = null;
 		int messagesParsed = 0;
@@ -115,25 +115,46 @@ public class Main {
 
 //			System.out.println("Message received: " + payload);
 			
+			QueueAction action = null;
+			
 			try {
 				JSONObject obj = new JSONObject(payload);
-				inputReader.parse(obj);				
+				action = InputReader.parse(obj);
+				
+				switch (action.getHandler()) {
+				case ELASTICSEARCH:
+					esQueue.put(action);
+					break;
+				case GRAPH:
+					graphQueue.put(action);
+					break;
+				case BOTH:
+					graphQueue.put(action);
+					esQueue.put(action);
+					break;
+				default:
+					throw new IOException("Invalid action handler.");
+				}
+				
+				if (verbose) {
+					messagesParsed ++;
+					if (messagesParsed % 100 == 0) {
+						int messagesLeft = jedis.llen(config.REDIS_HISTOGRAPH_QUEUE).intValue();
+						System.out.println("[MainThread] Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
+					}
+				}
 			} catch (IOException e) {
-				writeToFile("errors.txt", "Error: ", e.getMessage());
-			} catch (ConstraintViolationException e) {
-				writeToFile("duplicates.txt", "Duplicate vertex: ", e.getMessage());
-			}
-			messagesParsed ++;
-			int messagesLeft = jedis.llen(config.REDIS_HISTOGRAPH_QUEUE).intValue();
-			if (messagesParsed % 100 == 0) {
-				System.out.println("Parsed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
+				writeToFile("messageParsingErrors.txt", "Error: ", e.getMessage());
+			} catch (InterruptedException e) {
+				System.out.println("Caught interrupted exception: " + e.getMessage());
+				e.printStackTrace();
 			}
 		}
 	}
 	
-	private void initRedis () {
+	private Jedis initRedis () {
 		// Initialize Redis connection
-		jedis = new Jedis("localhost");
+		Jedis jedis = new Jedis("localhost");
 		
 		try {
 			jedis.ping();
@@ -141,42 +162,14 @@ public class Main {
 			System.out.println("Could not connect to Redis server.");
 			System.exit(1);
 		}
-	}
-	
-	private GraphDatabaseService initNeo4j () {
-		try {
-			GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(config.NEO4J_FILEPATH);
-	        initializeIndices(db);
-	        initializeServer(db);
-	        return db;
-		} catch (RuntimeException e) {
-			System.out.println("Unable to start graph database on " + config.NEO4J_FILEPATH + ".");
-			e.printStackTrace();
-			System.exit(1);
-			return null;
-		}
-	}
-	
-	private void initializeServer (GraphDatabaseService db) {
-		WrappingNeoServerBootstrapper neoServerBootstrapper;
-        
-        try {
-        	GraphDatabaseAPI api = (GraphDatabaseAPI) db;
-        	ServerConfigurator serverConfig = new ServerConfigurator(api);
-            serverConfig.configuration().addProperty(Configurator.WEBSERVER_ADDRESS_PROPERTY_KEY, "localhost");
-            serverConfig.configuration().addProperty(Configurator.WEBSERVER_PORT_PROPERTY_KEY, config.NEO4J_PORT);
-        
-            neoServerBootstrapper = new WrappingNeoServerBootstrapper(api, serverConfig);
-            neoServerBootstrapper.start();
-        } catch (Exception e) {
-        	System.out.println("Server exception: " + e.getMessage());
-        }
-        
-        System.out.println("Neo4j listening on http://localhost:" + config.NEO4J_PORT + "/");
-	}
-	
-	private void initNeo4jThread(GraphDatabaseService db) {
 		
+		return jedis;
+	}
+	
+	private static void disableLogging () {
+		Logger globalLogger = Logger.getLogger("");
+		globalLogger.setLevel(java.util.logging.Level.OFF);
+		Log.setLog(new NoLogging());
 	}
 	
 	private void writeToFile(String fileName, String header, String message) {
@@ -187,32 +180,5 @@ public class Main {
 		} catch (Exception e) {
 			System.out.println("Unable to write '" + message + "' to file '" + fileName + "'.");
 		}	
-	}
-	
-	private void initializeIndices (GraphDatabaseService db) {		
-		try (Transaction tx = db.beginTx()) {
-			Schema schema = db.schema();
-			if (!schema.getConstraints(GraphDefinitions.NodeType.PIT).iterator().hasNext()) {
-				schema.constraintFor(GraphDefinitions.NodeType.PIT).assertPropertyIsUnique(NDJSONTokens.General.HGID).create();
-				schema.indexFor(GraphDefinitions.NodeType.PIT).on(NDJSONTokens.PITTokens.NAME).create();
-			}
-			tx.success();
-		}
-		
-		try (Transaction tx = db.beginTx()) {
-		    Schema schema = db.schema();
-		    schema.awaitIndexesOnline(10, TimeUnit.MINUTES);
-		    tx.success();
-		}
-	}
-	
-	private void initESThread () {
-		
-	}
-	
-	private static void disableLogging () {
-		Logger globalLogger = Logger.getLogger("");
-		globalLogger.setLevel(java.util.logging.Level.OFF);
-		Log.setLog(new NoLogging());
 	}
 }

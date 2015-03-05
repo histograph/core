@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 
-public final class GraphDefinitions {
+public final class ReasoningDefinitions {
 	
 	public enum NodeType implements Label {
 		PIT;
@@ -80,13 +80,13 @@ public final class GraphDefinitions {
 	public static String[] getAtomicRelationsFromLabel(String label) {
 		switch (RelationType.fromLabel(label)) {
 		case SAMEAS:
-			return GraphDefinitions.AtomicInferences.ATOMIC_SAMEAS;
+			return ReasoningDefinitions.AtomicInferences.ATOMIC_SAMEAS;
 		case ABSORBEDBY:
-			return GraphDefinitions.AtomicInferences.ATOMIC_ABSORBEDBY;
+			return ReasoningDefinitions.AtomicInferences.ATOMIC_ABSORBEDBY;
 		case ISUSEDFOR:
-			return GraphDefinitions.AtomicInferences.ATOMIC_ISUSEDFOR;
+			return ReasoningDefinitions.AtomicInferences.ATOMIC_ISUSEDFOR;
 		case LIESIN:
-			return GraphDefinitions.AtomicInferences.ATOMIC_LIESIN;
+			return ReasoningDefinitions.AtomicInferences.ATOMIC_LIESIN;
 		default:
 			return null;
 		}
