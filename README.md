@@ -1,6 +1,6 @@
 #Histograph-Core
 
-Utility that parses NDJSON objects from Redis' `histograph-queue`, adds it to the Neo4j graph and performs inferencing.
+Utility that parses NDJSON objects from Redis' `histograph-queue`, adds it to Neo4j, indexes the data with Elasticsearch and performs inferencing.
 
 ##Preliminaries
 
@@ -12,7 +12,9 @@ Utility that parses NDJSON objects from Redis' `histograph-queue`, adds it to th
     - OS X: `export JAVA_HOME=$(/usr/libexec/java_home -v 1.7)` (or `-v 1.8`)
     - Linux: `TODO`
   - Double check with `mvn -v` if Maven uses the correct Java version
-- To run Histograph-Core, Redis server (`redis-server`) needs to be running
+- To run Histograph-Core:
+  - Redis server (`redis-server`) needs to be running
+  - [Elasticsearch](http://elasticsearch.org) needs to be running
 
 ## Building Histograph-Core
 
@@ -22,10 +24,16 @@ Build the project by running `mvn clean install` in the `core` directory.
 
 - Run the program by executing `bin/histograph-core.sh`.
 - Arguments:
-  - `-v` or `-verbose`: Toggle verbose output
+  - `-v` or `-verbose`: Toggle verbose output (including messages left)
   - `-config <file>`: Run with a configuration file, structured like [this](https://github.com/histograph/config).
 
-NOTE: The argument `-config` is optional -- the `HISTOGRAPH_CONFIG` environment variable is read if it is omitted.
+__NOTES:__
+- The argument `-config` is optional -- the `HISTOGRAPH_CONFIG` environment variable is read if it is omitted.
+- No progress output is provided if the `-verbose` argument is omitted. Because of this, you will not be able to see whether data import has completed. Killing the program prematurely results in an inconsistent state between the Neo4j graph, the Elasticsearch index and the Redis queue. So if you need to be certain that the program is done, run the program with `-verbose`.
+
+## Cleaning up before / after running
+- Run `bin/delete-index.sh` to remove the Elasticsearch index
+- Run `rm -rf /tmp/histograph` to remove the (standard) Neo4j database path. TODO create script that uses path from `config` repo
 
 ##Input JSON syntax (through Redis)
 
