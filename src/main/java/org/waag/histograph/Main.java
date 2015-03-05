@@ -20,6 +20,7 @@ import org.waag.histograph.graph.GraphInit;
 import org.waag.histograph.graph.GraphThread;
 import org.waag.histograph.queue.InputReader;
 import org.waag.histograph.queue.QueueAction;
+import org.waag.histograph.server.ServerThread;
 import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.NoLogging;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -97,6 +98,9 @@ public class Main {
 
 		BlockingQueue<QueueAction> esQueue = new LinkedBlockingQueue<QueueAction>();
 		new Thread(new ESThread(client, esQueue, config.ELASTICSEARCH_INDEX, config.ELASTICSEARCH_TYPE, verbose)).start();
+		
+	
+		new Thread(new ServerThread(db)).start();		
 		
 		List<String> messages = null;
 		String payload = null;
