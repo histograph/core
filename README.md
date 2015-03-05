@@ -1,6 +1,6 @@
 #Histograph-Core
 
-Utility that parses NDJSON objects from Redis' `histograph-queue`, adds it to the Neo4j graph, indexes the data with Elasticsearch and performs inferencing.
+Utility that parses NDJSON objects from Redis' `histograph-queue`, adds it to Neo4j, indexes the data with Elasticsearch and performs inferencing.
 
 ##Preliminaries
 
