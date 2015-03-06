@@ -31,21 +31,21 @@ public class ESThread implements Runnable {
 	
 	public void run () {
 		try {
-			int actionsDone = 0;
+			int tasksDone = 0;
 			while (true) {
-				QueueTask action = queue.take();
+				QueueTask task = queue.take();
 				
 				try {
-					performAction(action);
+					performTask(task);
 				} catch (Exception e) {
 					writeToFile("esErrors.txt", "Error: ", e.getMessage());
 				}
 				
 				if (verbose) {
-					actionsDone ++;
-					if (actionsDone % 100 == 0) {
-						int actionsLeft = queue.size();
-						System.out.println("[ESThread] Processed " + actionsDone + " actions -- " + actionsLeft + " left in queue.");
+					tasksDone ++;
+					if (tasksDone % 100 == 0) {
+						int tasksLeft = queue.size();
+						System.out.println("[ESThread] Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
 					}
 				}
 			}
@@ -55,10 +55,10 @@ public class ESThread implements Runnable {
 		}
 	}
 	
-	private void performAction(QueueTask action) throws Exception {
-		switch (action.getType()) {
+	private void performTask(QueueTask task) throws Exception {
+		switch (task.getType()) {
 		case HistographTokens.Types.PIT:
-			performPITAction(action);
+			performPITAction(task);
 			break;
 		case HistographTokens.Types.RELATION:
 			// Relations are not put into elasticsearch.
@@ -68,9 +68,9 @@ public class ESThread implements Runnable {
 		}
 	}
 	
-	private void performPITAction(QueueTask action) throws Exception {
-		Map<String, String> params = action.getParams();
-		switch (action.getAction()) {
+	private void performPITAction(QueueTask task) throws Exception {
+		Map<String, String> params = task.getParams();
+		switch (task.getAction()) {
 		case HistographTokens.Actions.ADD:
 			addPIT(params);
 			break;
@@ -138,5 +138,4 @@ public class ESThread implements Runnable {
 		
 		return out;
 	}
-	
 }
