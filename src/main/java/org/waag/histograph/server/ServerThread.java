@@ -28,7 +28,7 @@ public class ServerThread implements Runnable {
 		
 		Node startNode;
 		try (Transaction tx = db.beginTx()) {
-			startNode = GraphMethods.getVertex(db, "atlas-verstedelijking/Alkmaar_2010");
+			startNode = GraphMethods.getNode(db, "atlas-verstedelijking/Alkmaar_2010");
 			
 			TraversalDescription td = db.traversalDescription()
 		            .breadthFirst()

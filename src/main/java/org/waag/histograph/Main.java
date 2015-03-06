@@ -19,9 +19,10 @@ import org.waag.histograph.es.ESThread;
 import org.waag.histograph.graph.GraphInit;
 import org.waag.histograph.graph.GraphThread;
 import org.waag.histograph.queue.InputReader;
-import org.waag.histograph.queue.QueueAction;
+import org.waag.histograph.queue.QueueTask;
 import org.waag.histograph.server.ServerThread;
 import org.waag.histograph.util.Configuration;
+import org.waag.histograph.util.HistographTokens;
 import org.waag.histograph.util.NoLogging;
 import org.neo4j.graphdb.GraphDatabaseService;
 
@@ -93,14 +94,13 @@ public class Main {
 		GraphDatabaseService db = GraphInit.initNeo4j(config);
 		
 		System.out.println("Creating threads...");
-		BlockingQueue<QueueAction> graphQueue = new LinkedBlockingQueue<QueueAction>();		
+		BlockingQueue<QueueTask> graphQueue = new LinkedBlockingQueue<QueueTask>();		
 		new Thread(new GraphThread(db, graphQueue, verbose)).start();
 
-		BlockingQueue<QueueAction> esQueue = new LinkedBlockingQueue<QueueAction>();
+		BlockingQueue<QueueTask> esQueue = new LinkedBlockingQueue<QueueTask>();
 		new Thread(new ESThread(client, esQueue, config.ELASTICSEARCH_INDEX, config.ELASTICSEARCH_TYPE, verbose)).start();
 		
-	
-		new Thread(new ServerThread(db)).start();		
+//		new Thread(new ServerThread(db)).start();		
 		
 		List<String> messages = null;
 		String payload = null;
@@ -118,22 +118,22 @@ public class Main {
 
 //			System.out.println("Message received: " + payload);
 			
-			QueueAction action = null;
+			QueueTask task = null;
 			
 			try {
 				JSONObject obj = new JSONObject(payload);
-				action = InputReader.parse(obj);
+				task = InputReader.parse(obj);
 				
-				switch (action.getHandler()) {
-				case ELASTICSEARCH:
-					esQueue.put(action);
+				switch (task.getTarget()) {
+				case HistographTokens.Targets.ELASTICSEARCH:
+					esQueue.put(task);
 					break;
-				case GRAPH:
-					graphQueue.put(action);
+				case HistographTokens.Targets.GRAPH:
+					graphQueue.put(task);
 					break;
-				case BOTH:
-					graphQueue.put(action);
-					esQueue.put(action);
+				case HistographTokens.Targets.BOTH:
+					graphQueue.put(task);
+					esQueue.put(task);
 					break;
 				default:
 					throw new IOException("Invalid action handler.");

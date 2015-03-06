@@ -11,7 +11,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.graph.GraphMethods;
-import org.waag.histograph.queue.NDJSONTokens;
+import org.waag.histograph.util.HistographTokens;
 
 public class AtomicInferencer {
 
@@ -19,9 +19,9 @@ public class AtomicInferencer {
 								Map<String, String> params, Node fromNode, Node toNode) throws IOException {
 		String label;
 		try {	
-			label = params.get(NDJSONTokens.RelationTokens.LABEL);
+			label = params.get(HistographTokens.RelationTokens.LABEL);
 		} catch (JSONException e) {
-			throw new IOException ("Label missing from edge.");
+			throw new IOException ("Relation label missing.");
 		}
 		
 		String[] atomicLabels = ReasoningDefinitions.getAtomicRelationsFromLabel(label);
@@ -29,7 +29,7 @@ public class AtomicInferencer {
 			System.out.println("No atomic relations associated with label " + label);
 			return;
 		} else {
-			inferAtomicEdges(db, engine, params, atomicLabels, fromNode, toNode);
+			inferAtomicRelations(db, engine, params, atomicLabels, fromNode, toNode);
 		}
 	}
 	
@@ -37,9 +37,9 @@ public class AtomicInferencer {
 												Map<String, String> params) throws IOException {
 		String label;
 		try {
-			label = params.get(NDJSONTokens.RelationTokens.LABEL);
+			label = params.get(HistographTokens.RelationTokens.LABEL);
 		} catch (JSONException e) {
-			throw new IOException ("Label missing from edge.");
+			throw new IOException ("Relation label missing.");
 		}
 		
 		String[] atomicLabels = ReasoningDefinitions.getAtomicRelationsFromLabel(label);
@@ -47,21 +47,21 @@ public class AtomicInferencer {
 			System.out.println("No atomic relations associated with label " + label);
 			return;
 		} else {
-			removeInferredAtomicEdges(db, engine, params, atomicLabels);
+			removeInferredAtomicRelations(db, engine, params, atomicLabels);
 		}
 	}
 	
-	private static void removeInferredAtomicEdges(GraphDatabaseService db, ExecutionEngine engine,
+	private static void removeInferredAtomicRelations(GraphDatabaseService db, ExecutionEngine engine,
 									Map<String, String> params, String[] labels) throws IOException {
-		HashMap<String, String> inferredEdgeParams = new HashMap<String, String>(params);
+		HashMap<String, String> inferredRelationParams = new HashMap<String, String>(params);
 
 		for (String label : labels) {
-			inferredEdgeParams.put(NDJSONTokens.RelationTokens.LABEL, label);
+			inferredRelationParams.put(HistographTokens.RelationTokens.LABEL, label);
 			
-			Relationship rel = GraphMethods.getEdge(db, engine, inferredEdgeParams);
+			Relationship rel = GraphMethods.getRelation(db, engine, inferredRelationParams);
 			if (rel == null) continue;
 			
-			if (atomicEdgeCanBeRemoved(db, engine, inferredEdgeParams)) {
+			if (atomicRelationCanBeRemoved(db, engine, inferredRelationParams)) {
 				try (Transaction tx = db.beginTx()) {
 					rel.delete();
 					tx.success();
@@ -70,34 +70,34 @@ public class AtomicInferencer {
 		}
 	}
 	
-	private static boolean atomicEdgeCanBeRemoved(GraphDatabaseService db, ExecutionEngine engine, 
-								Map<String, String> atomicEdgeParams) throws IOException {
-		String edgeLabel = atomicEdgeParams.get(NDJSONTokens.RelationTokens.LABEL);
-		String[] primaryRels = ReasoningDefinitions.getPrimaryRelationsFromAtomic(edgeLabel);
+	private static boolean atomicRelationCanBeRemoved(GraphDatabaseService db, ExecutionEngine engine, 
+								Map<String, String> atomicRelationParams) throws IOException {
+		String relationLabel = atomicRelationParams.get(HistographTokens.RelationTokens.LABEL);
+		String[] primaryRels = ReasoningDefinitions.getPrimaryRelationsFromAtomic(relationLabel);
 		
 		for (String primaryRel : primaryRels) {
-			HashMap<String, String> primaryEdgeParams = new HashMap<String, String>(atomicEdgeParams);
-			primaryEdgeParams.put(NDJSONTokens.RelationTokens.LABEL, primaryRel);
+			HashMap<String, String> primaryRelationParams = new HashMap<String, String>(atomicRelationParams);
+			primaryRelationParams.put(HistographTokens.RelationTokens.LABEL, primaryRel);
 
-			if (GraphMethods.edgeExists(db, engine, primaryEdgeParams)) return false;
+			if (GraphMethods.relationExists(db, engine, primaryRelationParams)) return false;
 		}
 		return true;
 	}
 
-	private static void inferAtomicEdges(GraphDatabaseService db, ExecutionEngine engine, 
+	private static void inferAtomicRelations(GraphDatabaseService db, ExecutionEngine engine, 
 							Map<String, String> params, String[] labels, Node fromNode, Node toNode) throws IOException {
-		HashMap<String, String> inferredEdgeParams = new HashMap<String, String>(params);
+		HashMap<String, String> inferredRelationParams = new HashMap<String, String>(params);
 		for (String label : labels) {
-			inferredEdgeParams.put(NDJSONTokens.RelationTokens.LABEL, label);
-			inferredEdgeParams.put(NDJSONTokens.General.LAYER, "inferred_from_" + params.get(NDJSONTokens.General.LAYER));
+			inferredRelationParams.put(HistographTokens.RelationTokens.LABEL, label);
+			inferredRelationParams.put(HistographTokens.General.LAYER, "inferred_from_" + params.get(HistographTokens.General.LAYER));
 			
-			// Take next label if edge already exists
-			if (GraphMethods.edgeExists(db, engine, inferredEdgeParams)) continue;
+			// Take next label if relation already exists
+			if (GraphMethods.relationExists(db, engine, inferredRelationParams)) continue;
 			
-			// Create edge between vertices
+			// Create relation between nodes
 			try (Transaction tx = db.beginTx()) {
-				Relationship rel = fromNode.createRelationshipTo(toNode, ReasoningDefinitions.RelationType.fromLabel(inferredEdgeParams.get(NDJSONTokens.RelationTokens.LABEL)));
-				rel.setProperty(NDJSONTokens.General.LAYER, inferredEdgeParams.get(NDJSONTokens.General.LAYER));
+				Relationship rel = fromNode.createRelationshipTo(toNode, ReasoningDefinitions.RelationType.fromLabel(inferredRelationParams.get(HistographTokens.RelationTokens.LABEL)));
+				rel.setProperty(HistographTokens.General.LAYER, inferredRelationParams.get(HistographTokens.General.LAYER));
 				tx.success();
 			}
 		}

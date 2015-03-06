@@ -32,6 +32,7 @@ __NOTES:__
 - No progress output is provided if the `-verbose` argument is omitted. Because of this, you will not be able to see whether data import has completed. Killing the program prematurely results in an inconsistent state between the Neo4j graph, the Elasticsearch index and the Redis queue. So if you need to be certain that the program is done, run the program with `-verbose`.
 
 ## Cleaning up before / after running
+
 - Run `bin/delete-index.sh` to remove the Elasticsearch index
 - Run `rm -rf /tmp/histograph` to remove the (standard) Neo4j database path. TODO create script that uses path from `config` repo
 
@@ -77,33 +78,33 @@ JSON Relation object:
 
 ## I/O examples through Redis
   
-Add vertices:
+Add PITs:
 
 ```
-rpush "histograph-queue" "{'action': 'add', 'type': 'vertex', 'source': 'graafje', 'data': {'id': '123', 'name': 'Rutger', 'type': 'Human' } }"
-rpush "histograph-queue" "{'action': 'add', 'type': 'vertex', 'source': 'graafje', 'data': {'id': '321', 'name': 'Bert', 'type': 'Human' } }"
+rpush "histograph-queue" "{'action': 'add', 'type': 'pit', 'source': 'graafje', 'data': {'id': '123', 'name': 'Rutger', 'type': 'Human' } }"
+rpush "histograph-queue" "{'action': 'add', 'type': 'pit', 'source': 'graafje', 'data': {'id': '321', 'name': 'Bert', 'type': 'Human' } }"
 ```
 
-Add edges:
+Add relations:
 
 ```
-rpush "histograph-queue" "{'action': 'add', 'type': 'edge', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'type': 'hg:absorbedBy' } }"
+rpush "histograph-queue" "{'action': 'add', 'type': 'relation', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'type': 'hg:absorbedBy' } }"
 ```
 
-Delete vertices:
+Delete PITs:
 
 ```
-rpush "histograph-queue" "{'action': 'delete', 'type': 'vertex', 'source': 'graafje', 'data': { 'id': '321', 'name': 'Bert', 'type': 'Human' } }"
+rpush "histograph-queue" "{'action': 'delete', 'type': 'pit', 'source': 'graafje', 'data': { 'id': '321', 'name': 'Bert', 'type': 'Human' } }"
 ```
 
-Delete edges:
+Delete relations:
 
 ```
-rpush "histograph-queue" "{'action': 'delete', 'type': 'edge', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'type': 'knows' } }"
+rpush "histograph-queue" "{'action': 'delete', 'type': 'relation', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'type': 'knows' } }"
 ```
 
-Update vertices:
+Update PITs:
 
 ```
-rpush "histograph-queue" "{'action': 'update', 'type': 'vertex', 'source': 'graafje', 'data': { 'id': '321', 'name': 'Frits', 'type': 'Human' } }"
+rpush "histograph-queue" "{'action': 'update', 'type': 'pit', 'source': 'graafje', 'data': { 'id': '321', 'name': 'Frits', 'type': 'Human' } }"
 ```

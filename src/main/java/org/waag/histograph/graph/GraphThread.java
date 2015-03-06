@@ -12,20 +12,20 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
-import org.waag.histograph.queue.NDJSONTokens;
-import org.waag.histograph.queue.NDJSONTokens.RelationTokens;
-import org.waag.histograph.queue.QueueAction;
+import org.waag.histograph.queue.QueueTask;
 import org.waag.histograph.reasoner.AtomicInferencer;
 import org.waag.histograph.reasoner.ReasoningDefinitions;
+import org.waag.histograph.util.HistographTokens;
+import org.waag.histograph.util.HistographTokens.RelationTokens;
 
 public class GraphThread implements Runnable {
 	
 	GraphDatabaseService db;
 	ExecutionEngine engine;
-	BlockingQueue<QueueAction> queue;
+	BlockingQueue<QueueTask> queue;
 	boolean verbose;
 	
-	public GraphThread (GraphDatabaseService db, BlockingQueue<QueueAction> queue, boolean verbose) {
+	public GraphThread (GraphDatabaseService db, BlockingQueue<QueueTask> queue, boolean verbose) {
 		this.db = db;
 		engine = new ExecutionEngine(db);
 		this.queue = queue;
@@ -36,7 +36,7 @@ public class GraphThread implements Runnable {
 		try {
 			int actionsDone = 0;
 			while (true) {
-				QueueAction action = queue.take();
+				QueueTask action = queue.take();
 				
 				try {
 					performAction(action);
@@ -60,12 +60,12 @@ public class GraphThread implements Runnable {
 		}
 	}
 	
-	private void performAction(QueueAction action) throws IOException {
+	private void performAction(QueueTask action) throws IOException {
 		switch (action.getType()) {
-		case NDJSONTokens.Types.PIT:
+		case HistographTokens.Types.PIT:
 			performPITAction(action);
 			break;
-		case NDJSONTokens.Types.RELATION:
+		case HistographTokens.Types.RELATION:
 			performRelationAction(action);
 			break;
 		default:
@@ -73,137 +73,40 @@ public class GraphThread implements Runnable {
 		}
 	}
 	
-	private void performPITAction(QueueAction action) throws IOException {
+	private void performPITAction(QueueTask action) throws IOException {
 		Map<String, String> params = action.getParams();
 		switch (action.getAction()) {
-		case NDJSONTokens.Actions.ADD:
-			addVertex(params);
+		case HistographTokens.Actions.ADD:
+			GraphMethods.addNode(db, params);
 			break;
-		case NDJSONTokens.Actions.UPDATE:
-			updateVertex(params);
+		case HistographTokens.Actions.UPDATE:
+			GraphMethods.updateNode(db, params);
 			break;
-		case NDJSONTokens.Actions.DELETE:
-			deleteVertex(params);
+		case HistographTokens.Actions.DELETE:
+			GraphMethods.deleteNode(db, params);
 			break;
 		default:
 			throw new IOException("Unexpected action received.");
 		}
 	}
 	
-	private void performRelationAction(QueueAction action) throws IOException {
+	private void performRelationAction(QueueTask action) throws IOException {
 		Map<String, String> params = action.getParams();
 		switch (action.getAction()) {
-		case NDJSONTokens.Actions.ADD:
-			addEdge(params);
+		case HistographTokens.Actions.ADD:
+			Node[] nodes = GraphMethods.addRelation(db, engine, params);
+			AtomicInferencer.inferAtomic(db, engine, params, nodes[0], nodes[1]);
 			break;
-		case NDJSONTokens.Actions.UPDATE:
-			updateEdge(params);
+		case HistographTokens.Actions.UPDATE:
+			GraphMethods.updateRelation(db, engine, params);
 			break;
-		case NDJSONTokens.Actions.DELETE:
-			deleteEdge(params);
+		case HistographTokens.Actions.DELETE:
+			GraphMethods.deleteRelation(db, engine, params);
+			AtomicInferencer.removeInferredAtomic(db, engine, params);
 			break;
 		default:
 			throw new IOException("Unexpected action received.");
 		}
-	}
-	
-	private void addVertex(Map<String, String> params) throws IOException {		
-		// Vertex lookup is omitted due to uniqueness constraint
-		try (Transaction tx = db.beginTx()) {
-			Node newPIT = db.createNode();
-			newPIT.addLabel(ReasoningDefinitions.NodeType.PIT);
-			
-			for (Entry <String,String> entry : params.entrySet()) {
-				newPIT.setProperty(entry.getKey(), entry.getValue());
-			}
-			
-			tx.success();
-		}
-	}
-	
-	private void updateVertex(Map<String, String> params) throws IOException {
-		// Verify vertex exists and get it
-		Node node = GraphMethods.getVertex(db, params.get(NDJSONTokens.General.HGID));
-		if (node == null) throw new IOException ("Vertex " + params.get(NDJSONTokens.General.HGID) + " not found in graph.");
-		
-		// Update vertex
-		try (Transaction tx = db.beginTx()) {
-			// Remove all old properties
-			for (String key : node.getPropertyKeys()) {
-				node.removeProperty(key);
-			}
-			
-			// Add all new properties
-			for (Entry<String, String> entry : params.entrySet()) {
-				node.setProperty(entry.getKey(), entry.getValue());
-			}
-			
-			tx.success();
-		}
-		
-		System.out.println("Vertex updated.");
-	}
-	
-	private void deleteVertex(Map<String, String> params) throws IOException {
-		String hgid = params.get(NDJSONTokens.General.HGID);
-		
-		// Verify vertex exists and get it
-		Node node = GraphMethods.getVertex(db, hgid);
-		if (node == null) throw new IOException("Vertex with hgid '" + hgid + "' not found in graph.");
-		
-		try (Transaction tx = db.beginTx()) {
-			// Remove all associated relationships
-			Iterable<Relationship> relationships = node.getRelationships();
-			for (Relationship rel : relationships) {
-				rel.delete();
-			}
-			
-			// Remove node
-			node.delete();
-			tx.success();
-		}
-	}
-	
-	private void addEdge(Map<String, String> params) throws IOException {		
-		// Verify both vertices exist and get them
-		Node fromNode = GraphMethods.getVertex(db, params.get(NDJSONTokens.RelationTokens.FROM));
-		if (fromNode == null) throw new IOException("Vertex with hgid " + params.get(NDJSONTokens.RelationTokens.FROM) + " not found in graph.");
-
-		Node toNode = GraphMethods.getVertex(db, params.get(NDJSONTokens.RelationTokens.TO));		
-		if (toNode == null) throw new IOException("Vertex with hgid " + params.get(NDJSONTokens.RelationTokens.TO) + " not found in graph.");		
-
-		// Verify the absence of the new edge
-		if (!GraphMethods.edgeAbsent(db, engine, params)) { 
-			String edgeName = params.get(RelationTokens.FROM + " --" + RelationTokens.LABEL + "--> " + RelationTokens.TO);
-			throw new IOException ("Edge '" + edgeName + "' already exists.");
-		}
-
-		// Create edge between vertices
-		try (Transaction tx = db.beginTx()) {
-			Relationship rel = fromNode.createRelationshipTo(toNode, ReasoningDefinitions.RelationType.fromLabel(params.get(NDJSONTokens.RelationTokens.LABEL)));
-			rel.setProperty(NDJSONTokens.General.LAYER, params.get(NDJSONTokens.General.LAYER));
-			tx.success();
-		}
-
-		AtomicInferencer.inferAtomic(db, engine, params, fromNode, toNode);
-	}
-	
-	private void updateEdge(Map<String, String> params) throws IOException {
-		throw new IOException("Updating edges not supported.");
-	}
-	
-	private void deleteEdge(Map<String, String> params) throws IOException {
-		// Verify edge exists and get it
-		Relationship rel = GraphMethods.getEdge(db, engine, params); 
-		if (rel == null) throw new IOException("Edge not found in graph.");
-		
-		// Remove edge
-		try (Transaction tx = db.beginTx()) {
-			rel.delete();
-			tx.success();
-		}
-
-		AtomicInferencer.removeInferredAtomic(db, engine, params);
 	}
 	
 	private void writeToFile(String fileName, String header, String message) {

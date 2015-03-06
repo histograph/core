@@ -6,8 +6,8 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 import org.json.JSONObject;
-import org.waag.histograph.queue.NDJSONTokens;
-import org.waag.histograph.queue.QueueAction;
+import org.waag.histograph.queue.QueueTask;
+import org.waag.histograph.util.HistographTokens;
 
 import io.searchbox.client.JestClient;
 import io.searchbox.core.Delete;
@@ -16,12 +16,12 @@ import io.searchbox.core.Index;
 public class ESThread implements Runnable {
 
 	JestClient client;
-	BlockingQueue<QueueAction> queue;
+	BlockingQueue<QueueTask> queue;
 	String index;
 	String type;
 	boolean verbose;
 	
-	public ESThread (JestClient client, BlockingQueue<QueueAction> queue, String index, String type, boolean verbose) {
+	public ESThread (JestClient client, BlockingQueue<QueueTask> queue, String index, String type, boolean verbose) {
 		this.client = client;
 		this.queue = queue;
 		this.index = index;
@@ -33,7 +33,7 @@ public class ESThread implements Runnable {
 		try {
 			int actionsDone = 0;
 			while (true) {
-				QueueAction action = queue.take();
+				QueueTask action = queue.take();
 				
 				try {
 					performAction(action);
@@ -55,12 +55,12 @@ public class ESThread implements Runnable {
 		}
 	}
 	
-	private void performAction(QueueAction action) throws Exception {
+	private void performAction(QueueTask action) throws Exception {
 		switch (action.getType()) {
-		case NDJSONTokens.Types.PIT:
+		case HistographTokens.Types.PIT:
 			performPITAction(action);
 			break;
-		case NDJSONTokens.Types.RELATION:
+		case HistographTokens.Types.RELATION:
 			// Relations are not put into elasticsearch.
 			break;
 		default:
@@ -68,17 +68,17 @@ public class ESThread implements Runnable {
 		}
 	}
 	
-	private void performPITAction(QueueAction action) throws Exception {
+	private void performPITAction(QueueTask action) throws Exception {
 		Map<String, String> params = action.getParams();
 		switch (action.getAction()) {
-		case NDJSONTokens.Actions.ADD:
-			addVertex(params);
+		case HistographTokens.Actions.ADD:
+			addPIT(params);
 			break;
-		case NDJSONTokens.Actions.UPDATE:
-			updateVertex(params);
+		case HistographTokens.Actions.UPDATE:
+			updatePIT(params);
 			break;
-		case NDJSONTokens.Actions.DELETE:
-			deleteVertex(params);
+		case HistographTokens.Actions.DELETE:
+			deletePIT(params);
 			break;
 		default:
 			throw new IOException("Unexpected action received.");
@@ -95,45 +95,45 @@ public class ESThread implements Runnable {
 		}	
 	}
 	
-	private void addVertex(Map<String, String> params) throws Exception {
-		if (params.containsKey(NDJSONTokens.PITTokens.DATA)) {
-			params.remove(NDJSONTokens.PITTokens.DATA);
+	private void addPIT(Map<String, String> params) throws Exception {
+		if (params.containsKey(HistographTokens.PITTokens.DATA)) {
+			params.remove(HistographTokens.PITTokens.DATA);
 		}
 		
 		// Terrible workaround to cope with conflicting escape characters with ES
 		String jsonString = createJSONobject(params).toString();
-		client.execute(new Index.Builder(jsonString).index(index).type(type).id(params.get(NDJSONTokens.General.HGID)).build());	
+		client.execute(new Index.Builder(jsonString).index(index).type(type).id(params.get(HistographTokens.General.HGID)).build());	
 	}
 	
-	private void updateVertex(Map<String, String> params) throws Exception {
-		deleteVertex(params);
-		addVertex(params);
+	private void updatePIT(Map<String, String> params) throws Exception {
+		deletePIT(params);
+		addPIT(params);
 	}
 	
-	private void deleteVertex(Map<String, String> params) throws Exception {
-		client.execute(new Delete.Builder(params.get(NDJSONTokens.General.HGID)).index(index).type(type).build());
+	private void deletePIT(Map<String, String> params) throws Exception {
+		client.execute(new Delete.Builder(params.get(HistographTokens.General.HGID)).index(index).type(type).build());
 	}
 	
 	private JSONObject createJSONobject(Map<String, String> params) {
 		JSONObject out = new JSONObject();
 		
-		out.put(NDJSONTokens.General.HGID, params.get(NDJSONTokens.General.HGID));
-		out.put(NDJSONTokens.General.LAYER, params.get(NDJSONTokens.General.LAYER));
-		out.put(NDJSONTokens.PITTokens.NAME, params.get(NDJSONTokens.PITTokens.NAME));
-		out.put(NDJSONTokens.PITTokens.TYPE, params.get(NDJSONTokens.PITTokens.TYPE));
+		out.put(HistographTokens.General.HGID, params.get(HistographTokens.General.HGID));
+		out.put(HistographTokens.General.LAYER, params.get(HistographTokens.General.LAYER));
+		out.put(HistographTokens.PITTokens.NAME, params.get(HistographTokens.PITTokens.NAME));
+		out.put(HistographTokens.PITTokens.TYPE, params.get(HistographTokens.PITTokens.TYPE));
 		
-		if (params.containsKey(NDJSONTokens.PITTokens.GEOMETRY)) {
-			JSONObject geom = new JSONObject(params.get(NDJSONTokens.PITTokens.GEOMETRY));
-			out.put(NDJSONTokens.PITTokens.GEOMETRY, geom);
+		if (params.containsKey(HistographTokens.PITTokens.GEOMETRY)) {
+			JSONObject geom = new JSONObject(params.get(HistographTokens.PITTokens.GEOMETRY));
+			out.put(HistographTokens.PITTokens.GEOMETRY, geom);
 		}
-		if (params.containsKey(NDJSONTokens.PITTokens.URI)) {
-			out.put(NDJSONTokens.PITTokens.URI, params.get(NDJSONTokens.PITTokens.URI));			
+		if (params.containsKey(HistographTokens.PITTokens.URI)) {
+			out.put(HistographTokens.PITTokens.URI, params.get(HistographTokens.PITTokens.URI));			
 		}
-		if (params.containsKey(NDJSONTokens.PITTokens.STARTDATE)) {
-			out.put(NDJSONTokens.PITTokens.STARTDATE, params.get(NDJSONTokens.PITTokens.STARTDATE));			
+		if (params.containsKey(HistographTokens.PITTokens.STARTDATE)) {
+			out.put(HistographTokens.PITTokens.STARTDATE, params.get(HistographTokens.PITTokens.STARTDATE));			
 		}
-		if (params.containsKey(NDJSONTokens.PITTokens.ENDDATE)) {
-			out.put(NDJSONTokens.PITTokens.ENDDATE, params.get(NDJSONTokens.PITTokens.ENDDATE));			
+		if (params.containsKey(HistographTokens.PITTokens.ENDDATE)) {
+			out.put(HistographTokens.PITTokens.ENDDATE, params.get(HistographTokens.PITTokens.ENDDATE));			
 		}
 		
 		return out;

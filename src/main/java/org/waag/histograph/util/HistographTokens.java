@@ -1,6 +1,6 @@
-package org.waag.histograph.queue;
+package org.waag.histograph.util;
 
-public final class NDJSONTokens {
+public final class HistographTokens {
 	
 	public final class General {
 		public static final String DATA = "data";
@@ -25,6 +25,7 @@ public final class NDJSONTokens {
 	public final class Targets {
 		public static final String GRAPH = "graph";
 		public static final String ELASTICSEARCH = "es";
+		public static final String BOTH = "both";
 	}
 	
 	public final class PITTokens {

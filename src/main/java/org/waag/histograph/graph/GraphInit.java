@@ -10,9 +10,9 @@ import org.neo4j.kernel.GraphDatabaseAPI;
 import org.neo4j.server.WrappingNeoServerBootstrapper;
 import org.neo4j.server.configuration.Configurator;
 import org.neo4j.server.configuration.ServerConfigurator;
-import org.waag.histograph.queue.NDJSONTokens;
 import org.waag.histograph.reasoner.ReasoningDefinitions;
 import org.waag.histograph.util.Configuration;
+import org.waag.histograph.util.HistographTokens;
 
 @SuppressWarnings("deprecation")
 public class GraphInit {
@@ -53,8 +53,8 @@ public class GraphInit {
 		try (Transaction tx = db.beginTx()) {
 			Schema schema = db.schema();
 			if (!schema.getConstraints(ReasoningDefinitions.NodeType.PIT).iterator().hasNext()) {
-				schema.constraintFor(ReasoningDefinitions.NodeType.PIT).assertPropertyIsUnique(NDJSONTokens.General.HGID).create();
-				schema.indexFor(ReasoningDefinitions.NodeType.PIT).on(NDJSONTokens.PITTokens.NAME).create();
+				schema.constraintFor(ReasoningDefinitions.NodeType.PIT).assertPropertyIsUnique(HistographTokens.General.HGID).create();
+				schema.indexFor(ReasoningDefinitions.NodeType.PIT).on(HistographTokens.PITTokens.NAME).create();
 			}
 			tx.success();
 		}
