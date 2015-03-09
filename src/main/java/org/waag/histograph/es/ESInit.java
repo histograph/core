@@ -20,7 +20,11 @@ public class ESInit {
 	
 	public static JestClient initES (Configuration config) {
 		JestClientFactory factory = new JestClientFactory();
-		factory.setHttpClientConfig(new HttpClientConfig.Builder("http://" + config.ELASTICSEARCH_HOST + ":" + config.ELASTICSEARCH_PORT).multiThreaded(true).build());
+		String url = "http://" + config.ELASTICSEARCH_HOST + ":" + config.ELASTICSEARCH_PORT;
+		factory.setHttpClientConfig(new HttpClientConfig.Builder(url)
+														.multiThreaded(true)
+														.readTimeout(10000)
+														.build());
 		JestClient client = factory.getObject();
 		
 		testConnection(client, config);

@@ -54,7 +54,7 @@ public class GraphInit {
 			Schema schema = db.schema();
 			if (!schema.getConstraints(ReasoningDefinitions.NodeType.PIT).iterator().hasNext()) {
 				schema.constraintFor(ReasoningDefinitions.NodeType.PIT).assertPropertyIsUnique(HistographTokens.General.HGID).create();
-				schema.indexFor(ReasoningDefinitions.NodeType.PIT).on(HistographTokens.PITTokens.NAME).create();
+//				schema.indexFor(ReasoningDefinitions.NodeType.PIT).on(HistographTokens.PITTokens.NAME).create();
 			}
 			tx.success();
 		}

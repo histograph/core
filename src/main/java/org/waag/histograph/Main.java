@@ -100,7 +100,7 @@ public class Main {
 		BlockingQueue<QueueTask> esQueue = new LinkedBlockingQueue<QueueTask>();
 		new Thread(new ESThread(client, esQueue, config.ELASTICSEARCH_INDEX, config.ELASTICSEARCH_TYPE, verbose)).start();
 		
-//		new Thread(new ServerThread(db)).start();		
+		new Thread(new ServerThread(db)).start();		
 		
 		List<String> messages = null;
 		String payload = null;
