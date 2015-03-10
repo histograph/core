@@ -10,10 +10,10 @@ import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.waag.histograph.queue.InputReader;
-import org.waag.histograph.queue.Task;
 import org.waag.histograph.reasoner.AtomicInferencer;
 import org.waag.histograph.util.HistographTokens;
+import org.waag.histograph.util.InputReader;
+import org.waag.histograph.util.Task;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
@@ -36,8 +36,9 @@ public class GraphThread implements Runnable {
 		Jedis jedis = initRedis();
 		List<String> messages = null;
 		String payload = null;
-		
 		int tasksDone = 0;
+		
+		System.out.println("[GraphThread] Ready to take messages.");
 		while (true) {
 			Task task = null;
 			

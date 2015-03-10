@@ -1,4 +1,4 @@
-package org.waag.histograph.queue;
+package org.waag.histograph.util;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -8,7 +8,6 @@ import java.util.Map.Entry;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.waag.histograph.util.HistographTokens;
 
 public class InputReader {
 	

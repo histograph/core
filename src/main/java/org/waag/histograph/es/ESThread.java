@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
-import org.waag.histograph.queue.InputReader;
-import org.waag.histograph.queue.Task;
 import org.waag.histograph.util.HistographTokens;
+import org.waag.histograph.util.InputReader;
+import org.waag.histograph.util.Task;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
@@ -36,8 +36,9 @@ public class ESThread implements Runnable {
 		Jedis jedis = initRedis();
 		List<String> messages = null;
 		String payload = null;
-		
 		int tasksDone = 0;
+		
+		System.out.println("[ESThread] Ready to take messages.");
 		while (true) {
 			Task task = null;
 			

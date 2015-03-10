@@ -92,9 +92,7 @@ public class Main {
 		
 		System.out.println("Creating threads...");
 		new Thread(new GraphThread(db, config.REDIS_GRAPH_QUEUE, verbose)).start();
-
 		new Thread(new ESThread(client, config.ELASTICSEARCH_INDEX, config.ELASTICSEARCH_TYPE, config.REDIS_ES_QUEUE, verbose)).start();
-		
 		new Thread(new ServerThread(db, config, VERSION)).start();		
 		
 		List<String> messages = null;
@@ -132,23 +130,6 @@ public class Main {
 					jedis.rpush(config.REDIS_GRAPH_QUEUE, obj.toString());
 					jedis.rpush(config.REDIS_ES_QUEUE, obj.toString());
 				}
-//				
-//				task = InputReader.parse(obj);
-//				
-//				switch (task.getTarget()) {
-//				case HistographTokens.Targets.ELASTICSEARCH:
-//					esQueue.put(task);
-//					break;
-//				case HistographTokens.Targets.GRAPH:
-//					graphQueue.put(task);
-//					break;
-//				case HistographTokens.Targets.BOTH:
-//					graphQueue.put(task);
-//					esQueue.put(task);
-//					break;
-//				default:
-//					throw new IOException("Invalid action handler.");
-//				}
 				
 				if (verbose) {
 					messagesParsed ++;
