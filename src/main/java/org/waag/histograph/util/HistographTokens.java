@@ -4,6 +4,7 @@ public final class HistographTokens {
 	
 	public final class General {
 		public static final String DATA = "data";
+		public static final String REDIS_SOURCE = "layer";
 		public static final String SOURCE = "source";
 		public static final String TYPE = "type";
 		public static final String ACTION = "action";
