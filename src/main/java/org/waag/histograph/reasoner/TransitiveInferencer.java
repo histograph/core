@@ -48,7 +48,7 @@ public class TransitiveInferencer {
 				RelationshipType type = r.getType();
 				if (!GraphMethods.relationExists(db, engine, n1, n3, type)) {
 					Relationship rel = n1.createRelationshipTo(n3, type);
-					rel.setProperty(HistographTokens.General.LAYER, layer);
+					rel.setProperty(HistographTokens.General.SOURCE, layer);
 					inferred++;
 				}
 			}

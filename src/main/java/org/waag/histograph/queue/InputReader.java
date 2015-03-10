@@ -33,7 +33,7 @@ public class InputReader {
 		}
 		
 		try {
-			layer = obj.get(HistographTokens.General.LAYER).toString();
+			layer = obj.get(HistographTokens.General.SOURCE).toString();
 			switch (obj.get(HistographTokens.General.ACTION).toString()) {
 			case HistographTokens.Actions.ADD:
 				return parseAdd(obj, layer, target);
@@ -157,7 +157,7 @@ public class InputReader {
 			map.put(HistographTokens.PITTokens.NAME, data.get(HistographTokens.PITTokens.NAME).toString());
 			map.put(HistographTokens.General.HGID, parseHGid(layer, data.get(HistographTokens.PITTokens.ID).toString()));
 			map.put(HistographTokens.PITTokens.TYPE, data.get(HistographTokens.PITTokens.TYPE).toString());
-			map.put(HistographTokens.General.LAYER, layer);
+			map.put(HistographTokens.General.SOURCE, layer);
 			
 			// Optional predefined tokens
 			if (data.has(HistographTokens.PITTokens.GEOMETRY)) {
@@ -189,7 +189,7 @@ public class InputReader {
 			if (!map.containsKey(HistographTokens.PITTokens.NAME)) throw new IOException("PIT token " + HistographTokens.PITTokens.NAME + " missing.");
 			if (!map.containsKey(HistographTokens.General.HGID)) throw new IOException("PIT token " + HistographTokens.General.HGID + " missing.");
 			if (!map.containsKey(HistographTokens.PITTokens.TYPE)) throw new IOException("PIT token " + HistographTokens.PITTokens.TYPE + " missing.");
-			if (!map.containsKey(HistographTokens.General.LAYER)) throw new IOException("PIT token " + HistographTokens.General.LAYER + " missing.");
+			if (!map.containsKey(HistographTokens.General.SOURCE)) throw new IOException("PIT token " + HistographTokens.General.SOURCE + " missing.");
 			
 			return map;
 		} catch (JSONException e) {
@@ -205,7 +205,7 @@ public class InputReader {
 			map.put(HistographTokens.RelationTokens.FROM, parseHGid(layer, data.get(HistographTokens.RelationTokens.FROM).toString()));
 			map.put(HistographTokens.RelationTokens.TO, parseHGid(layer, data.get(HistographTokens.RelationTokens.TO).toString()));
 			map.put(HistographTokens.RelationTokens.LABEL, data.get(HistographTokens.RelationTokens.LABEL).toString());
-			map.put(HistographTokens.General.LAYER, layer);			
+			map.put(HistographTokens.General.SOURCE, layer);			
 			return map;
 		} catch (JSONException e) {
 			throw new IOException("Relation token(s) missing (" + HistographTokens.RelationTokens.FROM + "/" + HistographTokens.RelationTokens.TO + "/" + HistographTokens.RelationTokens.LABEL + ").");

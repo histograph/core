@@ -93,7 +93,7 @@ public class GraphMethods {
 		// Create relation between nodes
 		try (Transaction tx = db.beginTx()) {
 			Relationship rel = fromNode.createRelationshipTo(toNode, ReasoningDefinitions.RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL)));
-			rel.setProperty(HistographTokens.General.LAYER, params.get(HistographTokens.General.LAYER));
+			rel.setProperty(HistographTokens.General.SOURCE, params.get(HistographTokens.General.SOURCE));
 			tx.success();
 		}
 		

@@ -89,7 +89,7 @@ public class AtomicInferencer {
 		HashMap<String, String> inferredRelationParams = new HashMap<String, String>(params);
 		for (String label : labels) {
 			inferredRelationParams.put(HistographTokens.RelationTokens.LABEL, label);
-			inferredRelationParams.put(HistographTokens.General.LAYER, "inferred_from_" + params.get(HistographTokens.General.LAYER));
+			inferredRelationParams.put(HistographTokens.General.SOURCE, "inferred_from_" + params.get(HistographTokens.General.SOURCE));
 			
 			// Take next label if relation already exists
 			if (GraphMethods.relationExists(db, engine, inferredRelationParams)) continue;
@@ -97,7 +97,7 @@ public class AtomicInferencer {
 			// Create relation between nodes
 			try (Transaction tx = db.beginTx()) {
 				Relationship rel = fromNode.createRelationshipTo(toNode, ReasoningDefinitions.RelationType.fromLabel(inferredRelationParams.get(HistographTokens.RelationTokens.LABEL)));
-				rel.setProperty(HistographTokens.General.LAYER, inferredRelationParams.get(HistographTokens.General.LAYER));
+				rel.setProperty(HistographTokens.General.SOURCE, inferredRelationParams.get(HistographTokens.General.SOURCE));
 				tx.success();
 			}
 		}
