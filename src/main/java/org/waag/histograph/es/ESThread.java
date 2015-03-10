@@ -2,13 +2,16 @@ package org.waag.histograph.es;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 
 import org.json.JSONObject;
-import org.waag.histograph.queue.QueueTask;
+import org.waag.histograph.queue.InputReader;
+import org.waag.histograph.queue.Task;
 import org.waag.histograph.util.HistographTokens;
 
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 import io.searchbox.client.JestClient;
 import io.searchbox.core.Delete;
 import io.searchbox.core.Index;
@@ -16,46 +19,60 @@ import io.searchbox.core.Index;
 public class ESThread implements Runnable {
 
 	JestClient client;
-	BlockingQueue<QueueTask> queue;
 	String index;
 	String type;
+	String redis_es_queue;
 	boolean verbose;
 	
-	public ESThread (JestClient client, BlockingQueue<QueueTask> queue, String index, String type, boolean verbose) {
+	public ESThread (JestClient client, String index, String type, String redis_es_queue, boolean verbose) {
 		this.client = client;
-		this.queue = queue;
 		this.index = index;
 		this.type = type;
+		this.redis_es_queue = redis_es_queue;
 		this.verbose = verbose;
 	}
 	
 	public void run () {
-		try {
-			int tasksDone = 0;
-			while (true) {
-				QueueTask task = queue.take();
-				
-				try {
-					performTask(task);
-				} catch (Exception e) {
-					writeToFile("esErrors.txt", "Error: ", e.getMessage());
-				}
-				
-				if (verbose) {
-					tasksDone ++;
-					if (tasksDone % 100 == 0) {
-						int tasksLeft = queue.size();
-						System.out.println("[ESThread] Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
-					}
+		Jedis jedis = initRedis();
+		List<String> messages = null;
+		String payload = null;
+		
+		int tasksDone = 0;
+		while (true) {
+			Task task = null;
+			
+			try {
+				messages = jedis.blpop(0, redis_es_queue);
+				payload = messages.get(1);
+			} catch (JedisConnectionException e) {
+				System.out.println("[ESThread] Redis connection error: " + e.getMessage());
+				System.exit(1);
+			}
+			
+			try {
+				JSONObject jsonMessage = new JSONObject(payload);
+				task = InputReader.parse(jsonMessage);
+			} catch (IOException e) {
+				writeToFile("esMsgParseErrors.txt", "Error: ", e.getMessage());
+			}
+			
+			try {
+				performTask(task);
+			} catch (Exception e) {
+				writeToFile("esErrors.txt", "Error: ", e.getMessage());
+			}
+			
+			if (verbose) {
+				tasksDone ++;
+				if (tasksDone % 100 == 0) {
+					int tasksLeft = jedis.llen(redis_es_queue).intValue();
+					System.out.println("[ESThread] Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
 				}
 			}
-		} catch (InterruptedException e) {
-			System.out.println("ES thread interrupted!");
-			System.exit(1);
 		}
 	}
 	
-	private void performTask(QueueTask task) throws Exception {
+	private void performTask(Task task) throws Exception {
 		switch (task.getType()) {
 		case HistographTokens.Types.PIT:
 			performPITAction(task);
@@ -68,7 +85,7 @@ public class ESThread implements Runnable {
 		}
 	}
 	
-	private void performPITAction(QueueTask task) throws Exception {
+	private void performPITAction(Task task) throws Exception {
 		Map<String, String> params = task.getParams();
 		switch (task.getAction()) {
 		case HistographTokens.Actions.ADD:
@@ -137,5 +154,18 @@ public class ESThread implements Runnable {
 		}
 		
 		return out;
+	}
+	
+	private Jedis initRedis () {
+		Jedis jedis = new Jedis("localhost");
+		
+		try {
+			jedis.ping();
+		} catch (JedisConnectionException e) {
+			System.out.println("Could not connect to Redis server.");
+			System.exit(1);
+		}
+		
+		return jedis;
 	}
 }

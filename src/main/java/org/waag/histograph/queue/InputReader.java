@@ -12,35 +12,18 @@ import org.waag.histograph.util.HistographTokens;
 
 public class InputReader {
 	
-	public static QueueTask parse(JSONObject obj) throws IOException {
+	public static Task parse(JSONObject obj) throws IOException {
 		String source;
-		String target;
-		
-		try {
-			switch (obj.get(HistographTokens.General.TARGET).toString()) {
-			case HistographTokens.Targets.GRAPH:
-				target = HistographTokens.Targets.GRAPH;
-				break;
-			case HistographTokens.Targets.ELASTICSEARCH:
-				target = HistographTokens.Targets.ELASTICSEARCH;
-				break;
-			default:
-				throw new IOException("Invalid target received: " + obj.get(HistographTokens.General.ACTION).toString());
-			}
-		} catch (JSONException e) {
-			// If the TARGET key is not found, send task to both
-			target = HistographTokens.Targets.BOTH;
-		}
 		
 		try {
 			source = obj.get(HistographTokens.General.REDIS_SOURCE).toString();
 			switch (obj.get(HistographTokens.General.ACTION).toString()) {
 			case HistographTokens.Actions.ADD:
-				return parseAdd(obj, source, target);
+				return parseAdd(obj, source);
 			case HistographTokens.Actions.DELETE:
-				return parseDelete(obj, source, target);
+				return parseDelete(obj, source);
 			case HistographTokens.Actions.UPDATE:
-				return parseUpdate(obj, source, target);
+				return parseUpdate(obj, source);
 			default:
 				throw new IOException("Invalid action received: " + obj.get(HistographTokens.General.ACTION).toString());
 			}
@@ -49,7 +32,7 @@ public class InputReader {
 		}	
 	}
 	
-	private static QueueTask parseAdd(JSONObject obj, String source, String target) throws IOException {
+	private static Task parseAdd(JSONObject obj, String source) throws IOException {
 		JSONObject data;
 		try {
 			data = obj.getJSONObject(HistographTokens.General.DATA);
@@ -60,9 +43,9 @@ public class InputReader {
 		try {
 			switch (obj.get(HistographTokens.General.TYPE).toString()) {
 			case HistographTokens.Types.PIT:
-				return addPIT(data, source, target);
+				return addPIT(data, source);
 			case HistographTokens.Types.RELATION:
-				return addRelation(data, source, target);
+				return addRelation(data, source);
 			default:
 				throw new IOException("Invalid type received: " + obj.get(HistographTokens.General.TYPE).toString());
 			}
@@ -71,7 +54,7 @@ public class InputReader {
 		}
 	}
 	
-	private static QueueTask parseDelete(JSONObject obj, String source, String target) throws IOException {		
+	private static Task parseDelete(JSONObject obj, String source) throws IOException {		
 		JSONObject data;
 		try {
 			data = obj.getJSONObject(HistographTokens.General.DATA);
@@ -82,9 +65,9 @@ public class InputReader {
 		try {
 			switch (obj.get(HistographTokens.General.TYPE).toString()) {
 			case HistographTokens.Types.PIT:
-				return deletePIT(data, source, target);
+				return deletePIT(data, source);
 			case HistographTokens.Types.RELATION:
-				return deleteRelation(data, source, target);
+				return deleteRelation(data, source);
 			default:
 				throw new IOException("Invalid type received: " + obj.get(HistographTokens.General.TYPE).toString());
 			}
@@ -93,7 +76,7 @@ public class InputReader {
 		}
 	}
 	
-	private static QueueTask parseUpdate(JSONObject obj, String source, String target) throws IOException {
+	private static Task parseUpdate(JSONObject obj, String source) throws IOException {
 		JSONObject data;
 		try {
 			data = obj.getJSONObject(HistographTokens.General.DATA);
@@ -104,9 +87,9 @@ public class InputReader {
 		try {
 			switch (obj.get(HistographTokens.General.TYPE).toString()) {
 			case HistographTokens.Types.PIT:
-				return updatePIT(data, source, target);
+				return updatePIT(data, source);
 			case HistographTokens.Types.RELATION:
-				return updateRelation(data, source, target);
+				return updateRelation(data, source);
 			default:
 				throw new IOException("Invalid type received: " + obj.get(HistographTokens.General.TYPE).toString());
 			}
@@ -115,39 +98,39 @@ public class InputReader {
 		}
 	}
 	
-	private static QueueTask addPIT(JSONObject data, String source, String target) throws IOException {		
+	private static Task addPIT(JSONObject data, String source) throws IOException {		
 		Map<String, String> params = getPITParams(data, source);		
-		return new QueueTask(target, HistographTokens.Types.PIT, HistographTokens.Actions.ADD, params);
+		return new Task(HistographTokens.Types.PIT, HistographTokens.Actions.ADD, params);
 	}
 	
-	private static QueueTask updatePIT(JSONObject data, String source, String target) throws IOException {
+	private static Task updatePIT(JSONObject data, String source) throws IOException {
 		Map<String, String> params = getPITParams(data, source);
-		return new QueueTask(target, HistographTokens.Types.PIT, HistographTokens.Actions.UPDATE, params);
+		return new Task(HistographTokens.Types.PIT, HistographTokens.Actions.UPDATE, params);
 	}
 	
-	private static QueueTask deletePIT(JSONObject data, String source, String target) throws IOException {
+	private static Task deletePIT(JSONObject data, String source) throws IOException {
 		try {
 			String hgid = parseHGid(source, data.get(HistographTokens.PITTokens.ID).toString());
 			Map<String, String> params = new HashMap<String, String>();
 			params.put(HistographTokens.General.HGID, hgid);
-			return new QueueTask(target, HistographTokens.Types.PIT, HistographTokens.Actions.DELETE, params);
+			return new Task(HistographTokens.Types.PIT, HistographTokens.Actions.DELETE, params);
 		} catch (JSONException e) {
 			throw new IOException("Cannot delete PIT: " + HistographTokens.General.HGID + " missing.");
 		}
 	}
 	
-	private static QueueTask addRelation(JSONObject data, String source, String target) throws IOException {
+	private static Task addRelation(JSONObject data, String source) throws IOException {
 		Map<String, String> params = getRelationParams(data, source);
-		return new QueueTask(target, HistographTokens.Types.RELATION, HistographTokens.Actions.ADD, params);
+		return new Task(HistographTokens.Types.RELATION, HistographTokens.Actions.ADD, params);
 	}
 	
-	private static QueueTask updateRelation(JSONObject data, String source, String target) throws IOException {
+	private static Task updateRelation(JSONObject data, String source) throws IOException {
 		throw new IOException("Updating relations not supported.");
 	}
 	
-	private static QueueTask deleteRelation(JSONObject data, String source, String target) throws IOException {
+	private static Task deleteRelation(JSONObject data, String source) throws IOException {
 		Map<String, String> params = getRelationParams(data, source);
-		return new QueueTask(target, HistographTokens.Types.RELATION, HistographTokens.Actions.DELETE, params);
+		return new Task(HistographTokens.Types.RELATION, HistographTokens.Actions.DELETE, params);
 	}
 	
 	private static Map<String, String> getPITParams(JSONObject data, String source) throws IOException {
