@@ -24,8 +24,11 @@ public class GraphMethods {
 		try (Transaction tx = db.beginTx()) {
 			Node newPIT = db.createNode();
 			newPIT.addLabel(ReasoningDefinitions.NodeType.PIT);
-			
-			for (Entry <String,String> entry : params.entrySet()) {
+
+			// TODO This resulted in a ConcurrentModificationException once...however, why? No concurrency here, nor key/value mutations while iterating!
+			Iterator<Entry<String, String>> entries = params.entrySet().iterator();
+			while (entries.hasNext()) {
+				Entry<String, String> entry = entries.next();
 				newPIT.setProperty(entry.getKey(), entry.getValue());
 			}
 			
