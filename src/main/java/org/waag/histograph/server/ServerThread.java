@@ -189,6 +189,7 @@ public class ServerThread implements Runnable {
 		    		    sortedMap.putAll(nRelsMap);
 		    		    int pitIndex = 0;
     					int geometryIndex = 0;
+    					boolean pitsPresentWithGeometry = false;
 		    		    
 		    		    for (Map.Entry<String, Integer> entry : sortedMap.entrySet()) {
 		    		    	JSONObject pit = new JSONObject();
@@ -200,6 +201,7 @@ public class ServerThread implements Runnable {
 	    		    				pit.put("geometryIndex", geometryIndex);
 	    		    				geometryArr.put(geometryIndex, new JSONObject(node.getProperty(key).toString()));
 	    		    				hasGeometry = true;
+	    		    				pitsPresentWithGeometry = true;
 	    		    				geometryIndex++;
 	    		    			} else if (key.equals(HistographTokens.PITTokens.TYPE)) {
 	    		    				properties.put(HistographTokens.PITTokens.TYPE, node.getProperty(key));
@@ -216,21 +218,23 @@ public class ServerThread implements Runnable {
 	    		    		pitIndex ++;
 		    		    }
 		    		    
-		    		    for (Relationship r : relSet) {
-		    		    	JSONObject relObj = new JSONObject();
-		    		    	relObj.put("from", r.getStartNode().getProperty(HistographTokens.General.HGID));
-		    		    	relObj.put("to", r.getEndNode().getProperty(HistographTokens.General.HGID));
-		    		    	relations.put(relObj);
+		    		    if (pitsPresentWithGeometry) { // Only add PIT group if at least one geometry present
+			    		    for (Relationship r : relSet) {
+			    		    	JSONObject relObj = new JSONObject();
+			    		    	relObj.put("from", r.getStartNode().getProperty(HistographTokens.General.HGID));
+			    		    	relObj.put("to", r.getEndNode().getProperty(HistographTokens.General.HGID));
+			    		    	relations.put(relObj);
+			    		    }
+			    		    
+			    		    geometryObj.put("type", "GeometryCollection");
+			    		    geometryObj.put("geometries", geometryArr);
+			    		    
+			    		    properties.put("pits", pits);
+			    		    properties.put("relations", relations);
+			    		    feature.put("properties", properties);
+			    		    feature.put("geometry", geometryObj);
+		    				features.put(feature);
 		    		    }
-		    		    
-		    		    geometryObj.put("type", "GeometryCollection");
-		    		    geometryObj.put("geometries", geometryArr);
-		    		    
-		    		    properties.put("pits", pits);
-		    		    properties.put("relations", relations);
-		    		    feature.put("properties", properties);
-		    		    feature.put("geometry", geometryObj);
-	    				features.put(feature);
     				}
     			}
     		} catch (IOException e) {
