@@ -215,7 +215,7 @@ public class InputReader {
 	private static String parseHGid (String source, String id) {
 		CharSequence delimiter = "/";
 		if (isNumeric(id) || !id.contains(delimiter)) {
-			return source + "/" + id;
+			return source + delimiter + id;
 		} else {
 			return id;
 		}

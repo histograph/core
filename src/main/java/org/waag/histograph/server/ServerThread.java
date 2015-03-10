@@ -193,17 +193,23 @@ public class ServerThread implements Runnable {
 		    		    for (Map.Entry<String, Integer> entry : sortedMap.entrySet()) {
 		    		    	JSONObject pit = new JSONObject();
 		    		    	Node node = GraphMethods.getNode(db, entry.getKey());
+		    		    	boolean hasGeometry = false;
 		    		    	
 	    		    		for (String key : node.getPropertyKeys()) {
 	    		    			if (key.equals(HistographTokens.PITTokens.GEOMETRY)) {
 	    		    				pit.put("geometryIndex", geometryIndex);
 	    		    				geometryArr.put(geometryIndex, new JSONObject(node.getProperty(key).toString()));
+	    		    				hasGeometry = true;
 	    		    				geometryIndex++;
 	    		    			} else if (key.equals(HistographTokens.PITTokens.TYPE)) {
 	    		    				properties.put(HistographTokens.PITTokens.TYPE, node.getProperty(key));
 	    		    			} else {
 	    		    				pit.put(key, node.getProperty(key));
 	    		    			}
+	    		    		}
+	    		    		
+	    		    		if (!hasGeometry) {
+    		    				pit.put("geometryIndex", -1);
 	    		    		}
 	    		    		
 	    		    		pits.put(pitIndex, pit);
