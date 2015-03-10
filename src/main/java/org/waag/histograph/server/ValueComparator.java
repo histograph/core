@@ -7,6 +7,8 @@ public class ValueComparator implements Comparator<String> {
 
 	Map<String, Integer> baseMap;
 	
+	// Comparator for a TreeMap, sorts Nodes on the Integer value associated with it
+	// (i.e. the number of incoming/outgoing relationships of the node
 	public ValueComparator(Map<String, Integer> baseMap) {
 		this.baseMap = baseMap;
 	}

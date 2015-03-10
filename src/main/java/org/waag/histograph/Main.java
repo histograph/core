@@ -28,7 +28,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 
 public class Main {
 
-	private static final String VERSION = "0.2.0";
+	private static final String VERSION = "0.2.1";
 	
 	static Configuration config;
 	private static boolean verbose;
@@ -100,7 +100,7 @@ public class Main {
 		BlockingQueue<QueueTask> esQueue = new LinkedBlockingQueue<QueueTask>();
 		new Thread(new ESThread(client, esQueue, config.ELASTICSEARCH_INDEX, config.ELASTICSEARCH_TYPE, verbose)).start();
 		
-		new Thread(new ServerThread(db)).start();		
+		new Thread(new ServerThread(db, config, VERSION)).start();		
 		
 		List<String> messages = null;
 		String payload = null;

@@ -1,9 +1,10 @@
 package org.waag.histograph.server;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -24,6 +25,7 @@ import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.waag.histograph.graph.GraphMethods;
 import org.waag.histograph.reasoner.ReasoningDefinitions;
+import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.HistographTokens;
 
 import javax.servlet.ServletException;
@@ -38,23 +40,28 @@ import org.eclipse.jetty.servlet.ServletHandler;
 
 public class ServerThread implements Runnable {
 
-	static GraphDatabaseService db;
-	static final int port = 13782;
+	static final String TRAVERSAL_PATH = "/traversal";
 	
-	public ServerThread(GraphDatabaseService db) {
+	static GraphDatabaseService db;
+	static Configuration config;
+	static String version;
+	
+	public ServerThread(GraphDatabaseService db, Configuration config, String version) {
 		ServerThread.db = db;
+		ServerThread.config = config;
+		ServerThread.version = version;
 	}
 
     public void run() {
-        Server server = new Server(port);
+        Server server = new Server(config.TRAVERSAL_PORT);
         ServletHandler handler = new ServletHandler();
-        handler.addServletWithMapping(TraversalServlet.class, "/traversal"); //Set the servlet to run.
-        handler.addServletWithMapping(ApiServlet.class, "/");
+        handler.addServletWithMapping(BaseServlet.class, "/");
+        handler.addServletWithMapping(TraversalServlet.class, TRAVERSAL_PATH);
         server.setHandler(handler);    
     	
         try {
 			server.start();
-	        System.out.println("Traversal server listening on http://localhost:" + port + "/");
+	        System.out.println("Traversal server listening on http://localhost:" + config.TRAVERSAL_PORT + "/");
 	        server.join();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -62,19 +69,19 @@ public class ServerThread implements Runnable {
     }
 
     @SuppressWarnings("serial")
-	public static class ApiServlet extends HttpServlet {
+	public static class BaseServlet extends HttpServlet {
         
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             response.setContentType("application/json");
             response.setStatus(HttpServletResponse.SC_OK);
             PrintWriter out = response.getWriter();
-            out.println("<h1>Hee hallo!</h1>");
             
-            Enumeration<String> e = request.getParameterNames();
-            for (; e.hasMoreElements(); ) {
-            	String param = e.nextElement();
-            	out.println("<br>Parameter found: " + param + " with value " + request.getParameter(param));
-            }
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put("name", "histograph");
+            jsonResponse.put("version", version);
+            jsonResponse.put("message", "This is the Histograph Traversal API. Send POST requests with body '{hgids: [hgid1, hgid2, ...]}' to " + TRAVERSAL_PATH);
+            
+            out.println(jsonResponse);
         }
     }
     
@@ -85,31 +92,23 @@ public class ServerThread implements Runnable {
             response.setContentType("text/html");
             response.setStatus(HttpServletResponse.SC_OK);
             PrintWriter out = response.getWriter();
-            out.println("<h1>GET request!</h1>");
             
-            Enumeration<String> e = request.getParameterNames();
-            for (; e.hasMoreElements(); ) {
-            	String param = e.nextElement();
-            	out.println("<br>Parameter found: " + param + " with value " + request.getParameter(param));
-            }
+            out.println(errorResponse("The traversal API expects POST requests."));
         }
         
         protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        	response.setContentType("application/json");
-        	response.setStatus(HttpServletResponse.SC_OK);
             PrintWriter out = response.getWriter();
-
-        	String input = request.getParameter("hgids");
-
-            if (input == null) {
-            	out.println(errorResponse("No hgid(s) given."));
-            	return;
-            }
-            
-            JSONObject jsonObj = null;
+        	StringBuffer jb = new StringBuffer();
+        	String line = null;
+        	try {
+        		BufferedReader reader = request.getReader();
+        		while ((line = reader.readLine()) != null) jb.append(line);
+        	} catch (Exception e) {	  
+        		out.println(errorResponse("Error while parsing the POST request: " + e.getMessage()));
+        	}
             
             try {
-            	jsonObj = new JSONObject(input);
+            	JSONObject jsonObj = new JSONObject(jb.toString());
             	JSONArray array = jsonObj.getJSONArray("hgids");
             	
             	String[] hgids = new String[array.length()];
@@ -148,7 +147,9 @@ public class ServerThread implements Runnable {
     					JSONObject properties = new JSONObject();
     					JSONArray pits = new JSONArray();
     					JSONArray relations = new JSONArray();
-    					JSONArray geometries = new JSONArray();
+    					
+    					JSONObject geometryObj = new JSONObject();
+    					JSONArray geometryArr = new JSONArray();
     					
 	    				Node startNode = GraphMethods.getNode(db, hgid);
 		    			if (startNode == null) {
@@ -197,7 +198,7 @@ public class ServerThread implements Runnable {
 	    		    		for (String key : node.getPropertyKeys()) {
 	    		    			if (key.equals(HistographTokens.PITTokens.GEOMETRY)) {
 	    		    				pit.put("geometryIndex", geometryIndex);
-	    		    				geometries.put(geometryIndex, new JSONObject(node.getProperty(key).toString()));
+	    		    				geometryArr.put(geometryIndex, new JSONObject(node.getProperty(key).toString()));
 	    		    				geometryIndex++;
 	    		    			} else if (key.equals(HistographTokens.PITTokens.TYPE)) {
 	    		    				properties.put(HistographTokens.PITTokens.TYPE, node.getProperty(key));
@@ -217,10 +218,13 @@ public class ServerThread implements Runnable {
 		    		    	relations.put(relObj);
 		    		    }
 		    		    
+		    		    geometryObj.put("type", "GeometryCollection");
+		    		    geometryObj.put("geometries", geometryArr);
+		    		    
 		    		    properties.put("pits", pits);
 		    		    properties.put("relations", relations);
 		    		    feature.put("properties", properties);
-		    		    feature.put("geometry", geometries);
+		    		    feature.put("geometry", geometryObj);
 	    				features.put(feature);
     				}
     			}
