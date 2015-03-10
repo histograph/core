@@ -70,7 +70,7 @@ public class Configuration {
 			String es_type = configObj.getJSONObject("elasticsearch").getString("type");
 			String neo4j_filepath = configObj.getJSONObject("neo4j").getString("path");
 			String neo4j_port = configObj.getJSONObject("neo4j").get("port").toString();
-			int traversal_port = configObj.getJSONObject("graphTraversal").getInt("port");
+			int traversal_port = configObj.getJSONObject("core").getJSONObject("traversal").getInt("port");
 			String redis_host = configObj.getJSONObject("redis").getString("host");
 			String redis_port = configObj.getJSONObject("redis").get("port").toString();
 			String redis_queue = configObj.getJSONObject("redis").getString("queue");
