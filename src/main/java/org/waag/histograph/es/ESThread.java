@@ -89,7 +89,19 @@ public class ESThread implements Runnable {
 		Map<String, String> params = task.getParams();
 		switch (task.getAction()) {
 		case HistographTokens.Actions.ADD:
-			return ESMethods.addPIT(client, params, config);
+			JSONObject response = ESMethods.addPIT(client, params, config);
+			// Workaround to make sure PIT is added after it failed because of its geometry value
+			if (response.has("error") && response.getString("error").contains("failed to parse [" + HistographTokens.PITTokens.GEOMETRY + "]")) {
+				params.remove(HistographTokens.PITTokens.GEOMETRY);
+				JSONObject response2 = ESMethods.addPIT(client, params, config);
+				if (response2.has("error")) {
+					throw new Exception("Could not add PIT with hgid '" + params.get(HistographTokens.General.HGID) + "', after removing geometry. Error message: " + response2.getString("error"));
+				} else {
+					throw new Exception("Geometry of PIT with hgid '" + params.get(HistographTokens.General.HGID) + "' was rejected. Error message: " + response.getString("error"));
+				}
+			} else {
+				return response;
+			}
 		case HistographTokens.Actions.UPDATE:
 			return ESMethods.updatePIT(client, params, config);
 		case HistographTokens.Actions.DELETE:
