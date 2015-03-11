@@ -63,7 +63,6 @@ public class RemoveIndex {
 				} else {
 					System.out.println("Hmm, something went wrong");
 				}
-				System.out.println("Jep, index bestaat");
 			} else {
 				System.out.println("Index did not exist in the first place!");
 			}
