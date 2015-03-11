@@ -17,7 +17,7 @@ import org.waag.histograph.es.ESInit;
 import org.waag.histograph.es.ESThread;
 import org.waag.histograph.graph.GraphInit;
 import org.waag.histograph.graph.GraphThread;
-import org.waag.histograph.server.ServerThread;
+import org.waag.histograph.traversal.ServerThread;
 import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.HistographTokens;
 import org.waag.histograph.util.NoLogging;
