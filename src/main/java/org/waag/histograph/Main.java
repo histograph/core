@@ -14,9 +14,11 @@ import org.eclipse.jetty.util.log.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.waag.histograph.es.ESInit;
+import org.waag.histograph.es.ESMethods;
 import org.waag.histograph.es.ESThread;
 import org.waag.histograph.graph.GraphInit;
 import org.waag.histograph.graph.GraphThread;
+import org.waag.histograph.queue.RedisInit;
 import org.waag.histograph.traversal.ServerThread;
 import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.HistographTokens;
@@ -82,17 +84,20 @@ public class Main {
 		printAsciiArt();
 		
 		System.out.println("Connecting to Redis server...");
-		Jedis jedis = initRedis();
+		Jedis jedis = RedisInit.initRedis();
 		
 		System.out.println("Initializing Elasticsearch client...");
 		JestClient client = ESInit.initES(config);
+		if (!ESMethods.indexExists(client, config)) {
+			ESMethods.createIndex(client, config);
+		}
 		
 		System.out.println("Initializing Neo4j server...");
 		GraphDatabaseService db = GraphInit.initNeo4j(config);
 		
 		System.out.println("Creating threads...");
 		new Thread(new GraphThread(db, config.REDIS_GRAPH_QUEUE, verbose)).start();
-		new Thread(new ESThread(client, config.ELASTICSEARCH_INDEX, config.ELASTICSEARCH_TYPE, config.REDIS_ES_QUEUE, verbose)).start();
+		new Thread(new ESThread(client, config, verbose)).start();
 		new Thread(new ServerThread(db, config, VERSION)).start();		
 		
 		List<String> messages = null;
@@ -144,20 +149,6 @@ public class Main {
 				writeToFile("messageParsingErrors.txt", "Error: ", e.getMessage());
 			}
 		}
-	}
-	
-	private Jedis initRedis () {
-		// Initialize Redis connection
-		Jedis jedis = new Jedis("localhost");
-		
-		try {
-			jedis.ping();
-		} catch (JedisConnectionException e) {
-			System.out.println("Could not connect to Redis server.");
-			System.exit(1);
-		}
-		
-		return jedis;
 	}
 	
 	private static void disableLogging () {

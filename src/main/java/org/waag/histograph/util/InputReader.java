@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.waag.histograph.queue.Task;
 
 public class InputReader {
 	

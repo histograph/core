@@ -10,10 +10,11 @@ import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.waag.histograph.queue.RedisInit;
+import org.waag.histograph.queue.Task;
 import org.waag.histograph.reasoner.AtomicInferencer;
 import org.waag.histograph.util.HistographTokens;
 import org.waag.histograph.util.InputReader;
-import org.waag.histograph.util.Task;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
@@ -33,7 +34,7 @@ public class GraphThread implements Runnable {
 	}
 	
 	public void run () {
-		Jedis jedis = initRedis();
+		Jedis jedis = RedisInit.initRedis();
 		List<String> messages = null;
 		String payload = null;
 		int tasksDone = 0;
@@ -132,18 +133,5 @@ public class GraphThread implements Runnable {
 		} catch (Exception e) {
 			System.out.println("Unable to write '" + message + "' to file '" + fileName + "'.");
 		}	
-	}
-	
-	private Jedis initRedis () {
-		Jedis jedis = new Jedis("localhost");
-		
-		try {
-			jedis.ping();
-		} catch (JedisConnectionException e) {
-			System.out.println("Could not connect to Redis server.");
-			System.exit(1);
-		}
-		
-		return jedis;
 	}
 }

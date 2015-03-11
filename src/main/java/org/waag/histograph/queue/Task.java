@@ -1,4 +1,4 @@
-package org.waag.histograph.util;
+package org.waag.histograph.queue;
 
 import java.util.Map;
 

@@ -25,7 +25,7 @@ public class GraphMethods {
 			Node newPIT = db.createNode();
 			newPIT.addLabel(ReasoningDefinitions.NodeType.PIT);
 
-			// TODO This resulted in a ConcurrentModificationException once...however, why? No concurrency here, nor key/value mutations while iterating!
+			// TODO This has resulted in a ConcurrentModificationException once...however, why? No concurrency here, nor key/value mutations while iterating!
 			Iterator<Entry<String, String>> entries = params.entrySet().iterator();
 			while (entries.hasNext()) {
 				Entry<String, String> entry = entries.next();

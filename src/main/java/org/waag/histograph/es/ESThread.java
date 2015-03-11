@@ -6,34 +6,30 @@ import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
+import org.waag.histograph.queue.RedisInit;
+import org.waag.histograph.queue.Task;
+import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.HistographTokens;
 import org.waag.histograph.util.InputReader;
-import org.waag.histograph.util.Task;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import io.searchbox.client.JestClient;
-import io.searchbox.core.Delete;
-import io.searchbox.core.Index;
 
 public class ESThread implements Runnable {
 
 	JestClient client;
-	String index;
-	String type;
-	String redis_es_queue;
+	Configuration config;
 	boolean verbose;
 	
-	public ESThread (JestClient client, String index, String type, String redis_es_queue, boolean verbose) {
+	public ESThread (JestClient client, Configuration config, boolean verbose) {
 		this.client = client;
-		this.index = index;
-		this.type = type;
-		this.redis_es_queue = redis_es_queue;
+		this.config = config;
 		this.verbose = verbose;
 	}
 	
 	public void run () {
-		Jedis jedis = initRedis();
+		Jedis jedis = RedisInit.initRedis();
 		List<String> messages = null;
 		String payload = null;
 		int tasksDone = 0;
@@ -43,7 +39,7 @@ public class ESThread implements Runnable {
 			Task task = null;
 			
 			try {
-				messages = jedis.blpop(0, redis_es_queue);
+				messages = jedis.blpop(0, config.REDIS_ES_QUEUE);
 				payload = messages.get(1);
 			} catch (JedisConnectionException e) {
 				System.out.println("[ESThread] Redis connection error: " + e.getMessage());
@@ -66,7 +62,7 @@ public class ESThread implements Runnable {
 			if (verbose) {
 				tasksDone ++;
 				if (tasksDone % 100 == 0) {
-					int tasksLeft = jedis.llen(redis_es_queue).intValue();
+					int tasksLeft = jedis.llen(config.REDIS_ES_QUEUE).intValue();
 					System.out.println("[ESThread] Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
 				}
 			}
@@ -76,28 +72,28 @@ public class ESThread implements Runnable {
 	private void performTask(Task task) throws Exception {
 		switch (task.getType()) {
 		case HistographTokens.Types.PIT:
-			performPITAction(task);
+			JSONObject response = performPITAction(task);		
+			if (response.has("error")) {
+				throw new Exception("Could not add PIT with hgid '" + task.getParams().get(HistographTokens.General.HGID) + "'. Error message: " + response.getString("error"));
+			}
 			break;
 		case HistographTokens.Types.RELATION:
-			// Relations are not put into elasticsearch.
+			// Relations are not added to elasticsearch.
 			break;
 		default:
 			throw new IOException("Unexpected type received.");
 		}
 	}
 	
-	private void performPITAction(Task task) throws Exception {
+	private JSONObject performPITAction(Task task) throws Exception {
 		Map<String, String> params = task.getParams();
 		switch (task.getAction()) {
 		case HistographTokens.Actions.ADD:
-			addPIT(params);
-			break;
+			return ESMethods.addPIT(client, params, config);
 		case HistographTokens.Actions.UPDATE:
-			updatePIT(params);
-			break;
+			return ESMethods.updatePIT(client, params, config);
 		case HistographTokens.Actions.DELETE:
-			deletePIT(params);
-			break;
+			return ESMethods.deletePIT(client, params, config);
 		default:
 			throw new IOException("Unexpected action received.");
 		}
@@ -111,62 +107,5 @@ public class ESThread implements Runnable {
 		} catch (Exception e) {
 			System.out.println("Unable to write '" + message + "' to file '" + fileName + "'.");
 		}	
-	}
-	
-	private void addPIT(Map<String, String> params) throws Exception {
-		if (params.containsKey(HistographTokens.PITTokens.DATA)) {
-			params.remove(HistographTokens.PITTokens.DATA);
-		}
-		
-		// Terrible workaround to cope with conflicting escape characters with ES
-		String jsonString = createJSONobject(params).toString();
-		client.execute(new Index.Builder(jsonString).index(index).type(type).id(params.get(HistographTokens.General.HGID)).build());	
-	}
-	
-	private void updatePIT(Map<String, String> params) throws Exception {
-		deletePIT(params);
-		addPIT(params);
-	}
-	
-	private void deletePIT(Map<String, String> params) throws Exception {
-		client.execute(new Delete.Builder(params.get(HistographTokens.General.HGID)).index(index).type(type).build());
-	}
-	
-	private JSONObject createJSONobject(Map<String, String> params) {
-		JSONObject out = new JSONObject();
-		
-		out.put(HistographTokens.General.HGID, params.get(HistographTokens.General.HGID));
-		out.put(HistographTokens.General.SOURCE, params.get(HistographTokens.General.SOURCE));
-		out.put(HistographTokens.PITTokens.NAME, params.get(HistographTokens.PITTokens.NAME));
-		out.put(HistographTokens.PITTokens.TYPE, params.get(HistographTokens.PITTokens.TYPE));
-		
-		if (params.containsKey(HistographTokens.PITTokens.GEOMETRY)) {
-			JSONObject geom = new JSONObject(params.get(HistographTokens.PITTokens.GEOMETRY));
-			out.put(HistographTokens.PITTokens.GEOMETRY, geom);
-		}
-		if (params.containsKey(HistographTokens.PITTokens.URI)) {
-			out.put(HistographTokens.PITTokens.URI, params.get(HistographTokens.PITTokens.URI));			
-		}
-		if (params.containsKey(HistographTokens.PITTokens.STARTDATE)) {
-			out.put(HistographTokens.PITTokens.STARTDATE, params.get(HistographTokens.PITTokens.STARTDATE));			
-		}
-		if (params.containsKey(HistographTokens.PITTokens.ENDDATE)) {
-			out.put(HistographTokens.PITTokens.ENDDATE, params.get(HistographTokens.PITTokens.ENDDATE));			
-		}
-		
-		return out;
-	}
-	
-	private Jedis initRedis () {
-		Jedis jedis = new Jedis("localhost");
-		
-		try {
-			jedis.ping();
-		} catch (JedisConnectionException e) {
-			System.out.println("Could not connect to Redis server.");
-			System.exit(1);
-		}
-		
-		return jedis;
 	}
 }
