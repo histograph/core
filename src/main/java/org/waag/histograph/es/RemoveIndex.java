@@ -11,7 +11,7 @@ import io.searchbox.client.JestResult;
 import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.indices.DeleteIndex;
 import io.searchbox.indices.Status;
-import io.searchbox.indices.aliases.GetAliases;
+import io.searchbox.indices.mapping.GetMapping;
 
 public class RemoveIndex {
 
@@ -57,12 +57,13 @@ public class RemoveIndex {
 		
 		try {
 			if (indexExists()) {
-				client.execute(new DeleteIndex.Builder("histograph").build());
+				client.execute(new DeleteIndex.Builder(config.ELASTICSEARCH_INDEX).build());
 				if (!indexExists()) {
 					System.out.println("Index successfully removed.");
 				} else {
 					System.out.println("Hmm, something went wrong");
 				}
+				System.out.println("Jep, index bestaat");
 			} else {
 				System.out.println("Index did not exist in the first place!");
 			}
@@ -85,9 +86,16 @@ public class RemoveIndex {
 	private boolean indexExists () {
 		JestResult result;
 		try {
-			result = client.execute(new GetAliases.Builder().build());
+			result = client.execute(new GetMapping.Builder().addIndex(config.ELASTICSEARCH_INDEX).addType(config.ELASTICSEARCH_TYPE).build());
 			JSONObject obj = new JSONObject(result.getJsonString());
-			return (obj.length() > 0);
+
+			if (obj.has("error") && obj.has("status") && obj.getInt("status") == 404) {
+				return false;
+			} else if (obj.has("histograph")) {
+				return true;
+			} else {
+				throw new IOException("Unexpected Jest response received while trying to delete index: " + obj.toString());
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);

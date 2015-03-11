@@ -6,7 +6,7 @@ import io.searchbox.client.JestResult;
 import io.searchbox.client.config.HttpClientConfig;
 import io.searchbox.indices.CreateIndex;
 import io.searchbox.indices.Status;
-import io.searchbox.indices.aliases.GetAliases;
+import io.searchbox.indices.mapping.GetMapping;
 import io.searchbox.indices.mapping.PutMapping;
 
 import java.io.IOException;
@@ -48,9 +48,16 @@ public class ESInit {
 	private static boolean indexExists (JestClient client, Configuration config) {
 		JestResult result;
 		try {
-			result = client.execute(new GetAliases.Builder().build());
+			result = client.execute(new GetMapping.Builder().addIndex(config.ELASTICSEARCH_INDEX).addType(config.ELASTICSEARCH_TYPE).build());
 			JSONObject obj = new JSONObject(result.getJsonString());
-			return (obj.length() > 0);
+
+			if (obj.has("error") && obj.has("status") && obj.getInt("status") == 404) {
+				return false;
+			} else if (obj.has("histograph")) {
+				return true;
+			} else {
+				throw new IOException("Unexpected Jest response found: " + obj.toString());
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);
