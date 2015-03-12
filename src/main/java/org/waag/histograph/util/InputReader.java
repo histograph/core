@@ -196,20 +196,12 @@ public class InputReader {
 	}
 	
 	private static String parseHGid (String source, String id) {
+		// We assume URI's and hgids always contain at least one forward slash because of the hgid structure, e.g. 'geonames/1283416'
 		CharSequence delimiter = "/";
-		if (isNumeric(id) || !id.contains(delimiter)) {
+		if (!id.contains(delimiter)) {
 			return source + delimiter + id;
 		} else {
 			return id;
 		}
-	}
-	
-	private static boolean isNumeric(String string) { 
-		try {
-			Integer.parseInt(string);  
-		} catch(NumberFormatException e) {
-			return false;  
-		}  
-		return true;  
 	}
 }

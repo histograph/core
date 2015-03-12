@@ -6,10 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
-import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.waag.histograph.queue.RedisInit;
 import org.waag.histograph.queue.Task;
 import org.waag.histograph.reasoner.AtomicInferencer;
@@ -22,13 +21,11 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 public class GraphThread implements Runnable {
 	
 	GraphDatabaseService db;
-	ExecutionEngine engine;
 	String redis_graph_queue;
 	boolean verbose;
 	
 	public GraphThread (GraphDatabaseService db, String redis_graph_queue, boolean verbose) {
 		this.db = db;
-		engine = new ExecutionEngine(db);
 		this.redis_graph_queue = redis_graph_queue;
 		this.verbose = verbose;
 	}
@@ -110,15 +107,17 @@ public class GraphThread implements Runnable {
 		Map<String, String> params = task.getParams();
 		switch (task.getAction()) {
 		case HistographTokens.Actions.ADD:
-			Node[] nodes = GraphMethods.addRelation(db, engine, params);
-			AtomicInferencer.inferAtomic(db, engine, params, nodes[0], nodes[1]);
+			Relationship[] relationships = GraphMethods.addRelation(db, params);
+			// If relationships are created, infer their associated atomic labels
+			if (relationships != null) AtomicInferencer.inferAtomic(db, relationships);
 			break;
 		case HistographTokens.Actions.UPDATE:
-			GraphMethods.updateRelation(db, engine, params);
+			GraphMethods.updateRelation(db, params);
 			break;
 		case HistographTokens.Actions.DELETE:
-			GraphMethods.deleteRelation(db, engine, params);
-			AtomicInferencer.removeInferredAtomic(db, engine, params);
+			GraphMethods.deleteRelation(db, params);
+			// If no relationships are removed, deleteRelation() will throw an exception. Otherwise, continue with removeInferredAtomic()
+			AtomicInferencer.removeInferredAtomic(db, params);
 			break;
 		default:
 			throw new IOException("Unexpected task received.");

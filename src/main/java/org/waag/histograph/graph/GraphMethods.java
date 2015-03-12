@@ -1,12 +1,12 @@
 package org.waag.histograph.graph;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.neo4j.cypher.javacompat.ExecutionEngine;
-import org.neo4j.cypher.javacompat.ExecutionResult;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -14,8 +14,8 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.reasoner.ReasoningDefinitions;
+import org.waag.histograph.reasoner.ReasoningDefinitions.RelationType;
 import org.waag.histograph.util.HistographTokens;
-import org.waag.histograph.util.HistographTokens.RelationTokens;
 
 public class GraphMethods {
 	
@@ -38,7 +38,7 @@ public class GraphMethods {
 	
 	public static void updateNode(GraphDatabaseService db, Map<String, String> params) throws IOException {
 		// Verify node exists and get it
-		Node node = GraphMethods.getNode(db, params.get(HistographTokens.General.HGID));
+		Node node = GraphMethods.getNodeByHgid(db, params.get(HistographTokens.General.HGID));
 		if (node == null) throw new IOException ("Node with " + HistographTokens.General.HGID + " '" + params.get(HistographTokens.General.HGID) + "' not found in graph.");
 		
 		// Update node
@@ -63,7 +63,7 @@ public class GraphMethods {
 		String hgid = params.get(HistographTokens.General.HGID);
 		
 		// Verify node exists and get it
-		Node node = GraphMethods.getNode(db, hgid);
+		Node node = GraphMethods.getNodeByHgid(db, hgid);
 		if (node == null) throw new IOException("Node with " + HistographTokens.General.HGID + " '" + hgid + "' not found in graph.");
 		
 		try (Transaction tx = db.beginTx()) {
@@ -79,103 +79,152 @@ public class GraphMethods {
 		}
 	}
 	
-	public static Node[] addRelation(GraphDatabaseService db, ExecutionEngine engine, Map<String, String> params) throws IOException {		
-		// Verify both nodes exist and get them
-		Node fromNode = GraphMethods.getNode(db, params.get(HistographTokens.RelationTokens.FROM));
-		if (fromNode == null) throw new IOException("Node with " + HistographTokens.General.HGID + " '" + params.get(HistographTokens.RelationTokens.FROM) + "' not found in graph.");
-
-		Node toNode = GraphMethods.getNode(db, params.get(HistographTokens.RelationTokens.TO));		
-		if (toNode == null) throw new IOException("Node with " + HistographTokens.General.HGID + " '" + params.get(HistographTokens.RelationTokens.TO) + "' not found in graph.");		
-
-		// Verify the absence of the new relation
-		if (!GraphMethods.relationAbsent(db, engine, params)) { 
-			String relationName = params.get(RelationTokens.FROM + " --" + RelationTokens.LABEL + "--> " + RelationTokens.TO);
-			throw new IOException("Relation '" + relationName + "' already exists.");
-		}
-
-		// Create relation between nodes
-		try (Transaction tx = db.beginTx()) {
-			Relationship rel = fromNode.createRelationshipTo(toNode, ReasoningDefinitions.RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL)));
-			rel.setProperty(HistographTokens.General.SOURCE, params.get(HistographTokens.General.SOURCE));
-			tx.success();
-		}
+	public static Node[] getNodesFromParams(GraphDatabaseService db, String hgidOrURI) throws IOException {
+		// Search on URI first, return all found nodes in array
+		Node[] nodes = GraphMethods.getNodesByURI(db, hgidOrURI);
 		
-		// Return the two nodes
-		Node[] nodes = new Node[2];
-		nodes[0] = fromNode;
-		nodes[1] = toNode;
+		// If URI's are not found (i.e. null is returned), search for hgid
+		if (nodes == null) {
+			nodes = new Node[1];
+			nodes[0] = GraphMethods.getNodeByHgid(db, hgidOrURI);
+			if (nodes[0] == null) return null;
+		}
+
 		return nodes;
 	}
 	
-	public static void updateRelation(GraphDatabaseService db, ExecutionEngine engine, Map<String, String> params) throws IOException {
+	public static Relationship[] addRelation(GraphDatabaseService db, Map<String, String> params) throws IOException {
+		// Search on URI first, return all found nodes in array
+		Node[] fromNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.FROM));
+		Node[] toNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.TO));
+		
+		if (fromNodes == null) throw new IOException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.FROM) + "' found in graph.");
+		if (toNodes == null) throw new IOException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.TO) + "' found in graph.");		
+		
+		RelationshipType relType = RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL));
+		ArrayList<Relationship> relArray = new ArrayList<Relationship>();
+		
+		for (Node fromNode : fromNodes) {
+			for (Node toNode : toNodes) {
+				// Verify the absence of the new relation
+				if (!GraphMethods.relationAbsent(db, fromNode, toNode, relType)) {
+					String relationName = params.get(HistographTokens.RelationTokens.FROM) + " --" + relType.name() + "--> " + params.get(HistographTokens.RelationTokens.TO);
+					System.out.println("Relation " + relationName + " already present in graph.");
+					continue;
+				}
+
+				// Create relation between nodes
+				try (Transaction tx = db.beginTx()) {
+					Relationship rel = fromNode.createRelationshipTo(toNode, relType);
+					rel.setProperty(HistographTokens.General.SOURCE, params.get(HistographTokens.General.SOURCE));
+					relArray.add(rel);
+					tx.success();
+				}
+			}
+		}
+		
+		// Return the newly created relationships, if they are created
+		if (relArray.size() > 0) {
+			Relationship[] out = new Relationship[relArray.size()];
+			out = relArray.toArray(out);
+			return out;
+		} else {
+			return null;
+		}
+	}
+	
+	public static void updateRelation(GraphDatabaseService db, Map<String, String> params) throws IOException {
 		throw new IOException("Updating relations not supported.");
 	}
 	
-	public static void deleteRelation(GraphDatabaseService db, ExecutionEngine engine, Map<String, String> params) throws IOException {
-		// Verify relation exists and get it
-		Relationship rel = GraphMethods.getRelation(db, engine, params); 
-		if (rel == null) throw new IOException("Relation not found in graph.");
+	public static void deleteRelation(GraphDatabaseService db, Map<String, String> params) throws IOException {
+		// Search on URI first, return all found nodes in array
+		Node[] fromNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.FROM));
+		Node[] toNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.TO));
 		
-		// Remove relation
-		try (Transaction tx = db.beginTx()) {
-			rel.delete();
-			tx.success();
+		if (fromNodes == null) throw new IOException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.FROM) + "' found in graph.");
+		if (toNodes == null) throw new IOException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.TO) + "' found in graph.");
+		
+		RelationshipType relType = RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL));
+		
+		// For all possible node pairs, find the relationship between them and delete when found
+		boolean relationshipsRemoved = false;
+		
+		for (Node fromNode : fromNodes) {
+			for (Node toNode : toNodes) {
+				// Verify the existence of the relation
+				Relationship r = GraphMethods.getRelation(db, fromNode, toNode, relType);
+				if (r == null) {
+					String relationName = params.get(HistographTokens.RelationTokens.FROM) + " --" + relType.name() + "--> " + params.get(HistographTokens.RelationTokens.TO);
+					System.out.println("Relation " + relationName + " did not exist in graph.");
+					continue;
+				}
+				relationshipsRemoved = true;
+
+				// Remove relation between nodes
+				try (Transaction tx = db.beginTx()) {
+					r.delete();
+					tx.success();
+				}
+			}
+		}
+		
+		if (!relationshipsRemoved) {
+			String relationName = params.get(HistographTokens.RelationTokens.FROM) + " --" + relType.name() + "--> " + params.get(HistographTokens.RelationTokens.TO);
+			throw new IOException("No relationships '" + relationName + "' found in graph.");
 		}
 	}
 	
-	public static Node getNode(GraphDatabaseService db, String hgID) throws IOException {
+	public static Node getNodeByHgid(GraphDatabaseService db, String hgid) throws IOException {
         try (Transaction ignored = db.beginTx()) {
-        	try (ResourceIterator<Node> i = db.findNodesByLabelAndProperty(ReasoningDefinitions.NodeType.PIT, HistographTokens.General.HGID, hgID).iterator()) {
+        	try (ResourceIterator<Node> i = db.findNodesByLabelAndProperty(ReasoningDefinitions.NodeType.PIT, HistographTokens.General.HGID, hgid).iterator()) {
         		if (!i.hasNext()) return null;
         		Node out = i.next();
-        		if (i.hasNext()) throw new IOException ("Multiple nodes with " + HistographTokens.General.HGID + " '" + hgID + "' found in graph.");
+        		if (i.hasNext()) throw new IOException ("Multiple nodes with " + HistographTokens.General.HGID + " '" + hgid + "' found in graph.");
         		return out;
         	}
         }
+	}	
+	
+	public static boolean nodeExistsByHgid(GraphDatabaseService db, String hgID) throws IOException {
+		return (getNodeByHgid(db, hgID) != null);
 	}
 	
-	public static boolean nodeExists(GraphDatabaseService db, String hgID) throws IOException {
-		return (getNode(db, hgID) != null);
+	public static boolean nodeAbsentByHgid(GraphDatabaseService db, String hgID) throws IOException {
+		return (getNodeByHgid(db, hgID) == null);
 	}
 	
-	public static boolean nodeAbsent(GraphDatabaseService db, String hgID) throws IOException {
-		return (getNode(db, hgID) == null);
-	}
-	
-	public static Relationship getRelation(GraphDatabaseService db, ExecutionEngine engine, Map<String, String> params) throws IOException {
-		ExecutionResult result;
+	public static Node[] getNodesByURI(GraphDatabaseService db, String uri) throws IOException {
 		try (Transaction ignored = db.beginTx()) {
-			String query = "match (p:" + ReasoningDefinitions.NodeType.PIT.toString() + " {" + HistographTokens.General.HGID + ": '" + escapeString(params.get(HistographTokens.RelationTokens.FROM)) + "'}) -[r:`" + ReasoningDefinitions.RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL)) + "`]-> (q:" + ReasoningDefinitions.NodeType.PIT.toString() + " {" + HistographTokens.General.HGID + ": '" + escapeString(params.get(HistographTokens.RelationTokens.TO)) + "'}) return r";
-			result = engine.execute(query);
-			Iterator<Relationship> i = result.columnAs( "r" );
-
-			if (!i.hasNext()) return null;
-			Relationship out = i.next();
-			if (i.hasNext()) {
-				String relationName = params.get(HistographTokens.RelationTokens.FROM) + " --" + params.get(HistographTokens.RelationTokens.LABEL) + "--> " + params.get(HistographTokens.RelationTokens.TO);
-				throw new IOException ("Multiple relations '" + relationName + "' found in graph.");
+			try (ResourceIterator<Node> i = db.findNodesByLabelAndProperty(ReasoningDefinitions.NodeType.PIT, HistographTokens.PITTokens.URI, uri).iterator()) {
+				if (!i.hasNext()) return null;
+				ArrayList<Node> list = new ArrayList<Node>();
+				while (i.hasNext()) {
+					list.add(i.next());
+				}
+				Node[] out = new Node[list.size()];
+				out = list.toArray(out);
+				return out;
 			}
-			return out;
 		}
 	}
 	
-	public static boolean relationExists(GraphDatabaseService db, ExecutionEngine engine, Map<String, String> params) throws IOException {
-		return (getRelation(db, engine, params) != null);
-	}
-	
-	public static boolean relationExists(GraphDatabaseService db, ExecutionEngine engine, Node n1, Node n2, RelationshipType type) throws IOException {
-		for (Relationship r : n1.getRelationships(type)) {
-			if (r.getOtherNode(n1).equals(n2)) return true;
+	public static Relationship getRelation(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) throws IOException {
+		try (Transaction tx = db.beginTx()) {
+			for (Relationship r : fromNode.getRelationships(type, Direction.OUTGOING)) {
+				if (r.getEndNode().equals(toNode)) {
+					return r;
+				}
+			}
 		}
-		return false;
+		return null;
 	}
 	
-	public static boolean relationAbsent(GraphDatabaseService db, ExecutionEngine engine, Map<String, String> params) throws IOException {
-		return (getRelation(db, engine, params) == null);
+	public static boolean relationExists(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) throws IOException {
+		return (getRelation(db, fromNode, toNode, type) != null);
 	}
 	
-	public static String escapeString(String input) {
-		return input.replaceAll("'", "\\\\'");
+	public static boolean relationAbsent(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) throws IOException {
+		return (getRelation(db, fromNode, toNode, type) == null);
 	}
-	
 }

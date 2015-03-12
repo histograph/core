@@ -46,7 +46,7 @@ public class BFSTraversal {
 					JSONObject geometryObj = new JSONObject();
 					JSONArray geometryArr = new JSONArray();
 					
-    				Node startNode = GraphMethods.getNode(db, hgid);
+    				Node startNode = GraphMethods.getNodeByHgid(db, hgid);
 	    			if (startNode == null) {
 	    				response.append("hgids_not_found", hgid);
 	    				continue;
@@ -89,7 +89,7 @@ public class BFSTraversal {
 	    		    
 	    		    for (Map.Entry<String, Integer> entry : sortedMap.entrySet()) {
 	    		    	JSONObject pit = new JSONObject();
-	    		    	Node node = GraphMethods.getNode(db, entry.getKey());
+	    		    	Node node = GraphMethods.getNodeByHgid(db, entry.getKey());
 	    		    	boolean hasGeometry = false;
 	    		    	
     		    		for (String key : node.getPropertyKeys()) {

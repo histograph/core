@@ -42,6 +42,13 @@ public final class ReasoningDefinitions {
 			}
 			return null;
 		}
+		
+		public static RelationType fromRelationshipType(RelationshipType type) {
+			for (RelationType r : RelationType.values()) {
+				if (r.toString().equals(type.name())) return r;
+			}
+			return null;
+		}
 	}
 	
 	// All primary relations as defined in http://histograph.github.io/

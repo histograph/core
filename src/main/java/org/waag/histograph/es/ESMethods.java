@@ -82,7 +82,6 @@ public class ESMethods {
 		return new JSONObject(result.getJsonString());
 	}
 	
-	// TODO Better implementation! This way, all associated edges are removed.
 	public static JSONObject updatePIT(JestClient client, Map<String, String> params, Configuration config) throws Exception {
 		deletePIT(client, params, config);
 		return addPIT(client, params, config);
