@@ -18,23 +18,40 @@ import org.json.JSONObject;
 import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.HistographTokens;
 
+/**
+ * A class containing several static methods for basic Elasticsearch operations. All methods
+ * require an added {@link JestClient} object that handles the ES connection.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class ESMethods {
 	
-	public static void testConnection (JestClient client, Configuration config) {
+	/**
+	 * Method that tests the ES client's connection. An exception is thrown if the connection fails.
+	 * @param client The client object that handles the ES connection.
+	 * @param config {@link Configuration} object containing the configuration of the JestClient object.
+	 * @throws Exception Thrown when the connection fails.
+	 */
+	public static void testConnection (JestClient client, Configuration config) throws Exception {
 		try {
 			client.execute(new Status.Builder().build());
 		} catch (Exception e) {
-			System.out.println("Error: Could not connect to Elasticsearch at http://" + config.ELASTICSEARCH_HOST + ":" + config.ELASTICSEARCH_PORT);
-			System.exit(1);
+			throw new Exception("Could not connect to Elasticsearch at http://" + config.ELASTICSEARCH_HOST + ":" + config.ELASTICSEARCH_PORT);
 		}
 	}
 	
-	public static void createIndex (JestClient client, Configuration config) {		
+	/**
+	 * Method that creates a new PIT index. The mapping file location should be defined in the Configuration object.
+	 * @param client The client object that handles the ES connection.
+	 * @param config {@link Configuration} object containing the configuration of the JestClient object.
+	 * @throws Exception Thrown if index creation fails.
+	 */
+	public static void createIndex (JestClient client, Configuration config) throws Exception {		
 		try {
 			client.execute(new CreateIndex.Builder(config.ELASTICSEARCH_INDEX).build());
 		} catch (Exception e) {
-			System.out.println("Error: Unable to create index. " + e.getMessage());
-			System.exit(1);		}
+			throw new Exception("Unable to create index. " + e.getMessage());
+		}
 		
 		String mappingFilePath = config.SCHEMA_DIR + "/elasticsearch/pit.json";
 
@@ -43,15 +60,20 @@ public class ESMethods {
 			PutMapping putMapping = new PutMapping.Builder(config.ELASTICSEARCH_INDEX, config.ELASTICSEARCH_TYPE, mapping).build();
 			client.execute(putMapping);
 		} catch (IOException e) {
-			System.out.println("Error: Unable to read mapping file. " + e.getMessage());
-			System.exit(1);
+			throw new Exception("Unable to read mapping file. " + e.getMessage());
 		} catch (Exception e) {
-			System.out.println("Error: Unable to put mapping. " + e.getMessage());
-			System.exit(1);
+			throw new Exception("Unable to put mapping. " + e.getMessage());
 		}
 	}
 	
-	public static boolean indexExists (JestClient client, Configuration config) {
+	/**
+	 * Method that checks whether the Histograph index exists. Index and type should be specified in the Configuration object.
+	 * @param client The JestClient object containing the Elasticsearch connection
+	 * @param config The Configuration object in which the Elasticsearch index and type are defined
+	 * @return A boolean value expressing whether the index exists or not.
+	 * @throws Exception Thrown when an unexpected reponse is given by the JestClient
+	 */
+	public static boolean indexExists (JestClient client, Configuration config) throws Exception {
 		JestResult result;
 		try {
 			result = client.execute(new GetMapping.Builder().addIndex(config.ELASTICSEARCH_INDEX).addType(config.ELASTICSEARCH_TYPE).build());
@@ -62,15 +84,21 @@ public class ESMethods {
 			} else if (obj.has("histograph")) {
 				return true;
 			} else {
-				throw new IOException("Unexpected Jest response received while trying to delete index: " + obj.toString());
+				throw new IOException("Unexpected Jest response received while trying to poll index: " + obj.toString());
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
-			System.exit(1);
-			return false;
+			throw new Exception(e.getMessage());
 		}
 	}
 	
+	/**
+	 * Method to add a PIT to the Elasticsearch index.
+	 * @param client The JestClient object containing the Elasticsearch connection
+	 * @param params A map containing the parameters of the PIT that is to be added
+	 * @param config A Configuration object in which the Elasticsearch index and type are defined
+	 * @return A {@link JSONObject} containing the JestClient's response
+	 * @throws Exception Propagated exception from the {@link JestClient#execute(io.searchbox.action.Action)} method.
+	 */
 	public static JSONObject addPIT(JestClient client, Map<String, String> params, Configuration config) throws Exception {
 		if (params.containsKey(HistographTokens.PITTokens.DATA)) {
 			params.remove(HistographTokens.PITTokens.DATA);
@@ -82,11 +110,32 @@ public class ESMethods {
 		return new JSONObject(result.getJsonString());
 	}
 	
+	/**
+	 * Method to update a PIT in the Elasticsearch index. This is composed of a removal of the old PIT and an addition of the PIT
+	 * present in the parameters.
+	 * @param client The JestClient object containing the Elasticsearch connection
+	 * @param params A map containing the parameters of the PIT that is to be added
+	 * @param config A Configuration object in which the Elasticsearch index and type are defined
+	 * @return A {@link JSONObject} containing the JestClient's response for both the delete and add operation.
+	 * @throws Exception Propagated exception from the {@link JestClient#execute(io.searchbox.action.Action)} methods.
+	 */
 	public static JSONObject updatePIT(JestClient client, Map<String, String> params, Configuration config) throws Exception {
-		deletePIT(client, params, config);
-		return addPIT(client, params, config);
+		JSONObject delResponse = deletePIT(client, params, config);
+		JSONObject addResponse = addPIT(client, params, config);
+		JSONObject response = new JSONObject();
+		response.put("addResponse", addResponse);
+		response.put("delResponse", delResponse);
+		return response;
 	}
 	
+	/**
+	 * Method to delete a PIT from the Elasticsearch index.
+	 * @param client The JestClient object containing the Elasticsearch connection
+	 * @param params A map containing the parameters of the PIT that is to be removed
+	 * @param config A Configuration object in which the Elasticsearch index and type are defined
+	 * @return A {@link JSONObject} containing the JestClient's response
+	 * @throws Exception Propagated exception from the {@link JestClient#execute(io.searchbox.action.Action)} method.
+	 */
 	public static JSONObject deletePIT(JestClient client, Map<String, String> params, Configuration config) throws Exception {
 		JestResult result = client.execute(new Delete.Builder(params.get(HistographTokens.General.HGID)).index(config.ELASTICSEARCH_INDEX).type(config.ELASTICSEARCH_TYPE).build());
 		return new JSONObject(result.getJsonString());

@@ -18,6 +18,11 @@ import javax.servlet.http.HttpServlet;
 
 import org.eclipse.jetty.servlet.ServletHandler;
 
+/**
+ * A single thread class that acts as a server for the Traversal API.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class ServerThread implements Runnable {
 
 	static final String TRAVERSAL_PATH = "/traversal";
@@ -26,12 +31,22 @@ public class ServerThread implements Runnable {
 	static Configuration config;
 	static String version;
 	
+	/**
+	 * Constructor of the thread.
+	 * @param db The Neo4j graph object on which the operations should be performed.
+	 * @param config The Configuration object in which the server's port number is specified.
+	 * @param version The version of Histograph-Core.
+	 */
 	public ServerThread(GraphDatabaseService db, Configuration config, String version) {
 		ServerThread.db = db;
 		ServerThread.config = config;
 		ServerThread.version = version;
 	}
 
+	/**
+	 * The thread's main method. Starts listening on the port defined in the Configuration object provided in the 
+	 * Thread's constructor and accepts traversal requests through POST requests at the traversal path.
+	 */
     public void run() {
         Server server = new Server(config.TRAVERSAL_PORT);
         ServletHandler handler = new ServletHandler();
@@ -49,7 +64,7 @@ public class ServerThread implements Runnable {
     }
 
     @SuppressWarnings("serial")
-	public static class BaseServlet extends HttpServlet {
+	private static class BaseServlet extends HttpServlet {
         
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             response.setContentType("application/json");
@@ -66,7 +81,7 @@ public class ServerThread implements Runnable {
     }
     
     @SuppressWarnings("serial")
-	public static class TraversalServlet extends HttpServlet {
+	private static class TraversalServlet extends HttpServlet {
         
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             response.setContentType("text/html");

@@ -14,20 +14,30 @@ import org.waag.histograph.reasoner.ReasoningDefinitions;
 import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.HistographTokens;
 
+/**
+ * This is a class initializing the Neo4j graph connection. This includes setting up indices if
+ * they did not exist and the server for the Neo4j front end page in which Cypher queries can be executed.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 @SuppressWarnings("deprecation")
 public class GraphInit {
-		
-	public static GraphDatabaseService initNeo4j (Configuration config) {
+	
+	/**
+	 * Static method that initializes the Neo4j graph based on a Configuration parameter and returns 
+	 * the GraphDatabaseService associated object.
+	 * @param config The Configuration object in which Neo4j file paths and ports should be specified.
+	 * @return The GraphDatabaseService object of the initialized Neo4j graph.
+	 * @throws Exception Thrown if the graph database could not be started at the given file path.
+	 */
+	public static GraphDatabaseService initNeo4j (Configuration config) throws Exception {
 		try {
 			GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(config.NEO4J_FILEPATH);
 	        initializeIndices(db);
 	        initializeServer(config, db);
 	        return db;
 		} catch (RuntimeException e) {
-			System.out.println("Unable to start graph database on " + config.NEO4J_FILEPATH + ".");
-			e.printStackTrace();
-			System.exit(1);
-			return null;
+			throw new Exception("Unable to start graph database on " + config.NEO4J_FILEPATH + ". " + e.getMessage());
 		}
 	}
 	

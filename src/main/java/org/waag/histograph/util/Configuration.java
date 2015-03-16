@@ -7,6 +7,12 @@ import java.nio.file.Paths;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+/**
+ * A class that parses the Histograph configuration JSON file and contains all configuration parameters.
+ * The Configuration object can only be created with the {@link #fromEnv()} and {@link #fromFile(String)} methods.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class Configuration {
 
 	public String ELASTICSEARCH_HOST;
@@ -28,7 +34,7 @@ public class Configuration {
 	
 	public String SCHEMA_DIR;
 	
-	public Configuration (String es_host, String es_port, String es_index, String es_type, 
+	private Configuration (String es_host, String es_port, String es_index, String es_type, 
 							String neo4j_filepath, String neo4j_port, int traversal_port,
 							String redis_host, String redis_port, String redis_main_queue, 
 							String redis_graph_queue, String redis_es_queue, String schema_dir) {
@@ -47,6 +53,12 @@ public class Configuration {
 		SCHEMA_DIR = schema_dir;
 	}
 	
+	/**
+	 * Creates a Configuration object from a file.
+	 * @param filePath The path of the JSON configuration file.
+	 * @return A Configuration object in which all configuration parameters are set.
+	 * @throws IOException Thrown if an invalid configuration file is found.
+	 */
 	public static Configuration fromFile(String filePath) throws IOException {
 		try {
 			String contents = new String(Files.readAllBytes(Paths.get(filePath)));
@@ -57,6 +69,11 @@ public class Configuration {
 		}
 	}
 	
+	/**
+	 * Creates a Configuration object based on a file path found in the <i>HISTOGRAPH_CONFIG</i> environment variable.
+	 * @return A Configuration object in which all configuration parameters are set.
+	 * @throws IOException Thrown if an invalid configuration file is provided, or if the environment variable was not set.
+	 */
 	public static Configuration fromEnv() throws IOException {
 		try {
 			String filePath = System.getenv("HISTOGRAPH_CONFIG");

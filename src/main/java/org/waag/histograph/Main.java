@@ -25,6 +25,13 @@ import org.waag.histograph.util.HistographTokens;
 import org.waag.histograph.util.NoLogging;
 import org.neo4j.graphdb.GraphDatabaseService;
 
+/**
+ * Main Histograph-Core program. This program starts several threads for each of the Core's functionalities.
+ * One is created for graph management, one for Elasticsearch communication and one for the traversal server.
+ * The Main thread keeps polling the Redis queue for actions and distributes them to the appropriate threads.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class Main {
 
 	private static final String VERSION = "0.2.1";
@@ -32,6 +39,12 @@ public class Main {
 	static Configuration config;
 	private static boolean verbose;
 
+	/**
+	 * Initiates the Histograph-Core program.
+	 * @param argv Two arguments are possible: <i>-verbose</i> for verbose output, and <i>-config</i> when a
+	 * configuration path is provided. Both are optional -- omitting the <i>-config</i> argument results in
+	 * the program trying to read the configuration file path from the environment variable <i>HISTOGRAPH_CONFIG</i>.
+	 */
 	public static void main(String[] argv) {
 		boolean fromFile = false;
 		verbose = false;
@@ -84,16 +97,34 @@ public class Main {
 		printAsciiArt();
 		
 		System.out.println("Connecting to Redis server...");
-		Jedis jedis = RedisInit.initRedis();
-		
+		Jedis jedis = null;
+		try {
+			jedis = RedisInit.initRedis();
+		} catch (Exception e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+			
 		System.out.println("Initializing Elasticsearch client...");
-		JestClient client = ESInit.initES(config);
-		if (!ESMethods.indexExists(client, config)) {
-			ESMethods.createIndex(client, config);
+		JestClient client = null;
+		try {
+			client = ESInit.initES(config);
+			if (!ESMethods.indexExists(client, config)) {
+				ESMethods.createIndex(client, config);
+			}
+		} catch (Exception e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
 		}
 		
 		System.out.println("Initializing Neo4j server...");
-		GraphDatabaseService db = GraphInit.initNeo4j(config);
+		GraphDatabaseService db = null;
+		try {
+			db = GraphInit.initNeo4j(config);
+		} catch (Exception e) {
+			System.out.println("Error: " + e.getMessage());
+			System.exit(1);
+		}
 		
 		System.out.println("Creating threads...");
 		new Thread(new GraphThread(db, config.REDIS_GRAPH_QUEUE, verbose)).start();

@@ -10,8 +10,19 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.waag.histograph.queue.Task;
 
+/**
+ * A class that parses JSON tasks typically found in the Redis queue and transforms them to {@link Task} objects.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class InputReader {
 	
+	/**
+	 * Parses a JSONObject (typically found in the Redis queue) to a {@link Task} object.
+	 * @param obj The JSON representation of the task to be carried out.
+	 * @return A task object in which all parameters are stored.
+	 * @throws IOException Thrown when a parsing error is encountered.
+	 */
 	public static Task parse(JSONObject obj) throws IOException {
 		String source;
 		

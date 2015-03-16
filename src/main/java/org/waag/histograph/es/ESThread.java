@@ -16,25 +16,48 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import io.searchbox.client.JestClient;
 
+/**
+ * A single thread class that keeps polling a Redis queue for Elasticsearch operations and updates the Elasticsearch index accordingly.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class ESThread implements Runnable {
 
 	JestClient client;
 	Configuration config;
 	boolean verbose;
+	private static final String NAME = "ESThread";
 	
+	/**
+	 * Constructor of the thread.
+	 * @param client The Elasticsearch client object on which the operations should be performed.
+	 * @param config The {@link Configuration} object in which the Elasticsearch parameters are defined.
+	 * @param verbose Boolean value expressing whether the Elasticsearch thread should write verbose output to stdout.
+	 */
 	public ESThread (JestClient client, Configuration config, boolean verbose) {
 		this.client = client;
 		this.config = config;
 		this.verbose = verbose;
 	}
 	
+	/**
+	 * The thread's main loop. Keeps polling the Redis queue for tasks and performs them synchronously.
+	 * Errors are written to <i>esErrors.txt</i> and Redis queue parsing errors to <i>esMsgParseErrors.txt</i>.
+	 */
 	public void run () {
-		Jedis jedis = RedisInit.initRedis();
+		Jedis jedis = null;
+		try {
+			jedis = RedisInit.initRedis();
+		} catch (Exception e) {
+			println("Error: " + e.getMessage());
+			System.exit(1);
+		}
+		
 		List<String> messages = null;
 		String payload = null;
 		int tasksDone = 0;
 		
-		System.out.println("[ESThread] Ready to take messages.");
+		println("Ready to take messages.");
 		while (true) {
 			Task task = null;
 			
@@ -42,7 +65,7 @@ public class ESThread implements Runnable {
 				messages = jedis.blpop(0, config.REDIS_ES_QUEUE);
 				payload = messages.get(1);
 			} catch (JedisConnectionException e) {
-				System.out.println("[ESThread] Redis connection error: " + e.getMessage());
+				println("Redis connection error: " + e.getMessage());
 				System.exit(1);
 			}
 			
@@ -63,7 +86,7 @@ public class ESThread implements Runnable {
 				tasksDone ++;
 				if (tasksDone % 100 == 0) {
 					int tasksLeft = jedis.llen(config.REDIS_ES_QUEUE).intValue();
-					System.out.println("[ESThread] Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
+					println("Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
 				}
 			}
 		}
@@ -117,7 +140,11 @@ public class ESThread implements Runnable {
 			fileOut.write(header + message + "\n");
 			fileOut.close();
 		} catch (Exception e) {
-			System.out.println("Unable to write '" + message + "' to file '" + fileName + "'.");
+			println("Unable to write '" + message + "' to file '" + fileName + "'.");
 		}	
+	}
+	
+	private void println(String message) {
+		System.out.println("[" + NAME + "] " + message);
 	}
 }

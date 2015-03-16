@@ -23,8 +23,25 @@ import org.waag.histograph.graph.GraphMethods;
 import org.waag.histograph.reasoner.ReasoningDefinitions;
 import org.waag.histograph.util.HistographTokens;
 
+/**
+ * A class with a method for breadth-first search traversal through a Neo4j graph. The response
+ * is converted to JSON, which can be returned in the traversal API response in the {@link ServerThread} class.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class BFSTraversal {
 
+	/**
+	 * Performs the breadth-first search traversal through the graph and returns the response in
+	 * JSON format. Only hga:Conceptidentical relationships are traversed in both directions.
+	 * @param db The Neo4j GraphDatabaseService object
+	 * @param hgids An array of hgids, typically the result of the Elasticsearch query, representing the
+	 * start nodes of the traversal. If a start node B in the array is encountered during traversal of 
+	 * start node A in the array, then node B is not taken as a start node later on.
+	 * @return A JSON object with all traversals separately, ready to be returned by the Traversal API ({@link ServerThread}).
+	 * @throws IOException Propagated exception for when multiple nodes with the same hgid are found. This should
+	 * never happen because of the uniqueness constraint defined on the hgid property.
+	 */
 	public static JSONObject traverse (GraphDatabaseService db, String[] hgids) throws IOException {
     	ArrayList<String> hgidsDone = new ArrayList<String>();
     	JSONObject response = new JSONObject();

@@ -12,9 +12,21 @@ import org.waag.histograph.graph.GraphMethods;
 import org.waag.histograph.reasoner.ReasoningDefinitions.RelationType;
 import org.waag.histograph.util.HistographTokens;
 
+/**
+ * A class containing methods for inferring atomic relationships from existing relationships.
+ * The atomic relationships are defined at http://histograph.io/concepts/ and written out in the
+ * {@link ReasoningDefinitions} class.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class AtomicInferencer {
 
-	public static void inferAtomic(GraphDatabaseService db, Relationship[] relationships) throws IOException {
+	/**
+	 * Infers all atomic relationships associated with a provided array of relationships present in the graph.
+	 * @param db The Neo4j GraphDatabaseService object
+	 * @param relationships An array of relationships from which the atomic relationships should be derived.
+	 */
+	public static void inferAtomic(GraphDatabaseService db, Relationship[] relationships) {
 		for (Relationship r : relationships) {
 			String label = null;
 			try (Transaction tx = db.beginTx()) {
@@ -38,6 +50,28 @@ public class AtomicInferencer {
 		}
 	}
 	
+	private static void inferAtomicRelations(GraphDatabaseService db, String[] labels, Node fromNode, Node toNode, String originalSource) {
+		String inferredSource = "inferred_from_" + originalSource;
+		for (String label : labels) {
+			// Take next label if relation already exists
+			if (GraphMethods.relationExists(db, fromNode, toNode, RelationType.fromLabel(label))) continue;
+			
+			// Create relation between nodes
+			try (Transaction tx = db.beginTx()) {
+				Relationship rel = fromNode.createRelationshipTo(toNode, RelationType.fromLabel(label));
+				rel.setProperty(HistographTokens.General.SOURCE, inferredSource);
+				tx.success();
+			}
+		}
+	}
+	
+	/**
+	 * Remove inferred atomic relationships based on a set of relationship parameters.
+	 * @param db The Neo4j GraphDatabaseService object
+	 * @param params Map containing the relationship parameters. Typically created by the {@link org.waag.histograph.util.InputReader} class.
+	 * @throws IOException Thrown when a relationship label is missing in the parameters, or when no nodes
+	 * are found based on the provided parameters.
+	 */
 	public static void removeInferredAtomic(GraphDatabaseService db, Map<String, String> params) throws IOException {
 		String label;
 		try {
@@ -90,20 +124,5 @@ public class AtomicInferencer {
 			if (GraphMethods.relationExists(db, fromNode, toNode, primaryRelType)) return false;
 		}
 		return true;
-	}
-
-	private static void inferAtomicRelations(GraphDatabaseService db, String[] labels, Node fromNode, Node toNode, String originalSource) throws IOException {
-		String inferredSource = "inferred_from_" + originalSource;
-		for (String label : labels) {
-			// Take next label if relation already exists
-			if (GraphMethods.relationExists(db, fromNode, toNode, RelationType.fromLabel(label))) continue;
-			
-			// Create relation between nodes
-			try (Transaction tx = db.beginTx()) {
-				Relationship rel = fromNode.createRelationshipTo(toNode, RelationType.fromLabel(label));
-				rel.setProperty(HistographTokens.General.SOURCE, inferredSource);
-				tx.success();
-			}
-		}
 	}
 }

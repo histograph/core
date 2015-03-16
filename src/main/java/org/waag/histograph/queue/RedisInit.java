@@ -5,15 +5,18 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 
 public class RedisInit {
 
-	public static Jedis initRedis () {
-		// Initialize Redis connection
+	/**
+	 * Static method that initializes a new Redis connection, tests the connection and returns the Jedis object.
+	 * @return A new {@link Jedis} object with a working Redis connection to localhost
+	 * @throws Exception Thrown if the connection could not be made.
+	 */
+	public static Jedis initRedis () throws Exception {
 		Jedis jedis = new Jedis("localhost");
 		
 		try {
 			jedis.ping();
 		} catch (JedisConnectionException e) {
-			System.out.println("Could not connect to Redis server.");
-			System.exit(1);
+			throw new Exception("Could not connect to Redis server.");
 		}
 		
 		return jedis;

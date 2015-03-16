@@ -1,7 +1,5 @@
 package org.waag.histograph.reasoner;
 
-import java.io.IOException;
-
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -12,9 +10,21 @@ import org.neo4j.tooling.GlobalGraphOperations;
 import org.waag.histograph.graph.GraphMethods;
 import org.waag.histograph.util.HistographTokens;
 
+/**
+ * A class containing a method for inferring transitive relationships in a graph.
+ * For now, only sameAs transitivity is inferred, i.e. (n1) --[SAMEAS]-- (n2) --[REL]--) (n3) should infer (n1) --[REL]--) (n3)
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class TransitiveInferencer {
 	
-	public static void inferTransitiveRelations (GraphDatabaseService db) throws IOException {	
+	/**
+	 * Infers all possible transitive relationships in a graph. For now, only sameAs transitivity is implemented.
+	 * This method keeps running until no new relationships can be derived.
+	 * @param db The neo4j GraphDatabaseService object.
+	 * @return The number of inferred relationships.
+	 */
+	public static int inferTransitiveRelations (GraphDatabaseService db) {	
 		int roundCount, inferredCount = 0;
 		GlobalGraphOperations graphOps = GlobalGraphOperations.at(db);
 		do {
@@ -30,14 +40,13 @@ public class TransitiveInferencer {
 					}
 				}
 				inferredCount += roundCount;
-				System.out.println("  Inferred " + roundCount + " transitive relations this round.");
 				tx.success();
 			}
 		} while (roundCount > 0);
-		System.out.println("Inferred " + inferredCount + " transitive relations.");
+		return inferredCount;
 	}
 	
-	private static int inferSameAsTransitivity(GraphDatabaseService db, Node n1, Node n2) throws IOException {
+	private static int inferSameAsTransitivity(GraphDatabaseService db, Node n1, Node n2) {
 		String layer = "inferredTransitiveSameAsRelation";
 		int inferred = 0;
 		// (n1) --[SAMEAS]-- (n2) --[REL]--> (n3) should infer (n1) --[REL]--> (n3)
@@ -58,7 +67,8 @@ public class TransitiveInferencer {
 			if (!n1.equals(n3)) {
 				RelationshipType type = r.getType();
 				if (!GraphMethods.relationExists(db, n3, n1, type)) {
-					n3.createRelationshipTo(n1, type);
+					Relationship rel = n3.createRelationshipTo(n1, type);
+					rel.setProperty(HistographTokens.General.SOURCE, layer);
 					inferred++;
 				}
 			}

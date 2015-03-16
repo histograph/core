@@ -1,7 +1,12 @@
 package org.waag.histograph.util;
 
 import org.eclipse.jetty.util.log.Logger;
-	
+
+/**
+ * Helper class that disables various logging libraries.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class NoLogging implements Logger {
     @Override public String getName() { return "no"; }
     @Override public void warn(String msg, Object... args) { }

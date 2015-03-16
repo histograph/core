@@ -18,25 +18,48 @@ import org.waag.histograph.util.InputReader;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
+/**
+ * A single thread class that keeps polling a Redis queue for graph operations and updates the graph accordingly.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class GraphThread implements Runnable {
 	
 	GraphDatabaseService db;
 	String redis_graph_queue;
 	boolean verbose;
+	private static final String NAME = "GraphThread";
 	
+	/**
+	 * Constructor of the thread.
+	 * @param db The Neo4j graph object on which the operations should be performed.
+	 * @param redis_graph_queue The name of the Redis queue from which the operations are pulled
+	 * @param verbose Boolean value expressing whether the graph thread should write verbose output to stdout.
+	 */
 	public GraphThread (GraphDatabaseService db, String redis_graph_queue, boolean verbose) {
 		this.db = db;
 		this.redis_graph_queue = redis_graph_queue;
 		this.verbose = verbose;
 	}
 	
+	/**
+	 * The thread's main loop. Keeps polling the Redis queue for tasks and performs them synchronously.
+	 * Errors are written to <i>graphErrors.txt</i>, node duplicates to <i>graphDuplicates.txt</i> and Redis queue
+	 * parsing errors to <i>graphMsgParseErrors.txt</i>.
+	 */
 	public void run () {
-		Jedis jedis = RedisInit.initRedis();
+		Jedis jedis = null;
+		try {
+			jedis = RedisInit.initRedis();
+		} catch (Exception e) {
+			println("Error: " + e.getMessage());
+			System.exit(1);
+		}
 		List<String> messages = null;
 		String payload = null;
 		int tasksDone = 0;
 		
-		System.out.println("[GraphThread] Ready to take messages.");
+		println("Ready to take messages.");
 		while (true) {
 			Task task = null;
 			
@@ -44,7 +67,7 @@ public class GraphThread implements Runnable {
 				messages = jedis.blpop(0, redis_graph_queue);
 				payload = messages.get(1);
 			} catch (JedisConnectionException e) {
-				System.out.println("[GraphThread] Redis connection error: " + e.getMessage());
+				println("Redis connection error: " + e.getMessage());
 				System.exit(1);
 			}
 			
@@ -67,7 +90,7 @@ public class GraphThread implements Runnable {
 				tasksDone ++;
 				if (tasksDone % 100 == 0) {
 					int tasksLeft = jedis.llen(redis_graph_queue).intValue();
-					System.out.println("[GraphThread] Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
+					println("Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
 				}
 			}
 		}
@@ -130,7 +153,11 @@ public class GraphThread implements Runnable {
 			fileOut.write(header + message + "\n");
 			fileOut.close();
 		} catch (Exception e) {
-			System.out.println("Unable to write '" + message + "' to file '" + fileName + "'.");
+			println("Unable to write '" + message + "' to file '" + fileName + "'.");
 		}	
+	}
+	
+	private void println(String message) {
+		System.out.println("[" + NAME + "] " + message);
 	}
 }

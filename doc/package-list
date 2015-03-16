@@ -1,0 +1,7 @@
+org.waag.histograph
+org.waag.histograph.es
+org.waag.histograph.graph
+org.waag.histograph.queue
+org.waag.histograph.reasoner
+org.waag.histograph.traversal
+org.waag.histograph.util

@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -17,9 +18,24 @@ import org.waag.histograph.reasoner.ReasoningDefinitions;
 import org.waag.histograph.reasoner.ReasoningDefinitions.RelationType;
 import org.waag.histograph.util.HistographTokens;
 
+/**
+ * Class containing several static methods for basic Neo4j graph operations. All methods
+ * require an added {@link GraphDatabaseService} object that encapsulates the Neo4j graph,
+ * on which the operations are to be performed.
+ * @author Rutger van Willigen
+ * @author Bert Spaan
+ */
 public class GraphMethods {
 	
-	public static void addNode(GraphDatabaseService db, Map<String, String> params) throws IOException {		
+	/**
+	 * Adds a node to the graph. Nodes have a uniqueness constraint on the 'hgid' property -- if a node with 
+	 * the same hgid was already present, the node is not added and a ConstraintViolationException is thrown.
+	 * @param db The Neo4j graph object 
+	 * @param params A map containing all parameters to be added to the node. Commonly created by 
+	 * the {@link org.waag.histograph.util.InputReader} class, returned with {@link org.waag.histograph.queue.Task#getParams()}.
+	 * @throws ConstraintViolationException Thrown if a node with the same hgid was already present.
+	 */
+	public static void addNode(GraphDatabaseService db, Map<String, String> params) throws ConstraintViolationException {		
 		// Node lookup is omitted due to uniqueness constraint
 		try (Transaction tx = db.beginTx()) {
 			Node newPIT = db.createNode();
@@ -36,6 +52,14 @@ public class GraphMethods {
 		}
 	}
 	
+	/**
+	 * Updates an existing node in the graph, based on the hgid, which remains the same. All other properties
+	 * are removed and replaced by the parameters in the params object.
+	 * @param db The Neo4j graph object
+	 * @param params A map containing the hgid and all parameters to be added to the node. Commonly created by 
+	 * the {@link org.waag.histograph.util.InputReader} class, returned with {@link org.waag.histograph.queue.Task#getParams()}.
+	 * @throws IOException Thrown if no node with this hgid was present in the graph.
+	 */
 	public static void updateNode(GraphDatabaseService db, Map<String, String> params) throws IOException {
 		// Verify node exists and get it
 		Node node = GraphMethods.getNodeByHgid(db, params.get(HistographTokens.General.HGID));
@@ -59,6 +83,13 @@ public class GraphMethods {
 		System.out.println("Node updated.");
 	}
 	
+	/**
+	 * Removes a node and all its associated relationships from the graph. The node is found 
+	 * using the hgid found in the parameters map.
+	 * @param db The Neo4j graph object
+	 * @param params A map containing the hgid of the node that is to be removed. All other parameters are ignored.
+	 * @throws IOException Thrown if no node with this hgid was present in the graph.
+	 */
 	public static void deleteNode(GraphDatabaseService db, Map<String, String> params) throws IOException {
 		String hgid = params.get(HistographTokens.General.HGID);
 		
@@ -79,6 +110,14 @@ public class GraphMethods {
 		}
 	}
 	
+	/**
+	 * Looks up all nodes given a URI or hgid parameter. First, nodes are looked up by URI -- if no nodes are found, then
+	 * a node is looked up by the hgid.
+	 * @param db The Neo4j graph object
+	 * @param hgidOrURI A parameter representing either a URI or a hgid.
+	 * @return An array of the nodes found. If no nodes are found, null is returned.
+	 * @throws IOException Thrown if multiple nodes are found <b>when searching by hgid</b>. This should not happen due to the uniqueness constraint.
+	 */
 	public static Node[] getNodesFromParams(GraphDatabaseService db, String hgidOrURI) throws IOException {
 		// Search on URI first, return all found nodes in array
 		Node[] nodes = GraphMethods.getNodesByURI(db, hgidOrURI);
@@ -93,6 +132,16 @@ public class GraphMethods {
 		return nodes;
 	}
 	
+	/**
+	 * Creates one or more relationships between nodes, depending on the hgid or URI parameter that are passed.
+	 * First, all start and end nodes are looked up (possibly more than one if URI's are passed), and if the
+	 * specified relationship between these nodes do not exist, they are created and returned.
+	 * @param db The Neo4j graph object
+	 * @param params A map containing the parameters for the relationships that are to be created. Typically created by
+	 * the {@link org.waag.histograph.util.InputReader} class, returned with {@link org.waag.histograph.queue.Task#getParams()}.
+	 * @return An array containing all newly created Relationships, or null if no relations were created 
+	 * @throws IOException Thrown if no nodes are found based on the given hgid's or URI's.
+	 */
 	public static Relationship[] addRelation(GraphDatabaseService db, Map<String, String> params) throws IOException {
 		// Search on URI first, return all found nodes in array
 		Node[] fromNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.FROM));
@@ -133,10 +182,24 @@ public class GraphMethods {
 		}
 	}
 	
+	/**
+	 * Updates a relationship. Currently not supported -- an IOException is always thrown.
+	 * @param db The Neo4j graph object
+	 * @param params A map containing the parameters for the relationship that is to be updated. Typically created by
+	 * the {@link org.waag.histograph.util.InputReader} class, returned with {@link org.waag.histograph.queue.Task#getParams()}.
+	 * @throws IOException Always thrown as updating relationships is not supported. Remove and add a new relationship instead.
+	 */
 	public static void updateRelation(GraphDatabaseService db, Map<String, String> params) throws IOException {
-		throw new IOException("Updating relations not supported.");
+		throw new IOException("Updating relationships not supported.");
 	}
 	
+	/**
+	 * Deletes one or more relationships, based on a relationship label and node identifiers (either hgid or URI).
+	 * @param db The Neo4j graph object
+	 * @param params A map containing the parameters for the relationship that is to be deleted. Typically created by
+	 * the {@link org.waag.histograph.util.InputReader} class, returned with {@link org.waag.histograph.queue.Task#getParams()}.
+	 * @throws IOException Thrown if no nodes are present associated with the provided hgid or URI.
+	 */
 	public static void deleteRelation(GraphDatabaseService db, Map<String, String> params) throws IOException {
 		// Search on URI first, return all found nodes in array
 		Node[] fromNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.FROM));
@@ -175,6 +238,13 @@ public class GraphMethods {
 		}
 	}
 	
+	/**
+	 * Returns a node given a hgid, or null if no nodes with this hgid are found.
+	 * @param db The Neo4j graph object
+	 * @param hgid The hgid to search for.
+	 * @return The node associated with the specified hgid, or null if no such node is found.
+	 * @throws IOException Thrown if multiple nodes with the specified hgid are found. This should not happen due to the uniqueness constraint.
+	 */
 	public static Node getNodeByHgid(GraphDatabaseService db, String hgid) throws IOException {
         try (Transaction ignored = db.beginTx()) {
         	try (ResourceIterator<Node> i = db.findNodesByLabelAndProperty(ReasoningDefinitions.NodeType.PIT, HistographTokens.General.HGID, hgid).iterator()) {
@@ -186,15 +256,35 @@ public class GraphMethods {
         }
 	}	
 	
-	public static boolean nodeExistsByHgid(GraphDatabaseService db, String hgID) throws IOException {
-		return (getNodeByHgid(db, hgID) != null);
+	/**
+	 * Checks whether a node with a specified hgid exists.
+	 * @param db The Neo4j graph object
+	 * @param hgid The hgid to search for.
+	 * @return A boolean value indicating if a node with the specified hgid exists in the graph.
+	 * @throws IOException Thrown if multiple nodes with the specified hgid exist.
+	 */
+	public static boolean nodeExistsByHgid(GraphDatabaseService db, String hgid) throws IOException {
+		return (getNodeByHgid(db, hgid) != null);
 	}
 	
-	public static boolean nodeAbsentByHgid(GraphDatabaseService db, String hgID) throws IOException {
-		return (getNodeByHgid(db, hgID) == null);
+	/**
+	 * Checks whether a node with a specified hgid does NOT exist in the graph.
+	 * @param db The Neo4j graph object
+	 * @param hgid The hgid to search for.
+	 * @return A boolean value indicating if a node with the specified hgid is absent in the graph.
+	 * @throws IOException Thrown if multiple nodes with the specified hgid exist.
+	 */
+	public static boolean nodeAbsentByHgid(GraphDatabaseService db, String hgid) throws IOException {
+		return (getNodeByHgid(db, hgid) == null);
 	}
 	
-	public static Node[] getNodesByURI(GraphDatabaseService db, String uri) throws IOException {
+	/**
+	 * Find all nodes containing a specified URI.
+	 * @param db The Neo4j graph object
+	 * @param uri The URI to search for.
+	 * @return An array of nodes containing this URI, or null if no such nodes are present.
+	 */
+	public static Node[] getNodesByURI(GraphDatabaseService db, String uri) {
 		try (Transaction ignored = db.beginTx()) {
 			try (ResourceIterator<Node> i = db.findNodesByLabelAndProperty(ReasoningDefinitions.NodeType.PIT, HistographTokens.PITTokens.URI, uri).iterator()) {
 				if (!i.hasNext()) return null;
@@ -209,7 +299,15 @@ public class GraphMethods {
 		}
 	}
 	
-	public static Relationship getRelation(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) throws IOException {
+	/**
+	 * Finds and returns a relationship based on two nodes and a relationship type.
+	 * @param db The Neo4j graph object
+	 * @param fromNode The start node object of the relationship
+	 * @param toNode The end node object of the relationship
+	 * @param type The relationship type of this relationship
+	 * @return The relationship associated with the parameters, or null if this relationship does not exist.
+	 */
+	public static Relationship getRelation(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) {
 		try (Transaction tx = db.beginTx()) {
 			for (Relationship r : fromNode.getRelationships(type, Direction.OUTGOING)) {
 				if (r.getEndNode().equals(toNode)) {
@@ -220,11 +318,27 @@ public class GraphMethods {
 		return null;
 	}
 	
-	public static boolean relationExists(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) throws IOException {
+	/**
+	 * Checks whether a relationship exists in the graph.
+	 * @param db The Neo4j graph object
+	 * @param fromNode The start node object of the relationship
+	 * @param toNode The end node object of the relationship
+	 * @param type The relationship type of this relationship
+	 * @return A boolean value indicating whether this relationship exists in the graph.
+	 */
+	public static boolean relationExists(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) {
 		return (getRelation(db, fromNode, toNode, type) != null);
 	}
 	
-	public static boolean relationAbsent(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) throws IOException {
+	/**
+	 * Checks whether a relationship is absent in the graph.
+	 * @param db The Neo4j graph object
+	 * @param fromNode The start node object of the relationship
+	 * @param toNode The end node object of the relationship
+	 * @param type The relationship type of this relationship
+	 * @return A boolean value indicating whether this relationship is absent in the graph.
+	 */
+	public static boolean relationAbsent(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) {
 		return (getRelation(db, fromNode, toNode, type) == null);
 	}
 }
