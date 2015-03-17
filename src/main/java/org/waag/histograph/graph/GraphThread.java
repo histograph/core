@@ -54,14 +54,14 @@ public class GraphThread implements Runnable {
 		try {
 			jedis = RedisInit.initRedis();
 		} catch (Exception e) {
-			println("Error: " + e.getMessage());
+			namePrint("Error: " + e.getMessage());
 			System.exit(1);
 		}
 		List<String> messages = null;
 		String payload = null;
 		int tasksDone = 0;
 		
-		println("Ready to take messages.");
+		namePrint("Ready to take messages.");
 		while (true) {
 			Task task = null;
 			
@@ -69,7 +69,7 @@ public class GraphThread implements Runnable {
 				messages = jedis.blpop(0, redis_graph_queue);
 				payload = messages.get(1);
 			} catch (JedisConnectionException e) {
-				println("Redis connection error: " + e.getMessage());
+				namePrint("Redis connection error: " + e.getMessage());
 				System.exit(1);
 			}
 			
@@ -92,7 +92,7 @@ public class GraphThread implements Runnable {
 				tasksDone ++;
 				if (tasksDone % 100 == 0) {
 					int tasksLeft = jedis.llen(redis_graph_queue).intValue();
-					println("Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
+					namePrint("Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
 				}
 			}
 		}
@@ -157,11 +157,11 @@ public class GraphThread implements Runnable {
 			fileOut.write(format.format(now) + header + message + "\n");
 			fileOut.close();
 		} catch (Exception e) {
-			System.out.println("Unable to write '" + message + "' to file '" + fileName + "'.");
+			namePrint("Unable to write '" + message + "' to file '" + fileName + "'.");
 		}	
 	}
 	
-	private void println(String message) {
+	private void namePrint(String message) {
 		System.out.println("[" + NAME + "] " + message);
 	}
 }

@@ -40,6 +40,7 @@ public class Main {
 	
 	static Configuration config;
 	private static boolean verbose;
+	private static final String NAME = "MainThread";
 
 	/**
 	 * Initiates the Histograph-Core program.
@@ -98,16 +99,16 @@ public class Main {
 	private void start() {
 		printAsciiArt();
 		
-		System.out.println("Connecting to Redis server...");
+		namePrint("Connecting to Redis server...");
 		Jedis jedis = null;
 		try {
 			jedis = RedisInit.initRedis();
 		} catch (Exception e) {
-			System.out.println("Error: " + e.getMessage());
+			namePrint("Error: " + e.getMessage());
 			System.exit(1);
 		}
 			
-		System.out.println("Initializing Elasticsearch client...");
+		namePrint("Initializing Elasticsearch client...");
 		JestClient client = null;
 		try {
 			client = ESInit.initES(config);
@@ -115,11 +116,11 @@ public class Main {
 				ESMethods.createIndex(client, config);
 			}
 		} catch (Exception e) {
-			System.out.println("Error: " + e.getMessage());
+			namePrint("Error: " + e.getMessage());
 			System.exit(1);
 		}
 		
-		System.out.println("Initializing Neo4j server...");
+		namePrint("Initializing Neo4j server...");
 		GraphDatabaseService db = null;
 		try {
 			db = GraphInit.initNeo4j(config);
@@ -128,7 +129,7 @@ public class Main {
 			System.exit(1);
 		}
 		
-		System.out.println("Creating threads...");
+		namePrint("Creating threads...");
 		new Thread(new GraphThread(db, config.REDIS_GRAPH_QUEUE, verbose)).start();
 		new Thread(new ESThread(client, config, verbose)).start();
 		new Thread(new ServerThread(db, config, VERSION)).start();		
@@ -137,13 +138,13 @@ public class Main {
 		String payload = null;
 		int messagesParsed = 0;
 					
-		System.out.println("[MainThread] Ready to take messages.");
+		namePrint("Ready to take messages.");
 		while (true) {
 			try {
 				messages = jedis.blpop(0, config.REDIS_MAIN_QUEUE);
 				payload = messages.get(1);
 			} catch (JedisConnectionException e) {
-				System.out.println("[MainThread] Redis connection error: " + e.getMessage());
+				namePrint("Redis connection error: " + e.getMessage());
 				System.exit(1);
 			}
 
@@ -173,7 +174,7 @@ public class Main {
 					messagesParsed ++;
 					if (messagesParsed % 100 == 0) {
 						int messagesLeft = jedis.llen(config.REDIS_MAIN_QUEUE).intValue();
-						System.out.println("[MainThread] Distributed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
+						namePrint("Distributed " + messagesParsed + " messages -- " + messagesLeft + " left in queue.");
 					}
 				}
 			} catch (JSONException e) {
@@ -198,8 +199,11 @@ public class Main {
 			fileOut.write(format.format(now) + header + message + "\n");
 			fileOut.close();
 		} catch (Exception e) {
-			System.out.println(e);
-			System.out.println("Unable to write '" + message + "' to file '" + fileName + "'.");
+			namePrint("Unable to write '" + message + "' to file '" + fileName + "'.");
 		}	
+	}
+	
+	private void namePrint(String message) {
+		System.out.println("[" + NAME + "] " + message);
 	}
 }

@@ -51,7 +51,7 @@ public class ESThread implements Runnable {
 		try {
 			jedis = RedisInit.initRedis();
 		} catch (Exception e) {
-			println("Error: " + e.getMessage());
+			namePrint("Error: " + e.getMessage());
 			System.exit(1);
 		}
 		
@@ -59,7 +59,7 @@ public class ESThread implements Runnable {
 		String payload = null;
 		int tasksDone = 0;
 		
-		println("Ready to take messages.");
+		namePrint("Ready to take messages.");
 		while (true) {
 			Task task = null;
 			
@@ -67,7 +67,7 @@ public class ESThread implements Runnable {
 				messages = jedis.blpop(0, config.REDIS_ES_QUEUE);
 				payload = messages.get(1);
 			} catch (JedisConnectionException e) {
-				println("Redis connection error: " + e.getMessage());
+				namePrint("Redis connection error: " + e.getMessage());
 				System.exit(1);
 			}
 			
@@ -88,7 +88,7 @@ public class ESThread implements Runnable {
 				tasksDone ++;
 				if (tasksDone % 100 == 0) {
 					int tasksLeft = jedis.llen(config.REDIS_ES_QUEUE).intValue();
-					println("Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
+					namePrint("Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
 				}
 			}
 		}
@@ -144,11 +144,11 @@ public class ESThread implements Runnable {
 			fileOut.write(format.format(now) + header + message + "\n");
 			fileOut.close();
 		} catch (Exception e) {
-			System.out.println("Unable to write '" + message + "' to file '" + fileName + "'.");
+			namePrint("Unable to write '" + message + "' to file '" + fileName + "'.");
 		}	
 	}
 	
-	private void println(String message) {
+	private void namePrint(String message) {
 		System.out.println("[" + NAME + "] " + message);
 	}
 }
