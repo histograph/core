@@ -2,6 +2,8 @@ package org.waag.histograph.graph;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -150,10 +152,12 @@ public class GraphThread implements Runnable {
 	private void writeToFile(String fileName, String header, String message) {
 		try {
 			FileWriter fileOut = new FileWriter(fileName, true);
-			fileOut.write(header + message + "\n");
+			Date now = new Date();
+			SimpleDateFormat format = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss] ");
+			fileOut.write(format.format(now) + header + message + "\n");
 			fileOut.close();
 		} catch (Exception e) {
-			println("Unable to write '" + message + "' to file '" + fileName + "'.");
+			System.out.println("Unable to write '" + message + "' to file '" + fileName + "'.");
 		}	
 	}
 	

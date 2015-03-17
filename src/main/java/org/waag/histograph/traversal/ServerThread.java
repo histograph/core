@@ -64,7 +64,12 @@ public class ServerThread implements Runnable {
     }
 
     @SuppressWarnings("serial")
-	private static class BaseServlet extends HttpServlet {
+    /**
+     * A servlet class handling GET requests at the root path.
+     * @author Rutger van Willigen
+     * @author Bert Spaan
+     */
+	public static class BaseServlet extends HttpServlet {
         
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             response.setContentType("application/json");
@@ -81,7 +86,12 @@ public class ServerThread implements Runnable {
     }
     
     @SuppressWarnings("serial")
-	private static class TraversalServlet extends HttpServlet {
+    /**
+     * A servlet class handling GET requests with an error message and POST requests by calling the BFSTraversal class.
+     * @author Rutger van Willigen
+     * @author Bert Spaan
+     */
+    public static class TraversalServlet extends HttpServlet {
         
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             response.setContentType("text/html");
