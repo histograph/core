@@ -64,7 +64,40 @@
     </repository>
   </repositories>
   <build>
-    <plugins>
+	<plugins>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-javadoc-plugin</artifactId>
+			<version>2.10.1</version>
+			<configuration>
+				<reportOutputDirectory>${project.basedir}/doc</reportOutputDirectory>
+				<destDir>javadoc</destDir>
+			</configuration>
+			<executions>
+				<execution>
+					<id>attach-javadocs</id>
+					<phase>package</phase>
+					<goals>
+						<goal>aggregate</goal>
+					</goals>
+				</execution>
+			</executions>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-clean-plugin</artifactId>
+			<version>2.6.1</version>
+			<configuration>
+				<filesets>
+					<fileset>
+						<directory>doc</directory>
+						<includes>
+							<include>**/javadoc/**</include>
+						</includes>
+					</fileset>
+				</filesets>
+			</configuration>
+		</plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
