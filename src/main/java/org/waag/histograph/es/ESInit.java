@@ -24,7 +24,7 @@ public class ESInit {
 		String url = "http://" + config.ELASTICSEARCH_HOST + ":" + config.ELASTICSEARCH_PORT;
 		factory.setHttpClientConfig(new HttpClientConfig.Builder(url)
 														.multiThreaded(true)
-														.readTimeout(10000)
+														.readTimeout(20000)
 														.build());
 		JestClient client = factory.getObject();
 		
