@@ -76,7 +76,7 @@ public class ESMethods {
 	public static boolean indexExists (JestClient client, Configuration config) throws Exception {
 		JestResult result;
 		try {
-			result = client.execute(new GetMapping.Builder().addIndex(config.ELASTICSEARCH_INDEX).addType(config.ELASTICSEARCH_TYPE).build());
+			result = client.execute(new GetMapping.Builder().addIndex(config.ELASTICSEARCH_INDEX).build());
 			JSONObject obj = new JSONObject(result.getJsonString());
 
 			if (obj.has("error") && obj.has("status") && obj.getInt("status") == 404) {
