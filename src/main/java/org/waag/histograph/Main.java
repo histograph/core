@@ -44,7 +44,7 @@ public class Main {
 
 	/**
 	 * Initiates the Histograph-Core program.
-	 * @param argv Two arguments are possible: <i>-verbose</i> for verbose output, and <i>-config</i> when a
+	 * @param argv Two arguments are allowed: <i>-verbose</i> for verbose output, and <i>-config</i> when a
 	 * configuration path is provided. Both are optional -- omitting the <i>-config</i> argument results in
 	 * the program trying to read the configuration file path from the environment variable <i>HISTOGRAPH_CONFIG</i>.
 	 */
