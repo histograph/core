@@ -113,7 +113,7 @@ public class Main {
 		try {
 			client = ESInit.initES(config);
 			if (!ESMethods.indexExists(client, config)) {
-				ESMethods.createIndex(client, config);
+				ESMethods.createIndex(config);
 			}
 		} catch (Exception e) {
 			namePrint("Error: " + e.getMessage());

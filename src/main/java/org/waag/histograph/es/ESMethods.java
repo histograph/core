@@ -4,10 +4,8 @@ import io.searchbox.client.JestClient;
 import io.searchbox.client.JestResult;
 import io.searchbox.core.Delete;
 import io.searchbox.core.Index;
-import io.searchbox.indices.CreateIndex;
 import io.searchbox.indices.Status;
 import io.searchbox.indices.mapping.GetMapping;
-import io.searchbox.indices.mapping.PutMapping;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -46,11 +44,12 @@ public class ESMethods {
 	
 	/**
 	 * Method that creates a new PIT index. The mapping file location should be defined in the Configuration object.
-	 * @param client The client object that handles the ES connection.
-	 * @param config {@link Configuration} object containing the configuration of the JestClient object.
+	 * @param config {@link Configuration} object containing the Elasticsearch configuration.
 	 * @throws Exception Thrown if index creation fails.
 	 */
-	public static void createIndex (JestClient client, Configuration config) throws Exception {
+	public static void createIndex (Configuration config) throws Exception {
+		// Index creation is done without JestClient as the JestClient requires Elasticsearch libraries to put settings.
+		// Instead, we simply issue a PUT request to Elasticsearch.
 		URL url;
 		try {
 			url = new URL("http://" + config.ELASTICSEARCH_HOST + ":" + config.ELASTICSEARCH_PORT + "/" + config.ELASTICSEARCH_INDEX + "/");
@@ -78,8 +77,6 @@ public class ESMethods {
 		} catch (IOException e) {
 			throw new Exception("Unable to send PUT request to Elasticsearch: " + e.getMessage());
 		}
-		
-		System.out.println("Done, mapping put!");
 	}
 	
 	/**
