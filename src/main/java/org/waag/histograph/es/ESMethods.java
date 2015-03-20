@@ -10,6 +10,10 @@ import io.searchbox.indices.mapping.GetMapping;
 import io.searchbox.indices.mapping.PutMapping;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -46,24 +50,36 @@ public class ESMethods {
 	 * @param config {@link Configuration} object containing the configuration of the JestClient object.
 	 * @throws Exception Thrown if index creation fails.
 	 */
-	public static void createIndex (JestClient client, Configuration config) throws Exception {		
+	public static void createIndex (JestClient client, Configuration config) throws Exception {
+		URL url;
 		try {
-			client.execute(new CreateIndex.Builder(config.ELASTICSEARCH_INDEX).build());
-		} catch (Exception e) {
-			throw new Exception("Unable to create index. " + e.getMessage());
+			url = new URL("http://" + config.ELASTICSEARCH_HOST + ":" + config.ELASTICSEARCH_PORT + "/" + config.ELASTICSEARCH_INDEX + "/");
+		} catch (MalformedURLException e) {
+			throw new Exception("Malformed URL when trying to put ES mapping and settings: " + e.getMessage());
+		}
+
+		String mappingFilePath = config.SCHEMA_DIR + "/elasticsearch/pit.json";
+		String mapping;
+		
+		try {
+			mapping = new String(Files.readAllBytes(Paths.get(mappingFilePath)));
+		} catch (IOException e) {
+			throw new Exception("Unable to read ES mapping and settings file. " + e.getMessage());
 		}
 		
-		String mappingFilePath = config.SCHEMA_DIR + "/elasticsearch/pit.json";
-
 		try {
-			String mapping = new String(Files.readAllBytes(Paths.get(mappingFilePath)));
-			PutMapping putMapping = new PutMapping.Builder(config.ELASTICSEARCH_INDEX, config.ELASTICSEARCH_TYPE, mapping).build();
-			client.execute(putMapping);
+			HttpURLConnection httpCon = (HttpURLConnection) url.openConnection();
+			httpCon.setDoOutput(true);
+			httpCon.setRequestMethod("PUT");
+			OutputStreamWriter out = new OutputStreamWriter(httpCon.getOutputStream());
+			out.write(mapping);
+			out.close();
+			httpCon.getInputStream();
 		} catch (IOException e) {
-			throw new Exception("Unable to read mapping file. " + e.getMessage());
-		} catch (Exception e) {
-			throw new Exception("Unable to put mapping. " + e.getMessage());
+			throw new Exception("Unable to send PUT request to Elasticsearch: " + e.getMessage());
 		}
+		
+		System.out.println("Done, mapping put!");
 	}
 	
 	/**
