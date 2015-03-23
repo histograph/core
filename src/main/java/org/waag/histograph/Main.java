@@ -36,7 +36,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
  */
 public class Main {
 
-	private static final String VERSION = "0.2.1";
+	private static final String VERSION = "0.2.2";
 	
 	static Configuration config;
 	private static boolean verbose;

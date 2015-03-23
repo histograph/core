@@ -130,7 +130,7 @@ public class ServerThread implements Runnable {
             	out.println(bfsTraversal.toString());
             	
             } catch (JSONException e) {
-            	out.println(errorResponse("Invalid JSON received."));
+            	out.println(errorResponse("Invalid JSON received" + e.getMessage()));
             } catch (IOException e) {
             	out.println(errorResponse(e.getMessage()));
             }

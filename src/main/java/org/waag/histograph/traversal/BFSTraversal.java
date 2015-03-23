@@ -36,7 +36,7 @@ public class BFSTraversal {
 	 * Performs the breadth-first search traversal through the graph and returns the response in
 	 * JSON format. Only hga:Conceptidentical relationships are traversed in both directions.
 	 * @param db The Neo4j GraphDatabaseService object
-	 * @param hgids An array of hgids, typically the result of the Elasticsearch query, representing the
+	 * @param hgids An array of hgids, typically the result of an Elasticsearch query, representing the
 	 * start nodes of the traversal. If a start node B in the array is encountered during traversal of 
 	 * start node A in the array, then node B is not taken as a start node later on.
 	 * @return A JSON object with all traversals separately, ready to be returned by the Traversal API ({@link ServerThread}).
@@ -59,7 +59,6 @@ public class BFSTraversal {
 					
 					JSONObject properties = new JSONObject();
 					JSONArray pits = new JSONArray();
-					JSONArray relations = new JSONArray();
 					
 					JSONObject geometryObj = new JSONObject();
 					JSONArray geometryArr = new JSONArray();
@@ -118,6 +117,7 @@ public class BFSTraversal {
     		    				pitsPresentWithGeometry = true;
     		    				geometryIndex++;
     		    			} else if (key.equals(HistographTokens.PITTokens.TYPE)) {
+    		    				pit.put(HistographTokens.PITTokens.TYPE, node.getProperty(key));
     		    				properties.put(HistographTokens.PITTokens.TYPE, node.getProperty(key));
     		    			} else if (key.equals(HistographTokens.PITTokens.DATA)) {
     		    				pit.put(HistographTokens.PITTokens.DATA, new JSONObject(node.getProperty(key).toString()));
@@ -130,24 +130,35 @@ public class BFSTraversal {
 		    				pit.put("geometryIndex", -1);
     		    		}
     		    		
+    		    		JSONObject pitRelations = new JSONObject();
+    		    		
+    		    		for (Relationship r : relSet) {
+    		    			if (r.getStartNode().equals(node)) {
+    		    				String type = RelationType.fromRelationshipType(r.getType()).getLabel();
+    		    				if (pitRelations.has(type)) {
+    		    					pitRelations.getJSONArray(type).put(r.getEndNode().getProperty(HistographTokens.General.HGID));
+    		    				} else {
+    		    					JSONArray relArray = new JSONArray();
+    		    					relArray.put(r.getEndNode().getProperty(HistographTokens.General.HGID));
+    		    					pitRelations.put(type, relArray);
+    		    				}
+    		    			}
+    		    		}
+    		    		
+    		    		if (pitRelations.length() > 0) {
+    		    			pit.put("relations", pitRelations);
+    		    		}
+    		    		
     		    		pits.put(pitIndex, pit);
     		    		pitIndex ++;
 	    		    }
 	    		    
 	    		    if (pitsPresentWithGeometry) { // Only add PIT group if at least one geometry present
-		    		    for (Relationship r : relSet) {
-		    		    	JSONObject relObj = new JSONObject();
-		    		    	relObj.put(HistographTokens.RelationTokens.FROM, r.getStartNode().getProperty(HistographTokens.General.HGID));
-		    		    	relObj.put(HistographTokens.RelationTokens.TO, r.getEndNode().getProperty(HistographTokens.General.HGID));
-		    		    	relObj.put(HistographTokens.RelationTokens.LABEL, RelationType.fromRelationshipType(r.getType()).getLabel());
-		    		    	relations.put(relObj);
-		    		    }
-		    		    
+
 		    		    geometryObj.put("type", "GeometryCollection");
 		    		    geometryObj.put("geometries", geometryArr);
 		    		    
 		    		    properties.put("pits", pits);
-		    		    properties.put("relations", relations);
 		    		    feature.put("properties", properties);
 		    		    feature.put("geometry", geometryObj);
 	    				features.put(feature);
