@@ -169,11 +169,11 @@ public class ESMethods {
 		if (params.containsKey(HistographTokens.PITTokens.URI)) {
 			out.put(HistographTokens.PITTokens.URI, params.get(HistographTokens.PITTokens.URI));			
 		}
-		if (params.containsKey(HistographTokens.PITTokens.STARTDATE)) {
-			out.put(HistographTokens.PITTokens.STARTDATE, params.get(HistographTokens.PITTokens.STARTDATE));			
+		if (params.containsKey(HistographTokens.PITTokens.HASBEGINNING)) {
+			out.put(HistographTokens.PITTokens.HASBEGINNING, params.get(HistographTokens.PITTokens.HASBEGINNING));			
 		}
-		if (params.containsKey(HistographTokens.PITTokens.ENDDATE)) {
-			out.put(HistographTokens.PITTokens.ENDDATE, params.get(HistographTokens.PITTokens.ENDDATE));			
+		if (params.containsKey(HistographTokens.PITTokens.HASEND)) {
+			out.put(HistographTokens.PITTokens.HASEND, params.get(HistographTokens.PITTokens.HASEND));			
 		}
 		
 		return out;

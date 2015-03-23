@@ -48,7 +48,7 @@ JSON PIT object:
 	{
 		"action": ["add", "delete", "update"],
 		"type": "pit",
-		"layer": String,
+		"source": String,
 		"target": ["graph", "es"], 			// Optional, omit to send to both
 		"data":
 			"id": integer,

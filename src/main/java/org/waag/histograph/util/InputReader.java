@@ -27,7 +27,7 @@ public class InputReader {
 		String source;
 		
 		try {
-			source = obj.get(HistographTokens.General.REDIS_SOURCE).toString();
+			source = obj.get(HistographTokens.General.SOURCE).toString();
 			switch (obj.get(HistographTokens.General.ACTION).toString()) {
 			case HistographTokens.Actions.ADD:
 				return parseAdd(obj, source);
@@ -39,7 +39,7 @@ public class InputReader {
 				throw new IOException("Invalid action received: " + obj.get(HistographTokens.General.ACTION).toString());
 			}
 		} catch (JSONException e) {
-			throw new IOException("No layer or action in JSON input.");
+			throw new IOException("No source or action in JSON input.");
 		}	
 	}
 	
@@ -157,11 +157,11 @@ public class InputReader {
 			if (data.has(HistographTokens.PITTokens.GEOMETRY)) {
 				map.put(HistographTokens.PITTokens.GEOMETRY, data.get(HistographTokens.PITTokens.GEOMETRY).toString());
 			}
-			if (data.has(HistographTokens.PITTokens.STARTDATE)) {
-				map.put(HistographTokens.PITTokens.STARTDATE, data.get(HistographTokens.PITTokens.STARTDATE).toString());
+			if (data.has(HistographTokens.PITTokens.HASBEGINNING)) {
+				map.put(HistographTokens.PITTokens.HASBEGINNING, data.get(HistographTokens.PITTokens.HASBEGINNING).toString());
 			}
-			if (data.has(HistographTokens.PITTokens.ENDDATE)) {
-				map.put(HistographTokens.PITTokens.ENDDATE, data.get(HistographTokens.PITTokens.ENDDATE).toString());
+			if (data.has(HistographTokens.PITTokens.HASEND)) {
+				map.put(HistographTokens.PITTokens.HASEND, data.get(HistographTokens.PITTokens.HASEND).toString());
 			}
 			if (data.has(HistographTokens.PITTokens.URI)) {
 				map.put(HistographTokens.PITTokens.URI, data.get(HistographTokens.PITTokens.URI).toString());

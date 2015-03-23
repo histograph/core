@@ -47,7 +47,7 @@ public class TransitiveInferencer {
 	}
 	
 	private static int inferSameAsTransitivity(GraphDatabaseService db, Node n1, Node n2) {
-		String layer = "inferredTransitiveSameAsRelation";
+		String source = "inferredTransitiveSameAsRelation";
 		int inferred = 0;
 		// (n1) --[SAMEAS]-- (n2) --[REL]--> (n3) should infer (n1) --[REL]--> (n3)
 		for (Relationship r : n2.getRelationships(Direction.OUTGOING)) {
@@ -56,7 +56,7 @@ public class TransitiveInferencer {
 				RelationshipType type = r.getType();
 				if (!GraphMethods.relationExists(db, n1, n3, type)) {
 					Relationship rel = n1.createRelationshipTo(n3, type);
-					rel.setProperty(HistographTokens.General.SOURCE, layer);
+					rel.setProperty(HistographTokens.General.SOURCE, source);
 					inferred++;
 				}
 			}
@@ -68,7 +68,7 @@ public class TransitiveInferencer {
 				RelationshipType type = r.getType();
 				if (!GraphMethods.relationExists(db, n3, n1, type)) {
 					Relationship rel = n3.createRelationshipTo(n1, type);
-					rel.setProperty(HistographTokens.General.SOURCE, layer);
+					rel.setProperty(HistographTokens.General.SOURCE, source);
 					inferred++;
 				}
 			}
