@@ -21,6 +21,7 @@ import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.waag.histograph.graph.GraphMethods;
 import org.waag.histograph.reasoner.ReasoningDefinitions;
+import org.waag.histograph.reasoner.ReasoningDefinitions.RelationType;
 import org.waag.histograph.util.HistographTokens;
 
 /**
@@ -136,8 +137,9 @@ public class BFSTraversal {
 	    		    if (pitsPresentWithGeometry) { // Only add PIT group if at least one geometry present
 		    		    for (Relationship r : relSet) {
 		    		    	JSONObject relObj = new JSONObject();
-		    		    	relObj.put("from", r.getStartNode().getProperty(HistographTokens.General.HGID));
-		    		    	relObj.put("to", r.getEndNode().getProperty(HistographTokens.General.HGID));
+		    		    	relObj.put(HistographTokens.RelationTokens.FROM, r.getStartNode().getProperty(HistographTokens.General.HGID));
+		    		    	relObj.put(HistographTokens.RelationTokens.TO, r.getEndNode().getProperty(HistographTokens.General.HGID));
+		    		    	relObj.put(HistographTokens.RelationTokens.LABEL, RelationType.fromRelationshipType(r.getType()).getLabel());
 		    		    	relations.put(relObj);
 		    		    }
 		    		    
