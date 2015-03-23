@@ -91,8 +91,8 @@ public class Configuration {
 			String es_port = configObj.getJSONObject("elasticsearch").get("port").toString();
 			String es_index = configObj.getJSONObject("elasticsearch").getString("index");
 			String es_type = configObj.getJSONObject("elasticsearch").getString("type");
-			String neo4j_filepath = configObj.getJSONObject("neo4j").getString("path");
-			String neo4j_port = configObj.getJSONObject("neo4j").get("port").toString();
+			String neo4j_filepath = configObj.getJSONObject("core").getJSONObject("neo4j").getString("path");
+			String neo4j_port = configObj.getJSONObject("core").getJSONObject("neo4j").get("port").toString();
 			int traversal_port = configObj.getJSONObject("core").getJSONObject("traversal").getInt("port");
 			String redis_host = configObj.getJSONObject("redis").getString("host");
 			String redis_port = configObj.getJSONObject("redis").get("port").toString();
