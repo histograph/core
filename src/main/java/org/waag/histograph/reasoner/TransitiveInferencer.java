@@ -31,7 +31,7 @@ public class TransitiveInferencer {
 			roundCount = 0;
 			try (Transaction tx = db.beginTx();) {
 				for (Relationship r : graphOps.getAllRelationships()) {
-					if (r.isType(ReasoningDefinitions.RelationType.SAMEAS)) {
+					if (r.isType(ReasoningDefinitions.RelationType.SAMEHGCONCEPT)) {
 						Node n = r.getStartNode();
 						Node n2 = r.getEndNode();
 						

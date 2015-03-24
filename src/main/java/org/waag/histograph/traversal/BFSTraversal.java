@@ -77,7 +77,7 @@ public class BFSTraversal {
 	    			
 	    			TraversalDescription td = db.traversalDescription()
 	    		            .breadthFirst()
-	    		            .relationships(ReasoningDefinitions.RelationType.CONCEPTIDENTICAL, Direction.BOTH)
+	    		            .relationships(ReasoningDefinitions.RelationType.SAMEHGCONCEPT, Direction.BOTH)
 	    		            .evaluator(Evaluators.excludeStartPosition());
 	    		
 	    			Traverser pitTraverser =  td.traverse(startNode);

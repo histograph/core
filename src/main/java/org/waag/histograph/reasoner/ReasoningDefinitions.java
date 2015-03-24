@@ -27,15 +27,17 @@ public final class ReasoningDefinitions {
 	 * @author Bert Spaan
 	 */
 	public enum RelationType implements RelationshipType {
-		SAMEAS("hg:sameAs"),
+		ABSORBED("hg:absorbed"),
 		ABSORBEDBY("hg:absorbedBy"),
+		CONTAINS("hg:contains"),
+		HASGEOFEATURE("hg:hasGeoFeature"),
+		HASNAME("hg:hasName"),
+		HASPITTYPE("hg:hasPitType"),
+		HASPROVENTITY("hg:hasProvEntity"),
+		HASTIMETEMPORALENTITY("hg:hasTimeTemporalEntity"),
 		ISUSEDFOR("hg:isUsedFor"),
-		LIESIN("hg:liesIn"),
-		CONCEPTIDENTICAL("hga:conceptIdentical"),
-		TYPEIDENTICAL("hga:typeIdentical"),
-		CONCEPTIN("hga:conceptIn"),
-		PERIODBEFORE("hga:periodBefore"),
-		GEOMETRYINTERSECTS("hga:geometryIntersects");
+		SAMEHGCONCEPT("hg:sameHgConcept"),
+		WITHIN("hg:within");
 		
 		private final String label;
 		
@@ -83,97 +85,97 @@ public final class ReasoningDefinitions {
 	/**
 	 * Contains the String representations of all primary relations defined at http://histograph.io/concepts/.
 	 */
-	public final static String[] PRIMARY_RELATIONS = {		RelationType.SAMEAS.getLabel(),
+	public final static String[] PRIMARY_RELATIONS = {		RelationType.SAMEHGCONCEPT.getLabel(),
 															RelationType.ABSORBEDBY.getLabel(),
 															RelationType.ISUSEDFOR.getLabel(),
-															RelationType.LIESIN.getLabel()
+															RelationType.WITHIN.getLabel()
 													};
 	
-	/**
-	 * Contains all transitive relations, i.e. (a) --[rel]--) (b) --[rel]--) (c) IMPL (a) --[rel]--) (c)
-	 */
-	public final static String[] TRANSITIVE_RELATIONS = {	RelationType.LIESIN.getLabel(), 
-															RelationType.PERIODBEFORE.getLabel(), 
-															RelationType.CONCEPTIN.getLabel()
-													};
-	/**
-	 * Contains all atomic inferences as defined in http://histograph.github.io/
-	 */
-	private final static class AtomicInferences {
-		private final static String[] ATOMIC_SAMEAS = {		RelationType.CONCEPTIDENTICAL.getLabel(), 
-															RelationType.TYPEIDENTICAL.getLabel()
-													};
-		
-		private final static String[] ATOMIC_ABSORBEDBY = {	RelationType.CONCEPTIN.getLabel(), 
-															RelationType.PERIODBEFORE.getLabel(),
-															RelationType.TYPEIDENTICAL.getLabel(),
-															RelationType.GEOMETRYINTERSECTS.getLabel()
-													};
-		
-		private final static String[] ATOMIC_ISUSEDFOR = {	RelationType.CONCEPTIDENTICAL.getLabel(), 
-															RelationType.TYPEIDENTICAL.getLabel()
-													};
-		
-		private final static String[] ATOMIC_LIESIN = {		RelationType.GEOMETRYINTERSECTS.getLabel()
-													};
-	}
+//	/**
+//	 * Contains all transitive relations, i.e. (a) --[rel]--) (b) --[rel]--) (c) IMPL (a) --[rel]--) (c)
+//	 */
+//	public final static String[] TRANSITIVE_RELATIONS = {	RelationType.WITHIN.getLabel(), 
+//															RelationType.PERIODBEFORE.getLabel(), 
+//															RelationType.CONCEPTIN.getLabel()
+//													};
+//	/**
+//	 * Contains all atomic inferences as defined in http://histograph.github.io/
+//	 */
+//	private final static class AtomicInferences {
+//		private final static String[] ATOMIC_SAMEAS = {		RelationType.CONCEPTIDENTICAL.getLabel(), 
+//															RelationType.TYPEIDENTICAL.getLabel()
+//													};
+//		
+//		private final static String[] ATOMIC_ABSORBEDBY = {	RelationType.CONCEPTIN.getLabel(), 
+//															RelationType.PERIODBEFORE.getLabel(),
+//															RelationType.TYPEIDENTICAL.getLabel(),
+//															RelationType.GEOMETRYINTERSECTS.getLabel()
+//													};
+//		
+//		private final static String[] ATOMIC_ISUSEDFOR = {	RelationType.CONCEPTIDENTICAL.getLabel(), 
+//															RelationType.TYPEIDENTICAL.getLabel()
+//													};
+//		
+//		private final static String[] ATOMIC_LIESIN = {		RelationType.GEOMETRYINTERSECTS.getLabel()
+//													};
+//	}
 	
-	/**
-	 * Get all atomic relationships associated with a provided relationship.
-	 * @param label The primary relationship's String representation.
-	 * @return An array of atomic relationships associated with the primary relationship, or null if no atomic relationships are associated.
-	 */
-	public static String[] getAtomicRelationsFromLabel(String label) {
-		switch (RelationType.fromLabel(label)) {
-		case SAMEAS:
-			return ReasoningDefinitions.AtomicInferences.ATOMIC_SAMEAS;
-		case ABSORBEDBY:
-			return ReasoningDefinitions.AtomicInferences.ATOMIC_ABSORBEDBY;
-		case ISUSEDFOR:
-			return ReasoningDefinitions.AtomicInferences.ATOMIC_ISUSEDFOR;
-		case LIESIN:
-			return ReasoningDefinitions.AtomicInferences.ATOMIC_LIESIN;
-		default:
-			return null;
-		}
-	}
+//	/**
+//	 * Get all atomic relationships associated with a provided relationship.
+//	 * @param label The primary relationship's String representation.
+//	 * @return An array of atomic relationships associated with the primary relationship, or null if no atomic relationships are associated.
+//	 */
+//	public static String[] getAtomicRelationsFromLabel(String label) {
+//		switch (RelationType.fromLabel(label)) {
+//		case SAMEHGCONCEPT:
+//			return ReasoningDefinitions.AtomicInferences.ATOMIC_SAMEAS;
+//		case ABSORBEDBY:
+//			return ReasoningDefinitions.AtomicInferences.ATOMIC_ABSORBEDBY;
+//		case ISUSEDFOR:
+//			return ReasoningDefinitions.AtomicInferences.ATOMIC_ISUSEDFOR;
+//		case WITHIN:
+//			return ReasoningDefinitions.AtomicInferences.ATOMIC_LIESIN;
+//		default:
+//			return null;
+//		}
+//	}
 	
-	/**
-	 * Returns an array of all defined relationships.
-	 * @return An array containing String representations of all defined relationships.
-	 */
-	public static String[] getAllRelations () {
-		ArrayList<String> relations = new ArrayList<String>();
-		for (String s : PRIMARY_RELATIONS) {
-			relations.add(s);
-			String[] atomics = getAtomicRelationsFromLabel(s);
-			for (String a : atomics) {
-				if (!relations.contains(a)) {
-					relations.add(a);
-				}
-			}
-		}
-		String[] out = new String[relations.size()];
-		out = relations.toArray(out);
-		return out;
-	}
+//	/**
+//	 * Returns an array of all defined relationships.
+//	 * @return An array containing String representations of all defined relationships.
+//	 */
+//	public static String[] getAllRelations () {
+//		ArrayList<String> relations = new ArrayList<String>();
+//		for (String s : PRIMARY_RELATIONS) {
+//			relations.add(s);
+//			String[] atomics = getAtomicRelationsFromLabel(s);
+//			for (String a : atomics) {
+//				if (!relations.contains(a)) {
+//					relations.add(a);
+//				}
+//			}
+//		}
+//		String[] out = new String[relations.size()];
+//		out = relations.toArray(out);
+//		return out;
+//	}
 	
-	/**
-	 * Returns all primary relationships associated with a given atomic relationship.
-	 * @param relation An atomic relationship.
-	 * @return An array of String representations of the primary relationships associated with the given atomic relationship,
-	 * or null if no such relationships are found.
-	 */
-	public static String[] getPrimaryRelationsFromAtomic(String relation) {
-		ArrayList<String> labels = new ArrayList<String>();
-		for (String primary : PRIMARY_RELATIONS) {
-			for (String atomic : getAtomicRelationsFromLabel(primary)) {
-				if (relation.equals(atomic)) labels.add(primary);
-			}
-		}
-		if (labels.size() == 0) return null;
-		String[] out = new String[labels.size()];
-		out = labels.toArray(out);
-		return out;
-	}
+//	/**
+//	 * Returns all primary relationships associated with a given atomic relationship.
+//	 * @param relation An atomic relationship.
+//	 * @return An array of String representations of the primary relationships associated with the given atomic relationship,
+//	 * or null if no such relationships are found.
+//	 */
+//	public static String[] getPrimaryRelationsFromAtomic(String relation) {
+//		ArrayList<String> labels = new ArrayList<String>();
+//		for (String primary : PRIMARY_RELATIONS) {
+//			for (String atomic : getAtomicRelationsFromLabel(primary)) {
+//				if (relation.equals(atomic)) labels.add(primary);
+//			}
+//		}
+//		if (labels.size() == 0) return null;
+//		String[] out = new String[labels.size()];
+//		out = labels.toArray(out);
+//		return out;
+//	}
 }
