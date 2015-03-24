@@ -65,8 +65,8 @@ public final class HistographTokens {
 	    public static final String NAME = "name";
 	    public static final String URI = "uri";
 	    public static final String GEOMETRY = "geometry";
-	    public static final String HASBEGINNING = "hasBeginning";
-	    public static final String HASEND = "hasEnd";
+	    public static final String HASBEGINNING = "time:hasBeginning";
+	    public static final String HASEND = "time:hasEnd";
 	    public static final String DATA = "data";
 	}
 	
