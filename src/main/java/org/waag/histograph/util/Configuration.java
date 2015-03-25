@@ -20,6 +20,12 @@ public class Configuration {
 	public String ELASTICSEARCH_INDEX;
 	public String ELASTICSEARCH_TYPE;
 	
+	public String PG_HOST;
+	public String PG_PORT;
+	public String PG_USER;
+	public String PG_PASS;
+	public String PG_DB;
+	
 	public String NEO4J_FILEPATH;
 	public String NEO4J_PORT;
 	
@@ -34,7 +40,8 @@ public class Configuration {
 	
 	public String SCHEMA_DIR;
 	
-	private Configuration (String es_host, String es_port, String es_index, String es_type, 
+	private Configuration (String es_host, String es_port, String es_index, String es_type,
+							String pg_host, String pg_port, String pg_user, String pg_pass, String pg_db,
 							String neo4j_filepath, String neo4j_port, int traversal_port,
 							String redis_host, String redis_port, String redis_main_queue, 
 							String redis_graph_queue, String redis_es_queue, String schema_dir) {
@@ -42,6 +49,11 @@ public class Configuration {
 		ELASTICSEARCH_PORT = es_port;
 		ELASTICSEARCH_INDEX = es_index;
 		ELASTICSEARCH_TYPE = es_type;
+		PG_HOST = pg_host;
+		PG_PORT = pg_port;
+		PG_USER = pg_user;
+		PG_PASS = pg_pass;
+		PG_DB = pg_db;
 		NEO4J_FILEPATH = neo4j_filepath;
 		NEO4J_PORT = neo4j_port;
 		TRAVERSAL_PORT = traversal_port;
@@ -87,21 +99,34 @@ public class Configuration {
 	
 	private static Configuration getConfigFromJSON(JSONObject configObj) throws IOException {
 		try {
-			String es_host = configObj.getJSONObject("elasticsearch").getString("host");
+			String es_host = configObj.getJSONObject("elasticsearch").get("host").toString();
 			String es_port = configObj.getJSONObject("elasticsearch").get("port").toString();
-			String es_index = configObj.getJSONObject("elasticsearch").getString("index");
-			String es_type = configObj.getJSONObject("elasticsearch").getString("type");
+			String es_index = configObj.getJSONObject("elasticsearch").get("index").toString();
+			String es_type = configObj.getJSONObject("elasticsearch").get("type").toString();
+			
+			String pg_host = configObj.getJSONObject("core").getJSONObject("postgresql").get("host").toString();
+			String pg_port = configObj.getJSONObject("core").getJSONObject("postgresql").get("port").toString();
+			String pg_user = configObj.getJSONObject("core").getJSONObject("postgresql").get("user").toString();
+			String pg_pass = configObj.getJSONObject("core").getJSONObject("postgresql").get("pass").toString();
+			String pg_db = configObj.getJSONObject("core").getJSONObject("postgresql").get("db").toString();
+			
 			String neo4j_filepath = configObj.getJSONObject("core").getJSONObject("neo4j").getString("path");
 			String neo4j_port = configObj.getJSONObject("core").getJSONObject("neo4j").get("port").toString();
 			int traversal_port = configObj.getJSONObject("core").getJSONObject("traversal").getInt("port");
+			
 			String redis_host = configObj.getJSONObject("redis").getString("host");
 			String redis_port = configObj.getJSONObject("redis").get("port").toString();
 			String redis_main_queue = configObj.getJSONObject("redis").getJSONObject("queues").getString("histograph");
 			String redis_graph_queue = configObj.getJSONObject("redis").getJSONObject("queues").getString("graph");
 			String redis_es_queue = configObj.getJSONObject("redis").getJSONObject("queues").getString("es");
+			
 			String schema_dir = configObj.getJSONObject("schemas").getString("dir");
 			
-			return new Configuration(es_host, es_port, es_index, es_type, neo4j_filepath, neo4j_port, traversal_port, redis_host, redis_port, redis_main_queue, redis_graph_queue, redis_es_queue, schema_dir);
+			return new Configuration(es_host, es_port, es_index, es_type,
+					pg_host, pg_port, pg_user, pg_pass, pg_db,
+					neo4j_filepath, neo4j_port, traversal_port, 
+					redis_host, redis_port, redis_main_queue, 
+					redis_graph_queue, redis_es_queue, schema_dir);
 		} catch (JSONException e) {
 			throw new IOException("Invalid configuration file: " + e.getMessage());
 		}
