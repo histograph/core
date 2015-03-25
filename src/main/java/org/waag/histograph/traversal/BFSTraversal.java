@@ -69,19 +69,22 @@ public class BFSTraversal {
 	    				continue;
 	    			}
 	    			
+	    			// Create a map with <Node, nRels> pairs to sort nodes by the number of relationships later on
 					Map<String, Integer> nRelsMap = new HashMap<String, Integer>();
 					Set<Relationship> relSet = new HashSet<Relationship>();
 					
 					nRelsMap.put(hgid, startNode.getDegree());
 	    			hgidsDone.add(hgid);
 	    			
+	    			// We only traverse the SameHgConcept relationship
 	    			TraversalDescription td = db.traversalDescription()
 	    		            .breadthFirst()
 	    		            .relationships(ReasoningDefinitions.RelationType.SAMEHGCONCEPT, Direction.BOTH)
 	    		            .evaluator(Evaluators.excludeStartPosition());
 	    		
 	    			Traverser pitTraverser =  td.traverse(startNode);
-	    					    			
+	    			
+	    			// Get all nodes found in each path, add them to the list if they weren't added before
 	    		    for (Path path : pitTraverser) {
 	    		    	Node endNode = path.endNode();
 	    		    	String hgidFound = endNode.getProperty(HistographTokens.General.HGID).toString();
@@ -92,18 +95,21 @@ public class BFSTraversal {
 	    		    	}
 	    		    }
 	    		    
-	    		    // Adding relationships to Set filters out duplicates
+	    		    // Add relationships to a Set to filter out duplicates
 	    		    for (Relationship r : pitTraverser.relationships()) {
 	    		    	relSet.add(r);
 	    		    }
 	    		    
+	    		    // Sort nodes by #relationships
 	    		    ValueComparator comparator = new ValueComparator(nRelsMap);
 	    		    TreeMap<String, Integer> sortedMap = new TreeMap<String, Integer>(comparator);
 	    		    sortedMap.putAll(nRelsMap);
+	    		    
 	    		    int pitIndex = 0;
 					int geometryIndex = 0;
 					boolean pitsPresentWithGeometry = false;
 	    		    
+					// For each node in the Set (= hgConcept), create JSON output
 	    		    for (Map.Entry<String, Integer> entry : sortedMap.entrySet()) {
 	    		    	JSONObject pit = new JSONObject();
 	    		    	Node node = GraphMethods.getNodeByHgid(db, entry.getKey());
@@ -132,6 +138,7 @@ public class BFSTraversal {
     		    		
     		    		JSONObject pitRelations = new JSONObject();
     		    		
+    		    		// Add all outgoing relationships to each PIT
     		    		for (Relationship r : relSet) {
     		    			if (r.getStartNode().equals(node)) {
     		    				String type = RelationType.fromRelationshipType(r.getType()).getLabel();
@@ -153,7 +160,8 @@ public class BFSTraversal {
     		    		pitIndex ++;
 	    		    }
 	    		    
-	    		    if (pitsPresentWithGeometry) { // Only add PIT group if at least one geometry present
+	    		    // Only add the HgConcept to the JSON output if at least one geometry is present
+	    		    if (pitsPresentWithGeometry) {
 
 		    		    geometryObj.put("type", "GeometryCollection");
 		    		    geometryObj.put("geometries", geometryArr);

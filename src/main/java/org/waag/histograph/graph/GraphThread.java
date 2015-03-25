@@ -134,7 +134,7 @@ public class GraphThread implements Runnable {
 		case HistographTokens.Actions.ADD:
 			Relationship[] relationships = GraphMethods.addRelation(db, params);
 			// If relationships are created, infer their associated atomic labels
-//			if (relationships != null) AtomicInferencer.inferAtomic(db, relationships);
+			if (relationships != null) AtomicInferencer.inferAtomic(db, relationships);
 			break;
 		case HistographTokens.Actions.UPDATE:
 			GraphMethods.updateRelation(db, params);
@@ -142,7 +142,7 @@ public class GraphThread implements Runnable {
 		case HistographTokens.Actions.DELETE:
 			GraphMethods.deleteRelation(db, params);
 			// If no relationships are removed, deleteRelation() will throw an exception. Otherwise, continue with removeInferredAtomic()
-//			AtomicInferencer.removeInferredAtomic(db, params);
+			AtomicInferencer.removeInferredAtomic(db, params);
 			break;
 		default:
 			throw new IOException("Unexpected task received.");
