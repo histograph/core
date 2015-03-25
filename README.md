@@ -31,6 +31,12 @@ __NOTES__
 - The argument `-config` is optional -- the `HISTOGRAPH_CONFIG` environment variable is read if it is omitted.
 - No progress output is provided if the `-verbose` argument is omitted. Because of this, you will not be able to see whether data import has completed. Killing the program prematurely results in an inconsistent state between the Neo4j graph, the Elasticsearch index and the Redis queue. So if you need to be certain that the program is done, run the program with `-verbose`.
 
+## Use cUrl to test Core's Traversal API
+
+By default, the Histograph Core Traversal API is running on [http://localhost:13782/](http://localhost:13782/). The Traversal API accepts HTTP POST request with body `{hgids: [hgid1, hgid2, ...]}` on [http://localhost:13782/traversal](http://localhost:13782/traversal). You can use cUrl to test the Traversal API:
+
+    curl -X POST http://localhost:13782/traversal -d '{"hgids": ["geonames-altnames/1616926"]}' | python -mjson.tool
+
 ## Cleaning up before / after running
 
 - Run `bin/delete-index.sh` to remove the Elasticsearch index
@@ -55,7 +61,7 @@ JSON PIT object:
 			"type": String,
 			"name": String,
 			"uri": String, 					// Optional
-			"startDate": xsd:date, 			// Optional 
+			"startDate": xsd:date, 			// Optional
 			"endDate": xsd:date, 			// Optional
 			"geometry": GeoJSON string, 	// Optional
 			"data": { 						// Optional
@@ -64,7 +70,7 @@ JSON PIT object:
 		}
 	}
 ```
-	
+
 JSON Relation object:
 
 ```
@@ -81,7 +87,7 @@ JSON Relation object:
 ```
 
 ## I/O examples through Redis
-  
+
 Add PITs:
 
 ```
