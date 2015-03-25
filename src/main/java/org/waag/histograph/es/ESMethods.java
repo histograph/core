@@ -38,7 +38,7 @@ public class ESMethods {
 		try {
 			client.execute(new Status.Builder().build());
 		} catch (Exception e) {
-			throw new Exception("Could not connect to Elasticsearch at http://" + config.ELASTICSEARCH_HOST + ":" + config.ELASTICSEARCH_PORT);
+			throw new Exception("Could not connect to Elasticsearch at http://" + config.ELASTICSEARCH_HOST + ":" + config.ELASTICSEARCH_PORT, e);
 		}
 	}
 	

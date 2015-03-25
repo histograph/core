@@ -37,10 +37,10 @@ import org.neo4j.graphdb.GraphDatabaseService;
 public class Main {
 
 	private static final String VERSION = "0.2.2";
+	private static final String NAME = "MainThread";
 	
 	static Configuration config;
 	private static boolean verbose;
-	private static final String NAME = "MainThread";
 
 	/**
 	 * Initiates the Histograph-Core program.
@@ -79,6 +79,9 @@ public class Main {
 				config = Configuration.fromEnv();
 			} catch (IOException e) {
 				System.out.println("Error: " + e.getMessage());
+				if (verbose) {
+					e.printStackTrace();
+				}
 				System.exit(1);
 			}
 		}
@@ -105,6 +108,9 @@ public class Main {
 			jedis = RedisInit.initRedis();
 		} catch (Exception e) {
 			namePrint("Error: " + e.getMessage());
+			if (verbose) {
+				e.printStackTrace();
+			}
 			System.exit(1);
 		}
 			
@@ -117,6 +123,9 @@ public class Main {
 			}
 		} catch (Exception e) {
 			namePrint("Error: " + e.getMessage());
+			if (verbose) {
+				e.printStackTrace();
+			}
 			System.exit(1);
 		}
 		
@@ -125,7 +134,10 @@ public class Main {
 		try {
 			db = GraphInit.initNeo4j(config);
 		} catch (Exception e) {
-			System.out.println("Error: " + e.getMessage());
+			namePrint("Error: " + e.getMessage());
+			if (verbose) {
+				e.printStackTrace();
+			}
 			System.exit(1);
 		}
 		
@@ -145,10 +157,11 @@ public class Main {
 				payload = messages.get(1);
 			} catch (JedisConnectionException e) {
 				namePrint("Redis connection error: " + e.getMessage());
+				if (verbose) {
+					e.printStackTrace();
+				}
 				System.exit(1);
 			}
-
-//			System.out.println("Message received: " + payload);
 						
 			try {
 				JSONObject obj = new JSONObject(payload);
@@ -165,7 +178,7 @@ public class Main {
 						throw new IOException("Invalid target received: " + obj.get(HistographTokens.General.ACTION).toString());
 					}
 				} catch (JSONException e) {
-					// If the TARGET key is not found, send task to both
+					// If the TARGET key is not found (JSONException thrown), send task to both
 					jedis.rpush(config.REDIS_GRAPH_QUEUE, obj.toString());
 					jedis.rpush(config.REDIS_ES_QUEUE, obj.toString());
 				}
@@ -200,6 +213,9 @@ public class Main {
 			fileOut.close();
 		} catch (Exception e) {
 			namePrint("Unable to write '" + message + "' to file '" + fileName + "'.");
+			if (verbose) {
+				e.printStackTrace();
+			}
 		}	
 	}
 	
