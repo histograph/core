@@ -73,6 +73,7 @@ public class ServerThread implements Runnable {
         
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             response.setContentType("application/json");
+            response.setCharacterEncoding("utf-8");
             response.setStatus(HttpServletResponse.SC_OK);
             PrintWriter out = response.getWriter();
             
@@ -95,6 +96,7 @@ public class ServerThread implements Runnable {
         
         protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
             response.setContentType("text/html");
+            response.setCharacterEncoding("utf-8");
             response.setStatus(HttpServletResponse.SC_OK);
             PrintWriter out = response.getWriter();
             
@@ -105,6 +107,7 @@ public class ServerThread implements Runnable {
             PrintWriter out = response.getWriter();
         	StringBuffer jb = new StringBuffer();
         	response.setContentType("application/json");
+            response.setCharacterEncoding("utf-8");
         	response.setStatus(HttpServletResponse.SC_OK);
         	
         	// Read raw input
