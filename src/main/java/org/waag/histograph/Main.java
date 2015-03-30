@@ -4,6 +4,8 @@ import io.searchbox.client.JestClient;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -20,8 +22,10 @@ import org.waag.histograph.es.ESMethods;
 import org.waag.histograph.es.ESThread;
 import org.waag.histograph.graph.GraphInit;
 import org.waag.histograph.graph.GraphThread;
+import org.waag.histograph.pg.PGInit;
+import org.waag.histograph.pg.PGThread;
 import org.waag.histograph.queue.RedisInit;
-import org.waag.histograph.traversal.ServerThread;
+import org.waag.histograph.server.ServerThread;
 import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.HistographTokens;
 import org.waag.histograph.util.NoLogging;
@@ -36,7 +40,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
  */
 public class Main {
 
-	private static final String VERSION = "0.2.2";
+	private final String VERSION = getClass().getPackage().getImplementationVersion();
 	private static final String NAME = "MainThread";
 	
 	static Configuration config;
@@ -129,6 +133,16 @@ public class Main {
 			System.exit(1);
 		}
 		
+		namePrint("Initializing PostgreSQL connection...");
+		Connection pg = null;
+		try {
+			pg = PGInit.initPG(config);
+		} catch (SQLException e) {
+			System.out.println("Could not initialize PostgreSQL connection. " + e.getMessage());
+			e.printStackTrace();
+			System.exit(1);
+		}
+		
 		namePrint("Initializing Neo4j server...");
 		GraphDatabaseService db = null;
 		try {
@@ -142,9 +156,10 @@ public class Main {
 		}
 		
 		namePrint("Creating threads...");
-		new Thread(new GraphThread(db, config.REDIS_GRAPH_QUEUE, verbose)).start();
+		new Thread(new GraphThread(db, config.REDIS_GRAPH_QUEUE, config.REDIS_PG_QUEUE, verbose)).start();
 		new Thread(new ESThread(client, config, verbose)).start();
-		new Thread(new ServerThread(db, config, VERSION)).start();		
+		new Thread(new PGThread(pg, config.REDIS_PG_QUEUE, verbose)).start();
+		new Thread(new ServerThread(db, pg, config, VERSION)).start();		
 		
 		List<String> messages = null;
 		String payload = null;

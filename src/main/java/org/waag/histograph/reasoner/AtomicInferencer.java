@@ -33,20 +33,17 @@ public class AtomicInferencer {
 				label = RelationType.fromRelationshipType(r.getType()).getLabel();
 			}
 			String[] atomicLabels = ReasoningDefinitions.getAtomicRelationsFromLabel(label);
-			if (atomicLabels == null) {
-				System.out.println("No atomic relations associated with label " + label);
-				return;
-			} else {
-				String source = null;
-				Node fromNode = null;
-				Node toNode = null;
-				try (Transaction tx = db.beginTx()) {
-					source = r.getProperty(HistographTokens.General.SOURCE).toString();
-					fromNode = r.getStartNode();
-					toNode = r.getEndNode();
-				}
-				inferAtomicRelations(db, atomicLabels, fromNode, toNode, source);
+			if (atomicLabels == null) return;
+			
+			String source = null;
+			Node fromNode = null;
+			Node toNode = null;
+			try (Transaction tx = db.beginTx()) {
+				source = r.getProperty(HistographTokens.General.SOURCE).toString();
+				fromNode = r.getStartNode();
+				toNode = r.getEndNode();
 			}
+			inferAtomicRelations(db, atomicLabels, fromNode, toNode, source);	
 		}
 	}
 	
@@ -54,7 +51,7 @@ public class AtomicInferencer {
 		String inferredSource = "inferred_from_" + originalSource;
 		for (String label : labels) {
 			// Take next label if relation already exists
-			if (GraphMethods.relationExists(db, fromNode, toNode, RelationType.fromLabel(label))) continue;
+			if (GraphMethods.relationExists(db, fromNode, toNode, RelationType.fromLabel(label), inferredSource)) continue;
 			
 			// Create relation between nodes
 			try (Transaction tx = db.beginTx()) {
@@ -66,7 +63,7 @@ public class AtomicInferencer {
 	}
 	
 	/**
-	 * Remove inferred atomic relationships based on a set of relationship parameters.
+	 * Remove inferred atomic relationships inferred from a set of relationship parameters.
 	 * @param db The Neo4j GraphDatabaseService object
 	 * @param params Map containing the relationship parameters. Typically created by the {@link org.waag.histograph.util.InputReader} class.
 	 * @throws IOException Thrown when a relationship label is missing in the parameters, or when no nodes
@@ -89,7 +86,8 @@ public class AtomicInferencer {
 		}
 	}
 	
-	private static void removeInferredAtomicRelations(GraphDatabaseService db, Map<String, String> params, String[] labels) throws IOException {		
+	private static void removeInferredAtomicRelations(GraphDatabaseService db, Map<String, String> params, String[] labels) throws IOException {
+		String inferredSource = "inferred_from_" + params.get(HistographTokens.General.SOURCE);
 		Node[] fromNodes = GraphMethods.getNodesFromParams(db, params.get(HistographTokens.RelationTokens.FROM));
 		Node[] toNodes = GraphMethods.getNodesFromParams(db, params.get(HistographTokens.RelationTokens.TO));
 		
@@ -101,10 +99,10 @@ public class AtomicInferencer {
 				for (String label : labels) {
 					RelationType relType = RelationType.fromLabel(label);
 					
-					Relationship rel = GraphMethods.getRelation(db, fromNode, toNode, relType);
+					Relationship rel = GraphMethods.getRelation(db, fromNode, toNode, relType, inferredSource);
 					if (rel == null) continue;
 					
-					if (atomicRelationCanBeRemoved(db, fromNode, toNode, relType)) {
+					if (atomicRelationCanBeRemoved(db, fromNode, toNode, relType, inferredSource)) {
 						try (Transaction tx = db.beginTx()) {
 							rel.delete();
 							tx.success();
@@ -115,13 +113,13 @@ public class AtomicInferencer {
 		}
 	}
 	
-	private static boolean atomicRelationCanBeRemoved(GraphDatabaseService db, Node fromNode, Node toNode, RelationType relType) throws IOException {
+	private static boolean atomicRelationCanBeRemoved(GraphDatabaseService db, Node fromNode, Node toNode, RelationType relType, String inferredSource) throws IOException {
 		String relationLabel = relType.getLabel();
 		String[] primaryRels = ReasoningDefinitions.getPrimaryRelationsFromAtomic(relationLabel);
 		
 		for (String primaryRel : primaryRels) {
 			RelationType primaryRelType = RelationType.fromLabel(primaryRel);
-			if (GraphMethods.relationExists(db, fromNode, toNode, primaryRelType)) return false;
+			if (GraphMethods.relationExists(db, fromNode, toNode, primaryRelType, inferredSource)) return false;
 		}
 		return true;
 	}

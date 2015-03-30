@@ -23,11 +23,9 @@ public class InputReader {
 	 * @return A task object in which all parameters are stored.
 	 * @throws IOException Thrown when a parsing error is encountered.
 	 */
-	public static Task parse(JSONObject obj) throws IOException {
-		String source;
-		
+	public static Task parse(JSONObject obj) throws IOException {		
 		try {
-			source = obj.get(HistographTokens.General.SOURCE).toString();
+			String source = obj.get(HistographTokens.General.SOURCE).toString();
 			switch (obj.get(HistographTokens.General.ACTION).toString()) {
 			case HistographTokens.Actions.ADD:
 				return parseAdd(obj, source);

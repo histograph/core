@@ -1,4 +1,4 @@
-package org.waag.histograph.traversal;
+package org.waag.histograph.util;
 
 import java.util.Comparator;
 import java.util.Map;

@@ -54,7 +54,7 @@ public class TransitiveInferencer {
 			Node n3 = r.getOtherNode(n2);
 			if (!n1.equals(n3)) {
 				RelationshipType type = r.getType();
-				if (!GraphMethods.relationExists(db, n1, n3, type)) {
+				if (!GraphMethods.relationExists(db, n1, n3, type, source)) {
 					Relationship rel = n1.createRelationshipTo(n3, type);
 					rel.setProperty(HistographTokens.General.SOURCE, source);
 					inferred++;
@@ -66,7 +66,7 @@ public class TransitiveInferencer {
 			Node n3 = r.getOtherNode(n2);
 			if (!n1.equals(n3)) {
 				RelationshipType type = r.getType();
-				if (!GraphMethods.relationExists(db, n3, n1, type)) {
+				if (!GraphMethods.relationExists(db, n3, n1, type, source)) {
 					Relationship rel = n3.createRelationshipTo(n1, type);
 					rel.setProperty(HistographTokens.General.SOURCE, source);
 					inferred++;

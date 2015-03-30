@@ -75,7 +75,9 @@ public class ESThread implements Runnable {
 				JSONObject jsonMessage = new JSONObject(payload);
 				task = InputReader.parse(jsonMessage);
 			} catch (IOException e) {
+				namePrint("Error: " + e.getMessage());
 				writeToFile("esMsgParseErrors.txt", "Error: ", e.getMessage());
+				continue;
 			}
 			
 			try {

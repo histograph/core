@@ -2,6 +2,7 @@ package org.waag.histograph.graph;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -79,34 +80,50 @@ public class GraphMethods {
 			
 			tx.success();
 		}
-		
-		System.out.println("Node updated.");
 	}
 	
 	/**
-	 * Removes a node and all its associated relationships from the graph. The node is found 
-	 * using the hgid found in the parameters map.
+	 * Removes a node and all its associated relationships from the graph. The node is found using the hgid.
 	 * @param db The Neo4j graph object
-	 * @param params A map containing the hgid of the node that is to be removed. All other parameters are ignored.
+	 * @param hgid The hgid of the node that is to be removed.
+	 * @return An array of {@literal Map<String, String>} objects containing the parameters of each relationship that was removed in the process,
+	 * or null if none were removed.
 	 * @throws IOException Thrown if no node with this hgid was present in the graph.
 	 */
-	public static void deleteNode(GraphDatabaseService db, Map<String, String> params) throws IOException {
-		String hgid = params.get(HistographTokens.General.HGID);
-		
+	public static Map<String, String>[] deleteNode(GraphDatabaseService db, String hgid) throws IOException {		
 		// Verify node exists and get it
 		Node node = GraphMethods.getNodeByHgid(db, hgid);
 		if (node == null) throw new IOException("Node with " + HistographTokens.General.HGID + " '" + hgid + "' not found in graph.");
+		ArrayList<Map<String, String>> relParamList = new ArrayList<Map<String, String>>();
 		
 		try (Transaction tx = db.beginTx()) {
 			// Remove all associated relationships
 			Iterable<Relationship> relationships = node.getRelationships();
 			for (Relationship rel : relationships) {
+				Map<String, String> relParams = new HashMap<String, String>();
+				
+				relParams.put(HistographTokens.RelationTokens.FROM, rel.getStartNode().getProperty(HistographTokens.General.HGID).toString());
+				relParams.put(HistographTokens.RelationTokens.TO, rel.getEndNode().getProperty(HistographTokens.General.HGID).toString());
+				relParams.put(HistographTokens.RelationTokens.LABEL, RelationType.fromRelationshipType(rel.getType()).getLabel());
+				relParams.put(HistographTokens.General.SOURCE, rel.getProperty(HistographTokens.General.SOURCE).toString());
+				
+				relParamList.add(relParams);
+				
 				rel.delete();
 			}
 			
 			// Remove node
 			node.delete();
 			tx.success();
+		}
+		
+		if (relParamList.size() > 0) {
+			@SuppressWarnings("unchecked")
+			Map<String, String>[] relMaps = new Map[relParamList.size()];
+			relMaps = relParamList.toArray(relMaps);
+			return relMaps;
+		} else {
+			return null;
 		}
 	}
 	
@@ -141,26 +158,24 @@ public class GraphMethods {
 	 * the {@link org.waag.histograph.util.InputReader} class, returned with {@link org.waag.histograph.queue.Task#getParams()}.
 	 * @return An array containing all newly created Relationships, or null if no relations were created 
 	 * @throws IOException Thrown if no nodes are found based on the given hgid's or URI's.
+	 * @throws RejectedException Thrown if a hgid or URI is not present in the graph. Can be caught to 
 	 */
-	public static Relationship[] addRelation(GraphDatabaseService db, Map<String, String> params) throws IOException {
+	public static Relationship[] addRelation(GraphDatabaseService db, Map<String, String> params) throws IOException, RejectedException {
 		// Search on URI first, return all found nodes in array
 		Node[] fromNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.FROM));
 		Node[] toNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.TO));
 		
-		if (fromNodes == null) throw new IOException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.FROM) + "' found in graph.");
-		if (toNodes == null) throw new IOException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.TO) + "' found in graph.");		
+		if (fromNodes == null) throw new RejectedException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.FROM) + "' found in graph.", params.get(HistographTokens.RelationTokens.FROM), params);
+		if (toNodes == null) throw new RejectedException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.TO) + "' found in graph.", params.get(HistographTokens.RelationTokens.TO), params);
 		
 		RelationshipType relType = RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL));
+		String source = params.get(HistographTokens.General.SOURCE);
 		ArrayList<Relationship> relArray = new ArrayList<Relationship>();
 		
 		for (Node fromNode : fromNodes) {
 			for (Node toNode : toNodes) {
-				// Verify the absence of the new relation
-				if (!GraphMethods.relationAbsent(db, fromNode, toNode, relType)) {
-					String relationName = params.get(HistographTokens.RelationTokens.FROM) + " --" + relType.name() + "--> " + params.get(HistographTokens.RelationTokens.TO);
-					System.out.println("Relation " + relationName + " already present in graph.");
-					continue;
-				}
+				// Verify the absence of the new relation, skip to next if already present
+				if (!GraphMethods.relationAbsent(db, fromNode, toNode, relType, source)) continue;
 
 				// Create relation between nodes
 				try (Transaction tx = db.beginTx()) {
@@ -194,7 +209,7 @@ public class GraphMethods {
 	}
 	
 	/**
-	 * Deletes one or more relationships, based on a relationship label and node identifiers (either hgid or URI).
+	 * Deletes one or more relationships, based on a relationship label, a source and node identifiers (either hgid or URI).
 	 * @param db The Neo4j graph object
 	 * @param params A map containing the parameters for the relationship that is to be deleted. Typically created by
 	 * the {@link org.waag.histograph.util.InputReader} class, returned with {@link org.waag.histograph.queue.Task#getParams()}.
@@ -209,6 +224,7 @@ public class GraphMethods {
 		if (toNodes == null) throw new IOException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.TO) + "' found in graph.");
 		
 		RelationshipType relType = RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL));
+		String source = params.get(HistographTokens.General.SOURCE);
 		
 		// For all possible node pairs, find the relationship between them and delete when found
 		boolean relationshipsRemoved = false;
@@ -216,25 +232,22 @@ public class GraphMethods {
 		for (Node fromNode : fromNodes) {
 			for (Node toNode : toNodes) {
 				// Verify the existence of the relation
-				Relationship r = GraphMethods.getRelation(db, fromNode, toNode, relType);
-				if (r == null) {
-					String relationName = params.get(HistographTokens.RelationTokens.FROM) + " --" + relType.name() + "--> " + params.get(HistographTokens.RelationTokens.TO);
-					System.out.println("Relation " + relationName + " did not exist in graph.");
-					continue;
-				}
-				relationshipsRemoved = true;
-
+				Relationship r = GraphMethods.getRelation(db, fromNode, toNode, relType, source);
+				if (r == null) continue;
+				
 				// Remove relation between nodes
 				try (Transaction tx = db.beginTx()) {
 					r.delete();
 					tx.success();
 				}
+				
+				relationshipsRemoved = true;
 			}
 		}
 		
 		if (!relationshipsRemoved) {
 			String relationName = params.get(HistographTokens.RelationTokens.FROM) + " --" + relType.name() + "--> " + params.get(HistographTokens.RelationTokens.TO);
-			throw new IOException("No relationships '" + relationName + "' found in graph.");
+			throw new IOException("No relationships '" + relationName + "' from source '" + source + "' found in graph.");
 		}
 	}
 	
@@ -300,17 +313,18 @@ public class GraphMethods {
 	}
 	
 	/**
-	 * Finds and returns a relationship based on two nodes and a relationship type.
+	 * Finds and returns a relationship based on two nodes, a relationship type and the source it is specified by.
 	 * @param db The Neo4j graph object
 	 * @param fromNode The start node object of the relationship
 	 * @param toNode The end node object of the relationship
 	 * @param type The relationship type of this relationship
+	 * @param source The source of the relationship
 	 * @return The relationship associated with the parameters, or null if this relationship does not exist.
 	 */
-	public static Relationship getRelation(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) {
+	public static Relationship getRelation(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type, String source) {
 		try (Transaction tx = db.beginTx()) {
 			for (Relationship r : fromNode.getRelationships(type, Direction.OUTGOING)) {
-				if (r.getEndNode().equals(toNode)) {
+				if (r.getEndNode().equals(toNode) && r.getProperty(HistographTokens.General.SOURCE).equals(source)) {
 					return r;
 				}
 			}
@@ -319,26 +333,28 @@ public class GraphMethods {
 	}
 	
 	/**
-	 * Checks whether a relationship exists in the graph.
+	 * Checks whether a relationship specified by a specific source exists in the graph.
 	 * @param db The Neo4j graph object
 	 * @param fromNode The start node object of the relationship
 	 * @param toNode The end node object of the relationship
 	 * @param type The relationship type of this relationship
+	 * @param source The source of the relationship
 	 * @return A boolean value indicating whether this relationship exists in the graph.
 	 */
-	public static boolean relationExists(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) {
-		return (getRelation(db, fromNode, toNode, type) != null);
+	public static boolean relationExists(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type, String source) {
+		return (getRelation(db, fromNode, toNode, type, source) != null);
 	}
 	
 	/**
-	 * Checks whether a relationship is absent in the graph.
+	 * Checks whether a relationship specified by a specific source is absent in the graph.
 	 * @param db The Neo4j graph object
 	 * @param fromNode The start node object of the relationship
 	 * @param toNode The end node object of the relationship
 	 * @param type The relationship type of this relationship
+	 * @param source The source of the relationship
 	 * @return A boolean value indicating whether this relationship is absent in the graph.
 	 */
-	public static boolean relationAbsent(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type) {
-		return (getRelation(db, fromNode, toNode, type) == null);
+	public static boolean relationAbsent(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type, String source) {
+		return (getRelation(db, fromNode, toNode, type, source) == null);
 	}
 }

@@ -29,18 +29,23 @@ public class GraphThread implements Runnable {
 	
 	GraphDatabaseService db;
 	String redis_graph_queue;
+	String redis_pg_queue;
 	boolean verbose;
+	Jedis jedis;
+	
 	private static final String NAME = "GraphThread";
 	
 	/**
 	 * Constructor of the thread.
 	 * @param db The Neo4j graph object on which the operations should be performed.
 	 * @param redis_graph_queue The name of the Redis queue from which the operations are pulled
+	 * @param redis_pg_queue The name of the Redis queue to which the Postgres operations are pushed
 	 * @param verbose Boolean value expressing whether the graph thread should write verbose output to stdout.
 	 */
-	public GraphThread (GraphDatabaseService db, String redis_graph_queue, boolean verbose) {
+	public GraphThread (GraphDatabaseService db, String redis_graph_queue, String redis_pg_queue, boolean verbose) {
 		this.db = db;
 		this.redis_graph_queue = redis_graph_queue;
+		this.redis_pg_queue = redis_pg_queue;
 		this.verbose = verbose;
 	}
 	
@@ -50,7 +55,7 @@ public class GraphThread implements Runnable {
 	 * parsing errors to <i>graphMsgParseErrors.txt</i>.
 	 */
 	public void run () {
-		Jedis jedis = null;
+//		Jedis jedis = null;
 		try {
 			jedis = RedisInit.initRedis();
 		} catch (Exception e) {
@@ -74,14 +79,21 @@ public class GraphThread implements Runnable {
 			}
 			
 			try {
-				JSONObject jsonMessage = new JSONObject(payload);
-				task = InputReader.parse(jsonMessage);
+				JSONObject message = new JSONObject(payload);
+				task = InputReader.parse(message);
 			} catch (IOException e) {
+				namePrint("Error: " + e.getMessage());
 				writeToFile("graphMsgParseErrors.txt", "Error: ", e.getMessage());
+				continue;
 			}
 			
 			try {
 				performTask(task);
+			} catch (RejectedException e) {
+				Map<String, String> rejectedRelationParams = e.getParams();
+				rejectedRelationParams.put("reason", "not_found");
+				rejectedRelationParams.put(HistographTokens.Types.PIT, e.getNodeHgidOrURI());
+				jedis.rpush(redis_pg_queue, new JSONObject(rejectedRelationParams).toString());				
 			} catch (IOException e) {
 				writeToFile("graphErrors.txt", "Error: ", e.getMessage());
 			} catch (ConstraintViolationException e) {
@@ -98,7 +110,7 @@ public class GraphThread implements Runnable {
 		}
 	}
 	
-	private void performTask(Task task) throws IOException {
+	private void performTask(Task task) throws IOException, RejectedException {
 		switch (task.getType()) {
 		case HistographTokens.Types.PIT:
 			performPITAction(task);
@@ -121,14 +133,22 @@ public class GraphThread implements Runnable {
 			GraphMethods.updateNode(db, params);
 			break;
 		case HistographTokens.Actions.DELETE:
-			GraphMethods.deleteNode(db, params);
+			String hgid = params.get(HistographTokens.General.HGID);
+			Map<String, String>[] relMaps = GraphMethods.deleteNode(db, hgid);
+			if (relMaps != null) {
+				for (Map<String, String> map : relMaps) {
+					map.put("reason", "removed");
+					map.put(HistographTokens.Types.PIT, hgid);
+					jedis.rpush(redis_pg_queue, new JSONObject(map).toString());	
+				}
+			}
 			break;
 		default:
 			throw new IOException("Unexpected task received.");
 		}
 	}
 	
-	private void performRelationAction(Task task) throws IOException {
+	private void performRelationAction(Task task) throws IOException, RejectedException {
 		Map<String, String> params = task.getParams();
 		switch (task.getAction()) {
 		case HistographTokens.Actions.ADD:

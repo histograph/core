@@ -1,4 +1,4 @@
-package org.waag.histograph.traversal;
+package org.waag.histograph.graph;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,10 +19,11 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Traverser;
-import org.waag.histograph.graph.GraphMethods;
 import org.waag.histograph.reasoner.ReasoningDefinitions;
 import org.waag.histograph.reasoner.ReasoningDefinitions.RelationType;
+import org.waag.histograph.server.ServerThread;
 import org.waag.histograph.util.HistographTokens;
+import org.waag.histograph.util.ValueComparator;
 
 /**
  * A class with a method for breadth-first search traversal through a Neo4j graph. The response
