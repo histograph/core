@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>histograph-core</artifactId>
   <groupId>org.waag.histograph</groupId>
-  <version>0.2.2-SNAPSHOT</version>
+  <version>0.3.0</version>
   <name>Histograph Core - Graph management and inferencing</name>
   <description>Histograph Core - Graph management, Elasticsearch and inferencing)</description>
   <properties>
