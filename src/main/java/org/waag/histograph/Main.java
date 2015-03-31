@@ -127,9 +127,7 @@ public class Main {
 			}
 		} catch (Exception e) {
 			namePrint("Error: " + e.getMessage());
-			if (verbose) {
-				e.printStackTrace();
-			}
+			if (verbose) e.printStackTrace();
 			System.exit(1);
 		}
 		
@@ -138,8 +136,8 @@ public class Main {
 		try {
 			pg = PGInit.initPG(config);
 		} catch (SQLException e) {
-			System.out.println("Could not initialize PostgreSQL connection. " + e.getMessage());
-			e.printStackTrace();
+			namePrint("Could not initialize PostgreSQL connection. " + e.getMessage());
+			if (verbose) e.printStackTrace();
 			System.exit(1);
 		}
 		
@@ -149,9 +147,7 @@ public class Main {
 			db = GraphInit.initNeo4j(config);
 		} catch (Exception e) {
 			namePrint("Error: " + e.getMessage());
-			if (verbose) {
-				e.printStackTrace();
-			}
+			if (verbose) e.printStackTrace();
 			System.exit(1);
 		}
 		
@@ -172,9 +168,7 @@ public class Main {
 				payload = messages.get(1);
 			} catch (JedisConnectionException e) {
 				namePrint("Redis connection error: " + e.getMessage());
-				if (verbose) {
-					e.printStackTrace();
-				}
+				if (verbose) e.printStackTrace();
 				System.exit(1);
 			}
 						
@@ -228,9 +222,7 @@ public class Main {
 			fileOut.close();
 		} catch (Exception e) {
 			namePrint("Unable to write '" + message + "' to file '" + fileName + "'.");
-			if (verbose) {
-				e.printStackTrace();
-			}
+			if (verbose) e.printStackTrace();
 		}	
 	}
 	
