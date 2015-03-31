@@ -55,7 +55,6 @@ public class GraphThread implements Runnable {
 	 * parsing errors to <i>graphMsgParseErrors.txt</i>.
 	 */
 	public void run () {
-//		Jedis jedis = null;
 		try {
 			jedis = RedisInit.initRedis();
 		} catch (Exception e) {
@@ -91,7 +90,7 @@ public class GraphThread implements Runnable {
 			
 			try {
 				performTask(task);
-			} catch (RejectedException e) {
+			} catch (RejectedEdgeException e) {
 				Map<String, String> rejectedRelationParams = e.getParams();
 				rejectedRelationParams.put("reason", "not_found");
 				rejectedRelationParams.put(HistographTokens.Types.PIT, e.getNodeHgidOrURI());
@@ -112,7 +111,7 @@ public class GraphThread implements Runnable {
 		}
 	}
 	
-	private void performTask(Task task) throws IOException, RejectedException {
+	private void performTask(Task task) throws IOException, RejectedEdgeException {
 		switch (task.getType()) {
 		case HistographTokens.Types.PIT:
 			performPITAction(task);
@@ -150,7 +149,7 @@ public class GraphThread implements Runnable {
 		}
 	}
 	
-	private void performRelationAction(Task task) throws IOException, RejectedException {
+	private void performRelationAction(Task task) throws IOException, RejectedEdgeException {
 		Map<String, String> params = task.getParams();
 		switch (task.getAction()) {
 		case HistographTokens.Actions.ADD:

@@ -158,15 +158,15 @@ public class GraphMethods {
 	 * the {@link org.waag.histograph.util.InputReader} class, returned with {@link org.waag.histograph.queue.Task#getParams()}.
 	 * @return An array containing all newly created Relationships, or null if no relations were created 
 	 * @throws IOException Thrown if no nodes are found based on the given hgid's or URI's.
-	 * @throws RejectedException Thrown if a hgid or URI is not present in the graph. Can be caught to 
+	 * @throws RejectedEdgeException Thrown if a hgid or URI is not present in the graph. Can be caught to 
 	 */
-	public static Relationship[] addRelation(GraphDatabaseService db, Map<String, String> params) throws IOException, RejectedException {
+	public static Relationship[] addRelation(GraphDatabaseService db, Map<String, String> params) throws IOException, RejectedEdgeException {
 		// Search on URI first, return all found nodes in array
 		Node[] fromNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.FROM));
 		Node[] toNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.TO));
 		
-		if (fromNodes == null) throw new RejectedException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.FROM) + "' found in graph.", params.get(HistographTokens.RelationTokens.FROM), params);
-		if (toNodes == null) throw new RejectedException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.TO) + "' found in graph.", params.get(HistographTokens.RelationTokens.TO), params);
+		if (fromNodes == null) throw new RejectedEdgeException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.FROM) + "' found in graph.", params.get(HistographTokens.RelationTokens.FROM), params);
+		if (toNodes == null) throw new RejectedEdgeException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.TO) + "' found in graph.", params.get(HistographTokens.RelationTokens.TO), params);
 		
 		RelationshipType relType = RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL));
 		String source = params.get(HistographTokens.General.SOURCE);
