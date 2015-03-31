@@ -32,6 +32,7 @@ public class PGThread implements Runnable {
 	
 	public void run () {
 		initTables();
+		initIndices();
 		
 		Jedis jedis = null;
 		try {
@@ -67,9 +68,7 @@ public class PGThread implements Runnable {
 			} catch (IOException e) {
 				namePrint("Error: " + e.getMessage());
 				writeToFile("pgErrors.txt", "Error: ", e.getMessage());
-				if (verbose) {
-					e.printStackTrace();
-				}
+				if (verbose) e.printStackTrace();
 			}
 			
 			if (verbose) {
@@ -119,10 +118,33 @@ public class PGThread implements Runnable {
 			}
 		} catch (IOException | SQLException e) {
 			System.out.println("Error in initializing PostgreSQL tables: " + e.getMessage());
-			if (verbose) {
-				e.printStackTrace();
-			}
+			if (verbose) e.printStackTrace();
 			System.exit(1);
+		}
+	}
+	
+	private void initIndices () {
+		String[] tableNames = {"rejected_edges", "removed_edges"};
+		
+		for (String tableName : tableNames) {
+			String[] rejected_edges_cols = null;
+			try {
+				rejected_edges_cols = PGMethods.getColumnNames(pgconn, tableName);
+			} catch (SQLException | IOException e) {
+				namePrint("Error in getting table columns: " + e.getMessage());
+				if (verbose) e.printStackTrace();
+			}
+			
+			for (String col : rejected_edges_cols) {
+				if (!PGMethods.indexExists(pgconn, tableName, col)) {
+					try {
+						PGMethods.createIndex(pgconn, tableName, col);
+					} catch (IOException | SQLException e) {
+						namePrint("Error in creating index: " + e.getMessage());
+						if (verbose) e.printStackTrace();
+					}
+				}
+			}
 		}
 	}
 	
@@ -135,6 +157,7 @@ public class PGThread implements Runnable {
 			fileOut.close();
 		} catch (Exception e) {
 			namePrint("Unable to write '" + message + "' to file '" + fileName + "'.");
+			if (verbose) e.printStackTrace();
 		}	
 	}
 	

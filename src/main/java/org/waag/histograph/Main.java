@@ -155,7 +155,7 @@ public class Main {
 		new Thread(new GraphThread(db, config.REDIS_GRAPH_QUEUE, config.REDIS_PG_QUEUE, verbose)).start();
 		new Thread(new ESThread(client, config, verbose)).start();
 		new Thread(new PGThread(pg, config.REDIS_PG_QUEUE, verbose)).start();
-		new Thread(new ServerThread(db, pg, config, VERSION)).start();		
+		new Thread(new ServerThread(db, pg, config, VERSION, verbose)).start();		
 		
 		List<String> messages = null;
 		String payload = null;

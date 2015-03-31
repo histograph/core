@@ -60,6 +60,7 @@ public class GraphThread implements Runnable {
 			jedis = RedisInit.initRedis();
 		} catch (Exception e) {
 			namePrint("Error: " + e.getMessage());
+			if (verbose) e.printStackTrace();
 			System.exit(1);
 		}
 		List<String> messages = null;
@@ -75,6 +76,7 @@ public class GraphThread implements Runnable {
 				payload = messages.get(1);
 			} catch (JedisConnectionException e) {
 				namePrint("Redis connection error: " + e.getMessage());
+				if (verbose) e.printStackTrace();
 				System.exit(1);
 			}
 			

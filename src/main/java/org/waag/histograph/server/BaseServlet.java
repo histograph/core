@@ -27,7 +27,7 @@ public class BaseServlet extends HttpServlet {
         JSONObject jsonResponse = new JSONObject();
         jsonResponse.put("name", "histograph");
         jsonResponse.put("version", getClass().getPackage().getImplementationVersion());
-        jsonResponse.put("message", "Histograph Traversal API. Send POST requests with body '{hgids: [hgid1, hgid2, ...]}'.");
+        jsonResponse.put("message", "Histograph Traversal and Rejected Edges API.");
         
         out.println(jsonResponse);
     }

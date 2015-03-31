@@ -53,6 +53,7 @@ public class TraversalServlet extends HttpServlet {
     		while ((line = reader.readLine()) != null) jb.append(line);
     	} catch (Exception e) {	  
     		out.println(errorResponse("Error while parsing POST request: " + e.getMessage()));
+    		return;
     	}
         
     	// Extract JSON body and perform traversal
@@ -70,12 +71,14 @@ public class TraversalServlet extends HttpServlet {
         	
         } catch (JSONException e) {
         	out.println(errorResponse("Invalid JSON received" + e.getMessage()));
+        	return;
         } catch (IOException e) {
         	out.println(errorResponse(e.getMessage()));
+        	return;
         }
     }
     
-    public String errorResponse (String errorMsg) {
+    private String errorResponse (String errorMsg) {
     	JSONObject out = new JSONObject();
     	out.put("message", errorMsg);
     	out.put("status", "error");
