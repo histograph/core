@@ -320,7 +320,7 @@ public class GraphMethodsTest {
 			GraphMethods.addRelation(db, relParams);
 		} catch (IOException e) {
 			fail("Failed to add relationship to graph during HGID lookup phase.");
-		} catch (RejectedEdgeException e) {
+		} catch (RejectedRelationNotification e) {
 			fail("Failed to add relationship -- relationship rejected.");
 		}
 		
@@ -633,7 +633,7 @@ public class GraphMethodsTest {
 			assertEquals("One relationship expected as return value after its creation", 1, rels.length);
 		} catch (IOException e) {
 			fail("Failed to add relationship to graph during HGID lookup phase.");
-		} catch (RejectedEdgeException e) {
+		} catch (RejectedRelationNotification e) {
 			fail("Failed to add relationship -- relationship rejected.");
 		}
 	}
@@ -714,7 +714,7 @@ public class GraphMethodsTest {
 			assertNotEquals("Two different relationships expected as return value.", rels[0], rels[1]);
 		} catch (IOException e) {
 			fail("Failed to add relationship to graph during HGID lookup phase.");
-		} catch (RejectedEdgeException e) {
+		} catch (RejectedRelationNotification e) {
 			fail("Failed to add relationship -- relationship rejected.");
 		}
 	}
@@ -788,13 +788,13 @@ public class GraphMethodsTest {
 			}
 		} catch (IOException e) {
 			fail("Failed to add relationship to graph during HGID lookup phase.");
-		} catch (RejectedEdgeException e) {
+		} catch (RejectedRelationNotification e) {
 			fail("Failed to add relationship -- relationship rejected.");
 		}
 	}
 
-	@Test (expected=RejectedEdgeException.class)
-	public void addRelation_unsuccessfulAddByHgidHgid_shouldThrowException () throws RejectedEdgeException {
+	@Test (expected=RejectedRelationNotification.class)
+	public void addRelation_unsuccessfulAddByHgidHgid_shouldThrowException () throws RejectedRelationNotification {
 		// Create new relationship parameters
 		Map<String, String> relParams = new HashMap<String, String>();
 		
@@ -1040,7 +1040,7 @@ public class GraphMethodsTest {
 			GraphMethods.addRelation(db, relParams);
 		} catch (IOException e) {
 			fail("Failed to add relationship to graph during HGID lookup phase.");
-		} catch (RejectedEdgeException e) {
+		} catch (RejectedRelationNotification e) {
 			fail("Failed to add relationship -- relationship rejected.");
 		}
 		
@@ -1113,7 +1113,7 @@ public class GraphMethodsTest {
 			GraphMethods.addRelation(db, relParams);
 		} catch (IOException e) {
 			fail("Failed to add relationship to graph during HGID lookup phase.");
-		} catch (RejectedEdgeException e) {
+		} catch (RejectedRelationNotification e) {
 			fail("Failed to add relationship -- relationship rejected.");
 		}
 		
@@ -1217,7 +1217,7 @@ public class GraphMethodsTest {
 			GraphMethods.addRelation(db, relParams2);
 		} catch (IOException e) {
 			fail("Failed to add relationship to graph during HGID lookup phase.");
-		} catch (RejectedEdgeException e) {
+		} catch (RejectedRelationNotification e) {
 			fail("Failed to add relationship -- relationship rejected.");
 		}
 		
@@ -1343,7 +1343,7 @@ public class GraphMethodsTest {
 			GraphMethods.addRelation(db, relParams);
 		} catch (IOException e) {
 			fail("Failed to add relationship to graph during HGID lookup phase.");
-		} catch (RejectedEdgeException e) {
+		} catch (RejectedRelationNotification e) {
 			fail("Failed to add relationship -- relationship rejected.");
 		}
 		
@@ -1461,7 +1461,7 @@ public class GraphMethodsTest {
 			GraphMethods.addRelation(db, relParams);
 		} catch (IOException e) {
 			fail("Failed to add relationship to graph during HGID lookup phase.");
-		} catch (RejectedEdgeException e) {
+		} catch (RejectedRelationNotification e) {
 			fail("Failed to add relationship -- relationship rejected.");
 		}
 		

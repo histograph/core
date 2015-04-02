@@ -13,6 +13,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.waag.histograph.queue.RedisInit;
 import org.waag.histograph.queue.Task;
+import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.HistographTokens;
 import org.waag.histograph.util.InputReader;
 
@@ -22,15 +23,16 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 public class PGThread implements Runnable {
 	
 	private static final String NAME = "PGThread";
-	private static final String TABLE_NAME = "rejected_edges";
+	private static final String TABLE_NAME = "rejected_relations";
 	
-	private Connection pgconn;
-	private String redis_pg_queue;
+	private Connection pg;
+	private Configuration config;
 	private boolean verbose;
+	private Jedis jedis;
 	
-	public PGThread (Connection pgconn, String redis_pg_queue, boolean verbose) {
-		this.pgconn = pgconn;
-		this.redis_pg_queue = redis_pg_queue;
+	public PGThread (Connection pg, Configuration config, boolean verbose) {
+		this.pg = pg;
+		this.config = config;
 		this.verbose = verbose;
 	}
 	
@@ -38,7 +40,6 @@ public class PGThread implements Runnable {
 		initTable(TABLE_NAME);
 		initIndex(TABLE_NAME);
 		
-		Jedis jedis = null;
 		try {
 			jedis = RedisInit.initRedis();
 		} catch (Exception e) {
@@ -54,7 +55,7 @@ public class PGThread implements Runnable {
 			Task task = null;
 			
 			try {
-				messages = jedis.blpop(0, redis_pg_queue);
+				messages = jedis.blpop(0, config.REDIS_PG_QUEUE);
 				payload = messages.get(1);
 			} catch (JedisConnectionException e) {
 				namePrint("Redis connection error: " + e.getMessage());
@@ -81,7 +82,7 @@ public class PGThread implements Runnable {
 			if (verbose) {
 				tasksDone ++;
 				if (tasksDone % 100 == 0) {
-					int tasksLeft = jedis.llen(redis_pg_queue).intValue();
+					int tasksLeft = jedis.llen(config.REDIS_PG_QUEUE).intValue();
 					namePrint("Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
 				}
 			}
@@ -110,7 +111,8 @@ public class PGThread implements Runnable {
 		}
 	}
 	
-	private void parseAddedPIT(Task task) {
+	private void parseAddedPIT(Task task) throws IOException {
+		namePrint("Parsing added PIT...");
 		Map<String, String> params = task.getParams();
 		
 		String hgid = params.get(HistographTokens.General.HGID);
@@ -122,12 +124,51 @@ public class PGThread implements Runnable {
 		}
 	}
 	
-	private void findRejectedRelationsHgid(String hgid) {
-		
+	private void findRejectedRelationsHgid(String hgid) throws IOException {
+		try {
+			Map<String, String>[] relationParams = PGMethods.getRowsByKeyValPairs(pg, TABLE_NAME, "rejection_cause_id_method", "HGID", "rejection_cause", hgid);
+			if (relationParams != null) {
+				for (Map<String, String> map : relationParams) {
+					pushRelationToGraph(map);
+				}
+				PGMethods.deleteFromTable(pg, TABLE_NAME, "rejection_cause_id_method", "HGID", "rejection_cause", hgid);
+			}
+		} catch (SQLException e) {
+			throw new IOException("Error in PSQL communication: ", e);
+		}
 	}
 	
-	private void findRejectedRelationsURI(String uri) {
+	private void findRejectedRelationsURI(String uri) throws IOException {
+		try {
+			Map<String, String>[] relationParams = PGMethods.getRowsByKeyValPairs(pg, TABLE_NAME, "rejection_cause_id_method", "URI", "rejection_cause", uri);
+			if (relationParams != null) {
+				for (Map<String, String> map : relationParams) {
+					pushRelationToGraph(map);
+				}
+				PGMethods.deleteFromTable(pg, TABLE_NAME, "rejection_cause_id_method", "URI", "rejection_cause", uri);
+			}
+		} catch (SQLException e) {
+			throw new IOException("Error in PSQL communication: ", e);
+		}
+	}
+	
+	private void pushRelationToGraph(Map<String, String> relParams) {
+		JSONObject graphMessage = new JSONObject();
+		JSONObject data = new JSONObject();
 		
+		// Construct message and push to Graph
+		graphMessage.put(HistographTokens.General.ACTION, HistographTokens.Actions.ADD);
+		graphMessage.put(HistographTokens.General.TYPE, HistographTokens.Types.RELATION);
+		graphMessage.put(HistographTokens.General.SOURCE, relParams.get("rel_source"));
+		
+		data.put(HistographTokens.RelationTokens.FROM, relParams.get("rel_from"));
+		data.put(HistographTokens.RelationTokens.TO, relParams.get("rel_to"));
+		data.put(HistographTokens.RelationTokens.LABEL, relParams.get("rel_label"));
+		
+		graphMessage.put(HistographTokens.General.DATA, data);
+		System.out.println(graphMessage.toString());
+		
+		jedis.rpush(config.REDIS_GRAPH_QUEUE, graphMessage.toString());
 	}
 	
 	private void parseRejectedRelation(Task task) throws IOException {
@@ -141,20 +182,21 @@ public class PGThread implements Runnable {
 			String label = params.get(HistographTokens.RelationTokens.LABEL);
 			String source = params.get(HistographTokens.General.SOURCE);
 			String cause = params.get(HistographTokens.RelationTokens.REJECTION_CAUSE);
+			String causeIdMethod = params.get(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD);
 			
-			PGMethods.addToTable(pgconn, "rejected_edges", from, fromIdMethod, to, toIdMethod, label, source, cause);
+			if (!PGMethods.rowExists(pg, TABLE_NAME, from, fromIdMethod, to, toIdMethod, label, source, cause, causeIdMethod)) {
+				PGMethods.addToTable(pg, TABLE_NAME, from, fromIdMethod, to, toIdMethod, label, source, cause, causeIdMethod);	
+			}
 			
-		} catch (JSONException e) {
-			throw new IOException("Could not parse JSON message", e);
-		} catch (SQLException e) {
-			throw new IOException("Could not add object to PostgreSQL", e);
+		} catch (JSONException | SQLException e) {
+			throw new IOException("Error in PSQL communication: ", e);
 		}
 	}
 	
 	private void initTable (String tableName) {
 		try {
-			if (!PGMethods.tableExists(pgconn, tableName)) {
-				PGMethods.createTable(pgconn, tableName, "rel_from", "text", "from_id_method", "text", "rel_to", "text", "to_id_method", "text", "rel_label", "text", "rel_source", "text", "rejection_cause", "text", "rejection_cause_id_method", "text");
+			if (!PGMethods.tableExists(pg, tableName)) {
+				PGMethods.createTable(pg, tableName, "rel_from", "text", "from_id_method", "text", "rel_to", "text", "to_id_method", "text", "rel_label", "text", "rel_source", "text", "rejection_cause", "text", "rejection_cause_id_method", "text");
 			}
 		} catch (IOException | SQLException e) {
 			System.out.println("Error in initializing PostgreSQL tables: " + e.getMessage());
@@ -166,16 +208,16 @@ public class PGThread implements Runnable {
 	private void initIndex (String tableName) {
 		String[] rejected_edges_cols = null;
 		try {
-			rejected_edges_cols = PGMethods.getColumnNames(pgconn, tableName);
+			rejected_edges_cols = PGMethods.getColumnNames(pg, tableName);
 		} catch (SQLException | IOException e) {
 			namePrint("Error in getting table columns: " + e.getMessage());
 			if (verbose) e.printStackTrace();
 		}
 		
 		for (String col : rejected_edges_cols) {
-			if (!PGMethods.indexExists(pgconn, tableName, col)) {
+			if (!PGMethods.indexExists(pg, tableName, col)) {
 				try {
-					PGMethods.createIndex(pgconn, tableName, col);
+					PGMethods.createIndex(pg, tableName, col);
 				} catch (IOException | SQLException e) {
 					namePrint("Error in creating index: " + e.getMessage());
 					if (verbose) e.printStackTrace();

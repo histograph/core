@@ -67,6 +67,50 @@ public class PGMethods {
 		}
 	}
 	
+	public static void deleteFromTable (Connection pg, String tableName, String... keyVals) throws SQLException, IOException {
+		if (keyVals.length % 2 != 0) throw new IOException("getRowsByKeyValPairs expects an even amount of parameters.");
+		if (keyVals.length < 2) throw new IOException("getRowsByKeyValPairs expects at least two parameters.");
+		
+		String[] columns = getColumnNames(pg, tableName);
+		
+		for (int i=0; i<keyVals.length; i+=2) {
+			boolean columnFound = false;
+			for (String col : columns) {
+				if (col.equals(keyVals[i])) columnFound = true;
+			}
+			if (!columnFound) throw new IOException("Column '" + keyVals[i] + "' not found in table '" + tableName + "'.");
+		}
+		
+		String query = "DELETE FROM " + tableName + " WHERE ";
+		
+		for (int i=0; i<keyVals.length; i+=2) {
+			query += keyVals[i] + " = ?";
+			if ((i+2)<keyVals.length) query += " AND ";
+		}
+		query += ";";
+		
+		PreparedStatement stmt = pg.prepareStatement(query);
+		
+		for (int i=1; i<keyVals.length; i+=2) {
+			stmt.setString((i+1)/2, keyVals[i]);
+		}
+		
+		stmt.executeUpdate();
+		
+		int result;
+		try {
+			result = stmt.executeUpdate();
+		} catch (SQLException e) {
+			throw new IOException("Could not remove data from table.", e);
+		} finally {
+			stmt.close();
+		}
+			
+		if (result != 0) { // Should return 0
+			throw new IOException("Unexpected response received when adding data to table: " + result);
+		}
+	}
+	
 	public static void addToTable (Connection pg, String tableName, String... fields) throws SQLException, IOException {
 		String[] columns = getColumnNames(pg, tableName);
 		int nColumns = columns.length;
@@ -148,22 +192,82 @@ public class PGMethods {
 		return out;
 	}
 	
-	public static Map<String, String>[] getRowsWithKeyValPair (Connection pg, String tableName, String key, String value) throws SQLException, IOException {
+	public static boolean rowExists(Connection pg, String tableName, String... fields) throws IOException, SQLException {
 		String[] columns = getColumnNames(pg, tableName);
-
-		// Extra sanitizing step to make 'key' parameter variable while preventing SQL injection
-		boolean colNameExists = false;
-		for (String col : columns) {
-			if (col.equals(key)) colNameExists = true;
-		}
-		if (!colNameExists) throw new IOException("Supplied key is not a valid column name in the table.");
+		int nColumns = columns.length;
 		
-		String query = "SELECT * FROM " + tableName + " WHERE " + key + " = ? ;";
+		PreparedStatement stmt = null;
+		String query = "select count(*) from " + tableName + " where ";
 
+		if (fields.length == nColumns) {
+			for (int i=0; i<nColumns; i++) {
+				query += columns[i] + " = ? ";
+				if ((i+1)<nColumns) query += " and ";
+			}
+			query += ";";
+
+			stmt = pg.prepareStatement(query);			
+			for (int i=0; i<fields.length; i++) {
+				stmt.setString(i+1, fields[i]);
+			}
+		} else if (fields.length == nColumns * 2) {
+			for (int i=0; i<fields.length; i+=2) {
+				query += fields[i] + " = ? ";
+				if ((i+2) < fields.length) query += " and ";
+			}
+			query += ";";
+			
+			stmt = pg.prepareStatement(query);
+			for (int i=1; i<fields.length; i+=2) {
+				stmt.setString((i+1)/2, fields[i]);
+			}
+		} else {
+			throw new IOException("The number of fields should be equal to the number of columns in the database.");
+		}
+		
+		ResultSet rs = stmt.executeQuery();
+
+		try {
+			rs.next();
+			int out = rs.getInt(1);
+			return (out > 0);
+		} catch (SQLException e) {
+			System.out.println("Query was " + stmt.toString());
+			throw new IOException("Could not check if row exists.", e);
+		} finally {
+			stmt.close();
+		}
+	}
+	
+	public static Map<String, String>[] getRowsByKeyValPairs (Connection pg, String tableName, String... keyVals) throws SQLException, IOException {
+		if (keyVals.length % 2 != 0) throw new IOException("getRowsByKeyValPairs expects an even amount of parameters.");
+		if (keyVals.length < 2) throw new IOException("getRowsByKeyValPairs expects at least two parameters.");
+		
+		String[] columns = getColumnNames(pg, tableName);
+		
+		for (int i=0; i<keyVals.length; i+=2) {
+			boolean columnFound = false;
+			for (String col : columns) {
+				if (col.equals(keyVals[i])) columnFound = true;
+			}
+			if (!columnFound) throw new IOException("Column '" + keyVals[i] + "' not found in table '" + tableName + "'.");
+		}
+		
+		String query = "SELECT * FROM " + tableName + " WHERE ";
+		
+		for (int i=0; i<keyVals.length; i+=2) {
+			query += keyVals[i] + " = ?";
+			if ((i+2)<keyVals.length) query += " AND ";
+		}
+		query += ";";
+			
 		ArrayList<Map<String, String>> results = new ArrayList<Map<String, String>>();
 		
 		PreparedStatement stmt = pg.prepareStatement(query);
-		stmt.setString(1, value);
+		
+		for (int i=1; i<keyVals.length; i+=2) {
+			stmt.setString((i+1)/2, keyVals[i]);
+		}
 		
 		ResultSet rs = stmt.executeQuery();
 		
@@ -177,6 +281,8 @@ public class PGMethods {
 		
 		rs.close();
 		stmt.close();
+		
+		if (results.isEmpty()) return null;
 		
 		@SuppressWarnings("unchecked")
 		Map<String, String>[] out = new Map[results.size()];
@@ -204,6 +310,8 @@ public class PGMethods {
 		
 		rs.close();
 		stmt.close();
+		
+		if (results.isEmpty()) return null;
 		
 		@SuppressWarnings("unchecked")
 		Map<String, String>[] out = new Map[results.size()];

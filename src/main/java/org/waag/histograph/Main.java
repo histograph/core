@@ -15,6 +15,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import org.eclipse.jetty.util.log.Log;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.waag.histograph.es.ESInit;
@@ -94,13 +95,17 @@ public class Main {
 	}
 
 	private void printAsciiArt () {
-		System.out.println("    ●───────●");
-		System.out.println("   /║       ║\\");
-		System.out.println("  / ║       ║ \\");
-		System.out.println(" ●  ║═══════║  ●    Histograph Core v" + VERSION);
-		System.out.println("  \\ ║       ║ /");
-		System.out.println("   \\║       ║/");
-		System.out.println("    ●───────●");
+		JSONArray logo = config.LOGO;
+		
+		int nLines = logo.length();
+		boolean even = (nLines % 2 == 0);
+		int middleLine = even ? (nLines/2)-1 : (nLines-1)/2;
+		
+		for (int i=0; i<nLines; i++) {
+			String line = logo.get(i).toString();			
+			if (i==middleLine) line += "   Histograph Core v" + VERSION;
+			System.out.println(line);
+		}
 	}
 	
 	private void start() {
@@ -154,7 +159,7 @@ public class Main {
 		namePrint("Creating threads...");
 		new Thread(new GraphThread(db, config.REDIS_GRAPH_QUEUE, config.REDIS_PG_QUEUE, verbose)).start();
 		new Thread(new ESThread(client, config, verbose)).start();
-		new Thread(new PGThread(pg, config.REDIS_PG_QUEUE, verbose)).start();
+		new Thread(new PGThread(pg, config, verbose)).start();
 		new Thread(new ServerThread(db, pg, config, VERSION, verbose)).start();		
 		
 		List<String> messages = null;

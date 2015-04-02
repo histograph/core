@@ -231,20 +231,26 @@ public class InputReader {
 		
 		try {
 			String from = data.get(HistographTokens.RelationTokens.FROM).toString();
-			PITIdentifyingMethod fromIdMethod = getRelationIdentifierType(from);
-
 			String to = data.get(HistographTokens.RelationTokens.TO).toString();
-			PITIdentifyingMethod toIdMethod = getRelationIdentifierType(to);
+
+			PITIdentifyingMethod fromIdMethod = getPITIdentifierMethod(from);
+			PITIdentifyingMethod toIdMethod = getPITIdentifierMethod(to);
+			
+			String label = data.get(HistographTokens.RelationTokens.LABEL).toString();
 			
 			map.put(HistographTokens.RelationTokens.FROM, from);
 			map.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
 			map.put(HistographTokens.RelationTokens.TO, to);
 			map.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
-			map.put(HistographTokens.RelationTokens.LABEL, data.get(HistographTokens.RelationTokens.LABEL).toString());
+			map.put(HistographTokens.RelationTokens.LABEL, label);
 			map.put(HistographTokens.General.SOURCE, source);
 			
 			if (data.has(HistographTokens.RelationTokens.REJECTION_CAUSE)) {
-				map.put(HistographTokens.RelationTokens.REJECTION_CAUSE, data.get(HistographTokens.RelationTokens.REJECTION_CAUSE).toString());
+				String cause = data.get(HistographTokens.RelationTokens.REJECTION_CAUSE).toString();
+				PITIdentifyingMethod causeIdMethod = getPITIdentifierMethod(cause);
+
+				map.put(HistographTokens.RelationTokens.REJECTION_CAUSE, cause);				
+				map.put(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD, causeIdMethod.toString());
 			}
 			
 			return map;
@@ -253,7 +259,7 @@ public class InputReader {
 		}
 	}
 	
-	private static PITIdentifyingMethod getRelationIdentifierType (String identifier) {
+	private static PITIdentifyingMethod getPITIdentifierMethod (String identifier) {
 		if (isURI(identifier)) {
 			return PITIdentifyingMethod.URI;
 		} else {

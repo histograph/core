@@ -24,10 +24,12 @@ import org.waag.histograph.util.HistographTokens;
 public class RejectedEdgesServlet extends HttpServlet {
 	private static final long serialVersionUID = 2635055832633992138L;
 	
+	private String TABLE_NAME;
 	private Connection pg;
 	
-	public RejectedEdgesServlet (Connection pg) {
+	public RejectedEdgesServlet (Connection pg, String tableName) {
 		this.pg = pg;
+		TABLE_NAME = tableName;
 	}
 
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -47,27 +49,29 @@ public class RejectedEdgesServlet extends HttpServlet {
         
         if (source.equals("all")) {
         	try {
-				results = PGMethods.getAllRows(pg, "rejected_edges");
+				results = PGMethods.getAllRows(pg, TABLE_NAME);
         	} catch (SQLException e) {
 				out.println(errorResponse("Error in querying PSQL: " + e.getMessage()));
 				return;
 			}
         } else {
 	        try {
-				results = PGMethods.getRowsWithKeyValPair(pg, "rejected_edges", "rel_source", source);
+				results = PGMethods.getRowsByKeyValPairs(pg, TABLE_NAME, "rel_source", source);
 	        } catch (SQLException e) {
 				out.println(errorResponse("Error in querying PSQL: " + e.getMessage()));
 				return;
 			}
         }
-				
-        for (Map<String, String> result : results) {
-			JSONObject jsonObject = new JSONObject(result);
-			array.put(jsonObject);
-		}
+		
+        if (results != null) {
+	        for (Map<String, String> result : results) {
+				JSONObject jsonObject = new JSONObject(result);
+				array.put(jsonObject);
+			}
+        }
 			
         JSONObject jsonResponse = new JSONObject();
-        jsonResponse.put("rejected_edges", array);
+        jsonResponse.put(TABLE_NAME, array);
         
         out.println(jsonResponse);
     }

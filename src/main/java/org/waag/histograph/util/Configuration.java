@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -38,14 +39,15 @@ public class Configuration {
 	public String REDIS_PG_QUEUE;
 	
 	public int TRAVERSAL_PORT;
-	
 	public String SCHEMA_DIR;
+	
+	public JSONArray LOGO;
 	
 	private Configuration (String es_host, String es_port, String es_index, String es_type,
 							String pg_host, String pg_port, String pg_user, String pg_pass, String pg_db,
 							String neo4j_filepath, String neo4j_port, int traversal_port,
-							String redis_host, String redis_port, String redis_main_queue, 
-							String redis_graph_queue, String redis_es_queue, String redis_pg_queue, String schema_dir) {
+							String redis_host, String redis_port, String redis_main_queue, String redis_graph_queue, 
+							String redis_es_queue, String redis_pg_queue, String schema_dir, JSONArray logo) {
 		ELASTICSEARCH_HOST = es_host;
 		ELASTICSEARCH_PORT = es_port;
 		ELASTICSEARCH_INDEX = es_index;
@@ -69,6 +71,7 @@ public class Configuration {
 		REDIS_PG_QUEUE = redis_pg_queue;
 		
 		SCHEMA_DIR = schema_dir;
+		LOGO = logo;
 	}
 	
 	/**
@@ -128,12 +131,13 @@ public class Configuration {
 			String redis_pg_queue = configObj.getJSONObject("redis").getJSONObject("queues").get("pg").toString();
 			
 			String schema_dir = configObj.getJSONObject("schemas").get("dir").toString();
+			JSONArray logo = configObj.getJSONArray("logo");
 			
 			return new Configuration(es_host, es_port, es_index, es_type,
 					pg_host, pg_port, pg_user, pg_pass, pg_db,
 					neo4j_filepath, neo4j_port, traversal_port, 
-					redis_host, redis_port, redis_main_queue, 
-					redis_graph_queue, redis_es_queue, redis_pg_queue, schema_dir);
+					redis_host, redis_port, redis_main_queue, redis_graph_queue, 
+					redis_es_queue, redis_pg_queue, schema_dir, logo);
 		} catch (JSONException e) {
 			throw new IOException("Invalid configuration file: " + e.getMessage());
 		}

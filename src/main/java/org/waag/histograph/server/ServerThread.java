@@ -19,6 +19,7 @@ public class ServerThread implements Runnable {
 
 	static final String TRAVERSAL_PATH = "/traversal";
 	static final String REJECTED_EDGES_PATH = "/rejected";
+	static final String TABLE_NAME = "rejected_relations";
 	
 	GraphDatabaseService db;
 	Connection pg;
@@ -53,7 +54,7 @@ public class ServerThread implements Runnable {
         
         context.addServlet(new ServletHolder(new BaseServlet()), "/");
         context.addServlet(new ServletHolder(new TraversalServlet(db)), TRAVERSAL_PATH);
-        context.addServlet(new ServletHolder(new RejectedEdgesServlet(pg)), REJECTED_EDGES_PATH);
+        context.addServlet(new ServletHolder(new RejectedEdgesServlet(pg, TABLE_NAME)), REJECTED_EDGES_PATH);
 
         server.setHandler(context);
     	
