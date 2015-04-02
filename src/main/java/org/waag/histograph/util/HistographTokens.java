@@ -41,6 +41,7 @@ public final class HistographTokens {
 		public static final String ADD = "add";
 		public static final String UPDATE = "update";
 		public static final String DELETE = "delete";
+		public static final String ADD_TO_REJECTED = "addToRejected";
 	}
 	
 	/**
@@ -79,5 +80,18 @@ public final class HistographTokens {
 		public static final String FROM = "from";
 		public static final String TO = "to";
 	    public static final String LABEL = "label";
+	    public static final String FROM_IDENTIFYING_METHOD = "from_identifying_method";
+	    public static final String TO_IDENTIFYING_METHOD = "to_identifying_method";
+	    public static final String REJECTION_CAUSE = "rejection_cause";
+	    public static final String REJECTION_CAUSE_ID_METHOD = "rejection_cause_id_method";
+	}
+	
+	/**
+	 * Methods of identifying a PIT.
+	 * @author Rutger van Willigen
+	 * @author Bert Spaan
+	 */
+	public enum PITIdentifyingMethod {
+		HGID, URI
 	}
 }

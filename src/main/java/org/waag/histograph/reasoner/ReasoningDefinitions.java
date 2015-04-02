@@ -50,7 +50,7 @@ public final class ReasoningDefinitions {
 		 * Get the String representation of a relationship.
 		 * @return The String representation of the relationship.
 		 */
-		public String getLabel () {
+		public String toString () {
 			return this.label;
 		}
 		
@@ -62,7 +62,7 @@ public final class ReasoningDefinitions {
 		public static RelationType fromLabel(String label) {
 			if (label != null) {
 				for (RelationType b : RelationType.values()) {
-					if (label.equals(b.getLabel())) {
+					if (label.equals(b.toString())) {
 						return b;
 					}
 				}
@@ -77,7 +77,7 @@ public final class ReasoningDefinitions {
 		 */
 		public static RelationType fromRelationshipType(RelationshipType type) {
 			for (RelationType r : RelationType.values()) {
-				if (r.toString().equals(type.name())) return r;
+				if (r.name().equals(type.name())) return r;
 			}
 			return null;
 		}
@@ -86,23 +86,23 @@ public final class ReasoningDefinitions {
 	/**
 	 * Contains the String representations of all primary relations defined at http://histograph.io/concepts/.
 	 */
-	public final static String[] PRIMARY_RELATIONS = {		RelationType.SAMEHGCONCEPT.getLabel(),
-															RelationType.ABSORBEDBY.getLabel(),
-															RelationType.ISUSEDFOR.getLabel(),
-															RelationType.WITHIN.getLabel()
+	public final static String[] PRIMARY_RELATIONS = {		RelationType.SAMEHGCONCEPT.toString(),
+															RelationType.ABSORBEDBY.toString(),
+															RelationType.ISUSEDFOR.toString(),
+															RelationType.WITHIN.toString()
 													};
 	
 	/**
 	 * Contains all transitive relations, i.e. (a) --[rel]--) (b) --[rel]--) (c) IMPL (a) --[rel]--) (c)
 	 */
-	public final static String[] TRANSITIVE_RELATIONS = {	RelationType.WITHIN.getLabel()
+	public final static String[] TRANSITIVE_RELATIONS = {	RelationType.WITHIN.toString()
 													};
 	
 	/**
 	 * Contains all atomic inferences as defined in http://histograph.github.io/
 	 */
 	private final static class AtomicInferences {
-		private final static String[] ATOMIC_INF_SAMEAS = {		RelationType.SAMEHGCONCEPT.getLabel()
+		private final static String[] ATOMIC_INF_SAMEAS = {		RelationType.SAMEHGCONCEPT.toString()
 													};
 	}
 	
