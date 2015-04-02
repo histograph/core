@@ -106,13 +106,34 @@ public class PGThread implements Runnable {
 				throw new IOException("Unexpected type received with ADD action: " + task.getType());
 			}
 			break;
+		case HistographTokens.Actions.DELETE:
+			if (task.getType().equals(HistographTokens.Types.RELATION)) {
+				parseDeletedRelation(task);
+			}
+			break;
 		default:
 			throw new IOException("Unexpected action received: " + task.getAction());
 		}
 	}
 	
+	private void parseDeletedRelation(Task task) throws IOException {
+		Map<String, String> params = task.getParams();
+
+		String from = params.get(HistographTokens.RelationTokens.FROM);
+		String fromIdMethod = params.get(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD);
+		String to = params.get(HistographTokens.RelationTokens.TO);
+		String toIdMethod = params.get(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD);
+		String label = params.get(HistographTokens.RelationTokens.LABEL);
+		String source = params.get(HistographTokens.General.SOURCE);
+		
+		try {
+			PGMethods.deleteFromTable(pg, TABLE_NAME, "rel_from", from, "from_id_method", fromIdMethod, "rel_to", to, "to_id_method", toIdMethod, "rel_label", label, "rel_source", source);
+		} catch (SQLException e) {
+			throw new IOException("Unexpected response from PG:", e);
+		}
+	}
+	
 	private void parseAddedPIT(Task task) throws IOException {
-		namePrint("Parsing added PIT...");
 		Map<String, String> params = task.getParams();
 		
 		String hgid = params.get(HistographTokens.General.HGID);
@@ -166,7 +187,6 @@ public class PGThread implements Runnable {
 		data.put(HistographTokens.RelationTokens.LABEL, relParams.get("rel_label"));
 		
 		graphMessage.put(HistographTokens.General.DATA, data);
-		System.out.println(graphMessage.toString());
 		
 		jedis.rpush(config.REDIS_GRAPH_QUEUE, graphMessage.toString());
 	}

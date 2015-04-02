@@ -35,9 +35,10 @@ public class GraphMethods {
 	 * @param db The Neo4j graph object 
 	 * @param params A map containing all parameters to be added to the node. Commonly created by 
 	 * the {@link org.waag.histograph.util.InputReader} class, returned with {@link org.waag.histograph.queue.Task#getParams()}.
+	 * @return The newly created Node.
 	 * @throws ConstraintViolationException Thrown if a node with the same hgid was already present.
 	 */
-	public static void addNode(GraphDatabaseService db, Map<String, String> params) throws ConstraintViolationException {		
+	public static Node addNode(GraphDatabaseService db, Map<String, String> params) throws ConstraintViolationException {		
 		// Node lookup is omitted due to uniqueness constraint
 		try (Transaction tx = db.beginTx()) {
 			Node newPIT = db.createNode();
@@ -51,6 +52,7 @@ public class GraphMethods {
 			}
 			
 			tx.success();
+			return newPIT;
 		}
 	}
 	
@@ -80,6 +82,20 @@ public class GraphMethods {
 			}
 			
 			tx.success();
+		}
+	}
+	
+	// TODO Test properly! Write Javadocs!
+	public static String getNodePropertyByMethod(GraphDatabaseService db, PITIdentifyingMethod method, Node node) throws IOException {
+		try (Transaction tx = db.beginTx()) {
+			switch (method) {
+			case HGID:
+				return node.getProperty(HistographTokens.General.HGID).toString();
+			case URI:
+				return node.getProperty(HistographTokens.PITTokens.URI).toString();
+			default:
+				throw new IOException("Failed to fetch node property.");
+			}
 		}
 	}
 	
@@ -443,6 +459,7 @@ public class GraphMethods {
 	 * @throws IOException Thrown if either an unexpected method is supplied, or if multiple nodes are
 	 * found <b>when searching by hgid</b>. The latter should not happen due to the uniqueness constraint.
 	 */
+	// TODO Test properly!
 	public static Relationship[] getRelations(GraphDatabaseService db, String fromNodeHgidOrUri, PITIdentifyingMethod fromIdMethod, String toNodeHgidOrUri, PITIdentifyingMethod toIdMethod, RelationshipType type, String source) throws IOException {
 		ArrayList<Relationship> list = new ArrayList<Relationship>();
 		
@@ -476,6 +493,7 @@ public class GraphMethods {
 	 * @throws IOException Thrown if either an unexpected method is supplied, or if multiple nodes are
 	 * found <b>when searching by hgid</b>. The latter should not happen due to the uniqueness constraint.
 	 */
+	// TODO Test properly!
 	public static boolean relationsExist(GraphDatabaseService db, String fromNodeHgidOrUri, PITIdentifyingMethod fromIdMethod, String toNodeHgidOrUri, PITIdentifyingMethod toIdMethod, RelationshipType type, String source) throws IOException {
 		return (getRelations(db, fromNodeHgidOrUri, fromIdMethod, toNodeHgidOrUri, toIdMethod, type, source) != null);
 	}
@@ -493,6 +511,7 @@ public class GraphMethods {
 	 * @throws IOException Thrown if either an unexpected method is supplied, or if multiple nodes are
 	 * found <b>when searching by hgid</b>. The latter should not happen due to the uniqueness constraint.
 	 */
+	// TODO Test properly!
 	public static boolean relationsAbsent(GraphDatabaseService db, String fromNodeHgidOrUri, PITIdentifyingMethod fromIdMethod, String toNodeHgidOrUri, PITIdentifyingMethod toIdMethod, RelationshipType type, String source) throws IOException {
 		return (getRelations(db, fromNodeHgidOrUri, fromIdMethod, toNodeHgidOrUri, toIdMethod, type, source) == null);
 	}

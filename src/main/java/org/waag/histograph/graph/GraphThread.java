@@ -5,13 +5,18 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
 import org.neo4j.graphdb.ConstraintViolationException;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.queue.RedisInit;
 import org.waag.histograph.queue.Task;
 import org.waag.histograph.reasoner.AtomicInferencer;
@@ -102,8 +107,16 @@ public class GraphThread implements Runnable {
 				// This message should be forwarded to the PostgreSQL rejected relations list.
 				passRejectedRelationsToPG(n.getRelationParams());
 			} catch (AddedPITNotification n) {
-				// After successfully adding a PIT, the added PIT is caught.
+				// After successfully adding a PIT, the added PIT notification is caught.
 				// This should be forwarded to the PSQL rejected relations list to try rejected relations again.
+				if (n.hasURI()) {
+					try {
+						// If the added node has a URI, then possibly extra relations can be made
+						checkForAndAddUriRelations(n);
+					} catch (IOException e) {
+						writeToFile("graphErrors.txt", "Error: ", e.getMessage());
+					}
+				}
 				passAddedNodeToPG(payload);
 			} catch (IOException e) {
 				writeToFile("graphErrors.txt", "Error: ", e.getMessage());
@@ -117,6 +130,95 @@ public class GraphThread implements Runnable {
 					int tasksLeft = jedis.llen(redis_graph_queue).intValue();
 					namePrint("Processed " + tasksDone + " tasks -- " + tasksLeft + " left in queue.");
 				}
+			}
+		}
+	}
+	
+	private void checkForAndAddUriRelations (AddedPITNotification n) throws IOException {
+		// Called if a node is successfully added with a URI value.
+		// It may be that existing relations, based on URI, should be added for this node as well.
+		String uri = n.getURI();
+		Node addedNode = n.getNode();
+		if (uri == null) throw new IOException("CheckForURIs called although no URI is present in the notification.");
+		
+		Node[] nodesWithURI = GraphMethods.getNodesByUri(db, uri);
+		if (nodesWithURI == null) throw new IOException("No nodes with URI found although it should have been added moments ago.");
+		
+		// No need to check if only one node is found with this URI
+		if (nodesWithURI.length == 1) return;
+		
+		// All from node2's perspective in the situation (node1) --INCOMING--> (node2) --OUTGOING--> (node3)
+		
+		ArrayList<Map<String, String>> listOfNewRelations = new ArrayList<Map<String, String>>();
+		
+		try (Transaction tx = db.beginTx()) {
+			for (Node node2 : nodesWithURI) {
+				if (node2.equals(addedNode)) continue;
+				Iterator<Relationship> i;
+				
+				i = node2.getRelationships(Direction.OUTGOING).iterator();
+				while (i.hasNext()) {
+					Relationship rel = i.next();
+					if (rel.getProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD).equals(PITIdentifyingMethod.URI.toString())) {
+						PITIdentifyingMethod toIdMethod = PITIdentifyingMethod.valueOf(rel.getProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD).toString());
+						
+						Node otherNode = rel.getOtherNode(node2);
+						String otherNodeHgidOrUri = GraphMethods.getNodePropertyByMethod(db, toIdMethod, otherNode);
+						
+						Node[] nodes3 = GraphMethods.getNodesByIdMethod(db, toIdMethod, otherNodeHgidOrUri);
+						if (nodes3 != null) {
+							for (Node node3 : nodes3) {
+								Map<String, String> relParams = new HashMap<String, String>();
+								
+								relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
+								relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
+								relParams.put(HistographTokens.RelationTokens.FROM, uri);
+								relParams.put(HistographTokens.RelationTokens.TO, GraphMethods.getNodePropertyByMethod(db, toIdMethod, node3));
+
+								relParams.put(HistographTokens.RelationTokens.LABEL, RelationType.fromRelationshipType(rel.getType()).toString());
+								relParams.put(HistographTokens.General.SOURCE, rel.getProperty(HistographTokens.General.SOURCE).toString());
+								
+								listOfNewRelations.add(relParams);
+							}
+						}
+					}
+				}
+				
+				i = node2.getRelationships(Direction.INCOMING).iterator();
+				while (i.hasNext()) {
+					Relationship rel = i.next();
+					if (rel.getProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD).equals(PITIdentifyingMethod.URI.toString())) {
+						PITIdentifyingMethod fromIdMethod = PITIdentifyingMethod.valueOf(rel.getProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD).toString());
+						
+						Node otherNode = rel.getOtherNode(node2);
+						String otherNodeHgidOrUri = GraphMethods.getNodePropertyByMethod(db, fromIdMethod, otherNode);
+						
+						Node[] nodes1 = GraphMethods.getNodesByIdMethod(db, fromIdMethod, otherNodeHgidOrUri);
+						if (nodes1 != null) {
+							for (Node node1 : nodes1) {	
+								Map<String, String> relParams = new HashMap<String, String>();
+								
+								relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
+								relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
+								relParams.put(HistographTokens.RelationTokens.TO, uri);
+								relParams.put(HistographTokens.RelationTokens.FROM, GraphMethods.getNodePropertyByMethod(db, fromIdMethod, node1));
+
+								relParams.put(HistographTokens.RelationTokens.LABEL, RelationType.fromRelationshipType(rel.getType()).toString());
+								relParams.put(HistographTokens.General.SOURCE, rel.getProperty(HistographTokens.General.SOURCE).toString());
+								
+								listOfNewRelations.add(relParams);
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		for (Map<String, String> relParams : listOfNewRelations) {
+			try {
+				GraphMethods.addRelation(db, relParams);
+			} catch (RejectedRelationNotification e) {
+				throw new IOException("Relation rejected although the nodes should have been found...!");
 			}
 		}
 	}
@@ -163,9 +265,13 @@ public class GraphThread implements Runnable {
 		switch (task.getAction()) {
 		case HistographTokens.Actions.ADD:
 			try {
-				GraphMethods.addNode(db, params);
+				Node node = GraphMethods.addNode(db, params);
 				// Throw AddedPITNotification if adding node succeeded
-				throw new AddedPITNotification();
+				if (params.containsKey(HistographTokens.PITTokens.URI)) {
+					throw new AddedPITNotification(node, params.get(HistographTokens.PITTokens.URI));
+				} else {
+					throw new AddedPITNotification(node);
+				}
 			} catch (ConstraintViolationException e) {
 				// Do nothing if adding node failed
 			}
@@ -178,7 +284,7 @@ public class GraphThread implements Runnable {
 			if (removedRelationMaps != null) {
 				Map<String, String>[] filteredRelationMaps = filterRemovedRelationMaps(removedRelationMaps, hgid);
 				// Throw RejectedRelationNotification only if no other relations with the same parameters are found
-				if (filteredRelationMaps != null) throw new RejectedRelationNotification(removedRelationMaps);
+				if (filteredRelationMaps != null) throw new RejectedRelationNotification(filteredRelationMaps);
 			}
 			break;
 		default:

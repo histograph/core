@@ -84,12 +84,8 @@ public class AtomicInferencer {
 		}
 		
 		String[] atomicLabels = ReasoningDefinitions.getAtomicRelationsFromLabel(label);
-		if (atomicLabels == null) {
-			System.out.println("No atomic relations associated with label " + label);
-			return;
-		} else {
-			removeInferredAtomicRelations(db, params, atomicLabels);
-		}
+		if (atomicLabels == null) return;
+		removeInferredAtomicRelations(db, params, atomicLabels);
 	}
 	
 	private static void removeInferredAtomicRelations(GraphDatabaseService db, Map<String, String> params, String[] labels) throws IOException {
