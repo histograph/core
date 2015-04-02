@@ -81,7 +81,7 @@ JSON Relation object:
 		"data": {
 			"from": [integer | String], (internal ID or hgID)
 			"to": [integer | String], (internal ID or hgID)
-			"type": String
+			"label": String
 		}
 	}
 ```
@@ -98,7 +98,7 @@ rpush "histograph-queue" "{'action': 'add', 'type': 'pit', 'source': 'graafje', 
 Add relations:
 
 ```
-rpush "histograph-queue" "{'action': 'add', 'type': 'relation', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'type': 'hg:absorbedBy' } }"
+rpush "histograph-queue" "{'action': 'add', 'type': 'relation', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'label': 'hg:absorbedBy' } }"
 ```
 
 Delete PITs:
@@ -110,7 +110,7 @@ rpush "histograph-queue" "{'action': 'delete', 'type': 'pit', 'source': 'graafje
 Delete relations:
 
 ```
-rpush "histograph-queue" "{'action': 'delete', 'type': 'relation', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'type': 'knows' } }"
+rpush "histograph-queue" "{'action': 'delete', 'type': 'relation', 'source': 'graafje', 'data': { 'from': 123, 'to': 321, 'label': 'hg:absorbedBy' } }"
 ```
 
 Update PITs:
