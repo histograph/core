@@ -18,6 +18,7 @@ import org.neo4j.graphdb.Transaction;
 import org.waag.histograph.reasoner.ReasoningDefinitions;
 import org.waag.histograph.reasoner.ReasoningDefinitions.RelationType;
 import org.waag.histograph.util.HistographTokens;
+import org.waag.histograph.util.HistographTokens.PITIdentifyingMethod;
 
 /**
  * Class containing several static methods for basic Neo4j graph operations. All methods
@@ -101,12 +102,61 @@ public class GraphMethods {
 			Iterable<Relationship> relationships = node.getRelationships();
 			for (Relationship rel : relationships) {
 				Map<String, String> relParams = new HashMap<String, String>();
+
+				PITIdentifyingMethod fromIdMethod = PITIdentifyingMethod.valueOf(rel.getProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD).toString());
+				PITIdentifyingMethod toIdMethod = PITIdentifyingMethod.valueOf(rel.getProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD).toString());
 				
-				relParams.put(HistographTokens.RelationTokens.FROM, rel.getStartNode().getProperty(HistographTokens.General.HGID).toString());
-				relParams.put(HistographTokens.RelationTokens.TO, rel.getEndNode().getProperty(HistographTokens.General.HGID).toString());
-				relParams.put(HistographTokens.RelationTokens.LABEL, RelationType.fromRelationshipType(rel.getType()).getLabel());
+				switch (fromIdMethod) {
+				case HGID:
+					String fromHgid = rel.getStartNode().getProperty(HistographTokens.General.HGID).toString();
+					relParams.put(HistographTokens.RelationTokens.FROM, fromHgid);
+					if (hgid.equals(fromHgid)) {
+						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE, fromHgid);
+						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD, PITIdentifyingMethod.HGID.toString());
+					}
+					break;
+				case URI:
+					String fromURI = rel.getStartNode().getProperty(HistographTokens.PITTokens.URI).toString();
+					String nodeURI = node.getProperty(HistographTokens.PITTokens.URI).toString();
+					relParams.put(HistographTokens.RelationTokens.FROM, fromURI);
+					if (nodeURI.equals(fromURI)) {
+						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE, fromURI);
+						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD, PITIdentifyingMethod.URI.toString());
+					}
+					break;
+				default:
+					throw new IOException("Unexpected PIT identifying method found while deleting relationship associated with PIT");
+				}
+				
+				switch (toIdMethod) {
+				case HGID:
+					String toHgid = rel.getEndNode().getProperty(HistographTokens.General.HGID).toString();
+					relParams.put(HistographTokens.RelationTokens.TO, toHgid);
+					if (hgid.equals(toHgid)) {
+						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE, toHgid);
+						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD, PITIdentifyingMethod.HGID.toString());
+					}
+					break;
+				case URI:
+					String toURI = rel.getEndNode().getProperty(HistographTokens.PITTokens.URI).toString();
+					String nodeURI = node.getProperty(HistographTokens.PITTokens.URI).toString();
+					relParams.put(HistographTokens.RelationTokens.TO, toURI);
+					if (nodeURI.equals(toURI)) {
+						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE, toURI);
+						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD, PITIdentifyingMethod.URI.toString());
+					}
+					break;
+				default:
+					throw new IOException("Unexpected PIT identifying method found while deleting relationship associated with PIT");
+				}
+				
+				relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
+				relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
+				System.out.println(rel.getType());
+				System.out.println(RelationType.fromRelationshipType(rel.getType()));
+				relParams.put(HistographTokens.RelationTokens.LABEL, RelationType.fromRelationshipType(rel.getType()).toString());
 				relParams.put(HistographTokens.General.SOURCE, rel.getProperty(HistographTokens.General.SOURCE).toString());
-				
+								
 				relParamList.add(relParams);
 				
 				rel.delete();
@@ -128,25 +178,27 @@ public class GraphMethods {
 	}
 	
 	/**
-	 * Looks up all nodes given a URI or hgid parameter. First, nodes are looked up by URI -- if no nodes are found, then
-	 * a node is looked up by the hgid.
+	 * Looks up all nodes given a URI or hgid parameter and the corresponding parameter type.
 	 * @param db The Neo4j graph object
-	 * @param hgidOrURI A parameter representing either a URI or a hgid.
+	 * @param method The method in which is specified whether the hgidOrURI parameter is a URI or an hgid.
+	 * @param hgidOrURI A string representing either a URI or an hgid.
 	 * @return An array of the nodes found. If no nodes are found, null is returned.
-	 * @throws IOException Thrown if multiple nodes are found <b>when searching by hgid</b>. This should not happen due to the uniqueness constraint.
+	 * @throws IOException Thrown if either an unexpected method is supplied, or if multiple nodes are
+	 * found <b>when searching by hgid</b>. The latter should not happen due to the uniqueness constraint.
 	 */
-	public static Node[] getNodesFromParams(GraphDatabaseService db, String hgidOrURI) throws IOException {
-		// Search on URI first, return all found nodes in array
-		Node[] nodes = GraphMethods.getNodesByURI(db, hgidOrURI);
-		
-		// If URI's are not found (i.e. null is returned), search for hgid
-		if (nodes == null) {
-			nodes = new Node[1];
+	public static Node[] getNodesByIdMethod(GraphDatabaseService db, PITIdentifyingMethod method, String hgidOrURI) throws IOException {
+		if (method == null) throw new IOException("Unexpected PIT identifying method received: null");
+		switch (method) {
+		case HGID:
+			Node[] nodes = new Node[1];
 			nodes[0] = GraphMethods.getNodeByHgid(db, hgidOrURI);
 			if (nodes[0] == null) return null;
+			return nodes;
+		case URI:
+			return GraphMethods.getNodesByUri(db, hgidOrURI);
+		default:
+			throw new IOException("Unexpected PIT identifying method received: " + method);
 		}
-
-		return nodes;
 	}
 	
 	/**
@@ -157,16 +209,19 @@ public class GraphMethods {
 	 * @param params A map containing the parameters for the relationships that are to be created. Typically created by
 	 * the {@link org.waag.histograph.util.InputReader} class, returned with {@link org.waag.histograph.queue.Task#getParams()}.
 	 * @return An array containing all newly created Relationships, or null if no relations were created 
-	 * @throws IOException Thrown if no nodes are found based on the given hgid's or URI's.
-	 * @throws RejectedEdgeException Thrown if a hgid or URI is not present in the graph. Can be caught to 
+	 * @throws IOException Thrown if multiple nodes were found when searching on HGID or if the params contain an unexpected PITIdentifyingMethod.
+	 * @throws RejectedEdgeException Thrown if a hgid or URI is not present in the graph. Can be caught to add the relation to the rejected relations DB.
 	 */
 	public static Relationship[] addRelation(GraphDatabaseService db, Map<String, String> params) throws IOException, RejectedEdgeException {
-		// Search on URI first, return all found nodes in array
-		Node[] fromNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.FROM));
-		Node[] toNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.TO));
+		PITIdentifyingMethod fromIdMethod = PITIdentifyingMethod.valueOf(params.get(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD));
+		PITIdentifyingMethod toIdMethod = PITIdentifyingMethod.valueOf(params.get(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD));
 		
-		if (fromNodes == null) throw new RejectedEdgeException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.FROM) + "' found in graph.", params.get(HistographTokens.RelationTokens.FROM), params);
-		if (toNodes == null) throw new RejectedEdgeException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.TO) + "' found in graph.", params.get(HistographTokens.RelationTokens.TO), params);
+		// Search on URI first, return all found nodes in array
+		Node[] fromNodes = getNodesByIdMethod(db, fromIdMethod, params.get(HistographTokens.RelationTokens.FROM));
+		Node[] toNodes = getNodesByIdMethod(db, toIdMethod, params.get(HistographTokens.RelationTokens.TO));
+		
+		if (fromNodes == null) throw new RejectedEdgeException("No nodes with " + fromIdMethod + params.get(HistographTokens.RelationTokens.FROM) + "' found in graph.", params.get(HistographTokens.RelationTokens.FROM), params);
+		if (toNodes == null) throw new RejectedEdgeException("No nodes with " + toIdMethod + params.get(HistographTokens.RelationTokens.TO) + "' found in graph.", params.get(HistographTokens.RelationTokens.TO), params);
 		
 		RelationshipType relType = RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL));
 		String source = params.get(HistographTokens.General.SOURCE);
@@ -175,12 +230,14 @@ public class GraphMethods {
 		for (Node fromNode : fromNodes) {
 			for (Node toNode : toNodes) {
 				// Verify the absence of the new relation, skip to next if already present
-				if (!GraphMethods.relationAbsent(db, fromNode, toNode, relType, source)) continue;
+				if (!GraphMethods.relationAbsent(db, fromNode, fromIdMethod, toNode, toIdMethod, relType, source)) continue;
 
 				// Create relation between nodes
 				try (Transaction tx = db.beginTx()) {
 					Relationship rel = fromNode.createRelationshipTo(toNode, relType);
 					rel.setProperty(HistographTokens.General.SOURCE, params.get(HistographTokens.General.SOURCE));
+					rel.setProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
+					rel.setProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
 					relArray.add(rel);
 					tx.success();
 				}
@@ -216,9 +273,12 @@ public class GraphMethods {
 	 * @throws IOException Thrown if no nodes are present associated with the provided hgid or URI.
 	 */
 	public static void deleteRelation(GraphDatabaseService db, Map<String, String> params) throws IOException {
+		PITIdentifyingMethod fromIdMethod = PITIdentifyingMethod.valueOf(params.get(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD));
+		PITIdentifyingMethod toIdMethod = PITIdentifyingMethod.valueOf(params.get(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD));
+		
 		// Search on URI first, return all found nodes in array
-		Node[] fromNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.FROM));
-		Node[] toNodes = getNodesFromParams(db, params.get(HistographTokens.RelationTokens.TO));
+		Node[] fromNodes = getNodesByIdMethod(db, fromIdMethod, params.get(HistographTokens.RelationTokens.FROM));
+		Node[] toNodes = getNodesByIdMethod(db, toIdMethod, params.get(HistographTokens.RelationTokens.TO));
 		
 		if (fromNodes == null) throw new IOException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.FROM) + "' found in graph.");
 		if (toNodes == null) throw new IOException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.TO) + "' found in graph.");
@@ -232,7 +292,7 @@ public class GraphMethods {
 		for (Node fromNode : fromNodes) {
 			for (Node toNode : toNodes) {
 				// Verify the existence of the relation
-				Relationship r = GraphMethods.getRelation(db, fromNode, toNode, relType, source);
+				Relationship r = GraphMethods.getRelation(db, fromNode, fromIdMethod, toNode, toIdMethod, relType, source);
 				if (r == null) continue;
 				
 				// Remove relation between nodes
@@ -250,7 +310,7 @@ public class GraphMethods {
 			throw new IOException("No relationships '" + relationName + "' from source '" + source + "' found in graph.");
 		}
 	}
-	
+		
 	/**
 	 * Returns a node given a hgid, or null if no nodes with this hgid are found.
 	 * @param db The Neo4j graph object
@@ -259,14 +319,10 @@ public class GraphMethods {
 	 * @throws IOException Thrown if multiple nodes with the specified hgid are found. This should not happen due to the uniqueness constraint.
 	 */
 	public static Node getNodeByHgid(GraphDatabaseService db, String hgid) throws IOException {
-        try (Transaction ignored = db.beginTx()) {
-        	try (ResourceIterator<Node> i = db.findNodesByLabelAndProperty(ReasoningDefinitions.NodeType.PIT, HistographTokens.General.HGID, hgid).iterator()) {
-        		if (!i.hasNext()) return null;
-        		Node out = i.next();
-        		if (i.hasNext()) throw new IOException ("Multiple nodes with " + HistographTokens.General.HGID + " '" + hgid + "' found in graph.");
-        		return out;
-        	}
-        }
+        Node[] nodes = getNodesByProperty(db, HistographTokens.General.HGID, hgid);
+        if (nodes == null) return null;
+        if (nodes.length > 1) throw new IOException ("Multiple nodes with " + HistographTokens.General.HGID + " '" + hgid + "' found in graph.");
+        return nodes[0];
 	}	
 	
 	/**
@@ -274,7 +330,7 @@ public class GraphMethods {
 	 * @param db The Neo4j graph object
 	 * @param hgid The hgid to search for.
 	 * @return A boolean value indicating if a node with the specified hgid exists in the graph.
-	 * @throws IOException Thrown if multiple nodes with the specified hgid exist.
+	 * @throws IOException Thrown if multiple nodes with the specified hgid exist. Should never happen due to uniqueness constraint.
 	 */
 	public static boolean nodeExistsByHgid(GraphDatabaseService db, String hgid) throws IOException {
 		return (getNodeByHgid(db, hgid) != null);
@@ -285,21 +341,52 @@ public class GraphMethods {
 	 * @param db The Neo4j graph object
 	 * @param hgid The hgid to search for.
 	 * @return A boolean value indicating if a node with the specified hgid is absent in the graph.
-	 * @throws IOException Thrown if multiple nodes with the specified hgid exist.
+	 * @throws IOException Thrown if multiple nodes with the specified hgid exist. Should never happen due to uniqueness constraint.
 	 */
 	public static boolean nodeAbsentByHgid(GraphDatabaseService db, String hgid) throws IOException {
 		return (getNodeByHgid(db, hgid) == null);
 	}
-	
+
 	/**
 	 * Find all nodes containing a specified URI.
 	 * @param db The Neo4j graph object
 	 * @param uri The URI to search for.
 	 * @return An array of nodes containing this URI, or null if no such nodes are present.
 	 */
-	public static Node[] getNodesByURI(GraphDatabaseService db, String uri) {
+	public static Node[] getNodesByUri(GraphDatabaseService db, String uri) {
+		return getNodesByProperty(db, HistographTokens.PITTokens.URI, uri);
+	}
+	
+	/**
+	 * Checks whether a node with a specified URI exists.
+	 * @param db The Neo4j graph object
+	 * @param uri The URI to search for.
+	 * @return A boolean value indicating if a node with the specified URI exists in the graph.
+	 */
+	public static boolean nodeExistsByUri(GraphDatabaseService db, String uri) {
+		return (getNodesByUri(db, uri) != null);
+	}
+	
+	/**
+	 * Checks whether a node with a specified URI does NOT exist in the graph.
+	 * @param db The Neo4j graph object
+	 * @param uri The URI to search for.
+	 * @return A boolean value indicating if a node with the specified URI is absent in the graph.
+	 */
+	public static boolean nodeAbsentByUri(GraphDatabaseService db, String uri) {
+		return (getNodesByUri(db, uri) == null);
+	}
+	
+	/**
+	 * Find all nodes containing a specified URI.
+	 * @param db The Neo4j graph object
+	 * @param property The property key to search on.
+	 * @param value The property value to search for.
+	 * @return An array of nodes containing this URI, or null if no such nodes are present.
+	 */
+	public static Node[] getNodesByProperty(GraphDatabaseService db, String property, String value) {
 		try (Transaction ignored = db.beginTx()) {
-			try (ResourceIterator<Node> i = db.findNodesByLabelAndProperty(ReasoningDefinitions.NodeType.PIT, HistographTokens.PITTokens.URI, uri).iterator()) {
+			try (ResourceIterator<Node> i = db.findNodesByLabelAndProperty(ReasoningDefinitions.NodeType.PIT, property, value).iterator()) {
 				if (!i.hasNext()) return null;
 				ArrayList<Node> list = new ArrayList<Node>();
 				while (i.hasNext()) {
@@ -316,15 +403,20 @@ public class GraphMethods {
 	 * Finds and returns a relationship based on two nodes, a relationship type and the source it is specified by.
 	 * @param db The Neo4j graph object
 	 * @param fromNode The start node object of the relationship
+ 	 * @param fromIdMethod The method in which is specified whether the fromNode parameter is a URI or an hgid.
 	 * @param toNode The end node object of the relationship
+	 * @param toIdMethod The method in which is specified whether the toNode parameter is a URI or an hgid.
 	 * @param type The relationship type of this relationship
 	 * @param source The source of the relationship
 	 * @return The relationship associated with the parameters, or null if this relationship does not exist.
 	 */
-	public static Relationship getRelation(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type, String source) {
+	public static Relationship getRelation(GraphDatabaseService db, Node fromNode, PITIdentifyingMethod fromIdMethod, Node toNode, PITIdentifyingMethod toIdMethod, RelationshipType type, String source) {
 		try (Transaction tx = db.beginTx()) {
 			for (Relationship r : fromNode.getRelationships(type, Direction.OUTGOING)) {
-				if (r.getEndNode().equals(toNode) && r.getProperty(HistographTokens.General.SOURCE).equals(source)) {
+				if (r.getEndNode().equals(toNode) 
+						&& r.getProperty(HistographTokens.General.SOURCE).equals(source)
+						&& (PITIdentifyingMethod.valueOf(r.getProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD).toString()) == fromIdMethod) 
+						&& (PITIdentifyingMethod.valueOf(r.getProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD).toString()) == toIdMethod)) {
 					return r;
 				}
 			}
@@ -336,25 +428,29 @@ public class GraphMethods {
 	 * Checks whether a relationship specified by a specific source exists in the graph.
 	 * @param db The Neo4j graph object
 	 * @param fromNode The start node object of the relationship
+	 * @param fromIdMethod The method in which is specified whether the fromNode parameter is a URI or an hgid.
 	 * @param toNode The end node object of the relationship
+	 * @param toIdMethod The method in which is specified whether the toNode parameter is a URI or an hgid.
 	 * @param type The relationship type of this relationship
 	 * @param source The source of the relationship
 	 * @return A boolean value indicating whether this relationship exists in the graph.
 	 */
-	public static boolean relationExists(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type, String source) {
-		return (getRelation(db, fromNode, toNode, type, source) != null);
+	public static boolean relationExists(GraphDatabaseService db, Node fromNode, PITIdentifyingMethod fromIdMethod, Node toNode, PITIdentifyingMethod toIdMethod, RelationshipType type, String source) {
+		return (getRelation(db, fromNode, fromIdMethod, toNode, toIdMethod, type, source) != null);
 	}
 	
 	/**
 	 * Checks whether a relationship specified by a specific source is absent in the graph.
 	 * @param db The Neo4j graph object
 	 * @param fromNode The start node object of the relationship
+	 * @param fromIdMethod The method in which is specified whether the fromNode parameter is a URI or an hgid.
 	 * @param toNode The end node object of the relationship
+	 * @param toIdMethod The method in which is specified whether the toNode parameter is a URI or an hgid.
 	 * @param type The relationship type of this relationship
 	 * @param source The source of the relationship
 	 * @return A boolean value indicating whether this relationship is absent in the graph.
 	 */
-	public static boolean relationAbsent(GraphDatabaseService db, Node fromNode, Node toNode, RelationshipType type, String source) {
-		return (getRelation(db, fromNode, toNode, type, source) == null);
+	public static boolean relationAbsent(GraphDatabaseService db, Node fromNode, PITIdentifyingMethod fromIdMethod, Node toNode, PITIdentifyingMethod toIdMethod, RelationshipType type, String source) {
+		return (getRelation(db, fromNode, fromIdMethod, toNode, toIdMethod, type, source) == null);
 	}
 }
