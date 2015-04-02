@@ -152,8 +152,6 @@ public class GraphMethods {
 				
 				relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
 				relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
-				System.out.println(rel.getType());
-				System.out.println(RelationType.fromRelationshipType(rel.getType()));
 				relParams.put(HistographTokens.RelationTokens.LABEL, RelationType.fromRelationshipType(rel.getType()).toString());
 				relParams.put(HistographTokens.General.SOURCE, rel.getProperty(HistographTokens.General.SOURCE).toString());
 								

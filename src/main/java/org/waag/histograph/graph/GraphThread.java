@@ -69,6 +69,7 @@ public class GraphThread implements Runnable {
 		namePrint("Ready to take messages.");
 		while (true) {
 			Task task = null;
+			JSONObject message = null;
 			
 			try {
 				messages = jedis.blpop(0, redis_graph_queue);
@@ -80,7 +81,7 @@ public class GraphThread implements Runnable {
 			}
 			
 			try {
-				JSONObject message = new JSONObject(payload);
+				message = new JSONObject(payload);
 				task = InputReader.parse(message);
 			} catch (IOException e) {
 				namePrint("Error: " + e.getMessage());
@@ -91,10 +92,9 @@ public class GraphThread implements Runnable {
 			try {
 				performTask(task);
 			} catch (RejectedEdgeException e) {
-				Map<String, String> rejectedRelationParams = e.getParams();
-				rejectedRelationParams.put("reason", "not_found");
-				rejectedRelationParams.put(HistographTokens.Types.PIT, e.getNodeHgidOrURI());
-				jedis.rpush(redis_pg_queue, new JSONObject(rejectedRelationParams).toString());				
+				passRejectedRelationToPG(message, e.getNodeHgidOrURI());
+			} catch (AddedPITException e) {
+				passAddedNodeToPG(message);
 			} catch (IOException e) {
 				writeToFile("graphErrors.txt", "Error: ", e.getMessage());
 			} catch (ConstraintViolationException e) {
@@ -111,7 +111,36 @@ public class GraphThread implements Runnable {
 		}
 	}
 	
-	private void performTask(Task task) throws IOException, RejectedEdgeException {
+	private void passRejectedRelationToPG (JSONObject message, String cause) {
+		message.put(HistographTokens.General.ACTION, HistographTokens.Actions.ADD_TO_REJECTED);
+		JSONObject data = message.getJSONObject(HistographTokens.General.DATA);
+		data.put(HistographTokens.RelationTokens.REJECTION_CAUSE, cause);
+		
+		jedis.rpush(redis_pg_queue, message.toString());	
+	}
+	
+	private void passAddedNodeToPG (JSONObject message) {		
+		jedis.rpush(redis_pg_queue, message.toString());
+	}
+	
+	private void passRemovedRelationToPG (Map<String, String> params, String cause) {
+		JSONObject message = new JSONObject();
+		JSONObject data = new JSONObject();
+		
+		data.put(HistographTokens.RelationTokens.FROM, params.get(HistographTokens.RelationTokens.FROM));
+		data.put(HistographTokens.RelationTokens.TO, params.get(HistographTokens.RelationTokens.TO));
+		data.put(HistographTokens.RelationTokens.LABEL, params.get(HistographTokens.RelationTokens.LABEL));
+		data.put(HistographTokens.RelationTokens.REJECTION_CAUSE, cause);
+		
+		message.put(HistographTokens.General.ACTION, HistographTokens.Actions.ADD_TO_REJECTED);
+		message.put(HistographTokens.General.TYPE, HistographTokens.Types.RELATION);
+		message.put(HistographTokens.General.SOURCE, params.get(HistographTokens.General.SOURCE));
+		message.put(HistographTokens.General.DATA, data);
+		
+		jedis.rpush(redis_pg_queue, message.toString());	
+	}
+	
+	private void performTask(Task task) throws IOException, AddedPITException, RejectedEdgeException {
 		switch (task.getType()) {
 		case HistographTokens.Types.PIT:
 			performPITAction(task);
@@ -124,23 +153,21 @@ public class GraphThread implements Runnable {
 		}
 	}
 	
-	private void performPITAction(Task task) throws IOException {
+	private void performPITAction(Task task) throws IOException, AddedPITException {
 		Map<String, String> params = task.getParams();
 		switch (task.getAction()) {
 		case HistographTokens.Actions.ADD:
 			GraphMethods.addNode(db, params);
-			break;
+			throw new AddedPITException();
 		case HistographTokens.Actions.UPDATE:
 			GraphMethods.updateNode(db, params);
 			break;
 		case HistographTokens.Actions.DELETE:
 			String hgid = params.get(HistographTokens.General.HGID);
-			Map<String, String>[] relMaps = GraphMethods.deleteNode(db, hgid);
-			if (relMaps != null) {
-				for (Map<String, String> map : relMaps) {
-					map.put("reason", "removed");
-					map.put(HistographTokens.Types.PIT, hgid);
-					jedis.rpush(redis_pg_queue, new JSONObject(map).toString());	
+			Map<String, String>[] removedRelationMaps = GraphMethods.deleteNode(db, hgid);
+			if (removedRelationMaps != null) {
+				for (Map<String, String> map : removedRelationMaps) {
+					passRemovedRelationToPG(map, hgid);
 				}
 			}
 			break;

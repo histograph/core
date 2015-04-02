@@ -9,6 +9,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.tooling.GlobalGraphOperations;
 import org.waag.histograph.graph.GraphMethods;
 import org.waag.histograph.util.HistographTokens;
+import org.waag.histograph.util.HistographTokens.PITIdentifyingMethod;
 
 /**
  * A class containing a method for inferring transitive relationships in a graph.
@@ -54,7 +55,9 @@ public class TransitiveInferencer {
 			Node n3 = r.getOtherNode(n2);
 			if (!n1.equals(n3)) {
 				RelationshipType type = r.getType();
-				if (!GraphMethods.relationExists(db, n1, n3, type, source)) {
+				PITIdentifyingMethod fromIdMethod = PITIdentifyingMethod.valueOf(r.getProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD).toString());
+				PITIdentifyingMethod toIdMethod = PITIdentifyingMethod.valueOf(r.getProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD).toString());				
+				if (!GraphMethods.relationExists(db, n1, fromIdMethod, n3, toIdMethod, type, source)) {
 					Relationship rel = n1.createRelationshipTo(n3, type);
 					rel.setProperty(HistographTokens.General.SOURCE, source);
 					inferred++;
@@ -66,7 +69,9 @@ public class TransitiveInferencer {
 			Node n3 = r.getOtherNode(n2);
 			if (!n1.equals(n3)) {
 				RelationshipType type = r.getType();
-				if (!GraphMethods.relationExists(db, n3, n1, type, source)) {
+				PITIdentifyingMethod fromIdMethod = PITIdentifyingMethod.valueOf(r.getProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD).toString());
+				PITIdentifyingMethod toIdMethod = PITIdentifyingMethod.valueOf(r.getProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD).toString());				
+				if (!GraphMethods.relationExists(db, n3, fromIdMethod, n1, toIdMethod, type, source)) {
 					Relationship rel = n3.createRelationshipTo(n1, type);
 					rel.setProperty(HistographTokens.General.SOURCE, source);
 					inferred++;

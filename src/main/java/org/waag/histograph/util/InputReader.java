@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.waag.histograph.queue.Task;
+import org.waag.histograph.util.HistographTokens.PITIdentifyingMethod;
 
 /**
  * A class that parses JSON tasks typically found in the Redis queue and transforms them to {@link Task} objects.
@@ -33,6 +34,8 @@ public class InputReader {
 				return parseDelete(obj, source);
 			case HistographTokens.Actions.UPDATE:
 				return parseUpdate(obj, source);
+			case HistographTokens.Actions.ADD_TO_REJECTED:
+				return parseAddRejected(obj, source);
 			default:
 				throw new IOException("Invalid action received: " + obj.get(HistographTokens.General.ACTION).toString());
 			}
@@ -107,6 +110,34 @@ public class InputReader {
 		}
 	}
 	
+	private static Task parseAddRejected(JSONObject obj, String source) throws IOException {
+		JSONObject data;
+		try {
+			data = obj.getJSONObject(HistographTokens.General.DATA);
+		} catch (JSONException e) {
+			throw new IOException("No data in JSON input.");
+		}
+		
+		String type = null;
+		try {
+			type = obj.get(HistographTokens.General.TYPE).toString();
+		} catch (JSONException e) {
+			throw new IOException("No type in JSON input.");
+		}
+		
+		switch (type) {
+		case HistographTokens.Types.RELATION:
+			try {
+				return addRejectedRelation(data, source);
+			} catch (JSONException e) {
+				throw new IOException("No rejection cause in JSON input.");
+			}
+		default:
+			throw new IOException("Invalid rejected type received: " + obj.get(HistographTokens.General.TYPE).toString());
+		}
+		
+	}
+	
 	private static Task addPIT(JSONObject data, String source) throws IOException {		
 		Map<String, String> params = getPITParams(data, source);		
 		return new Task(HistographTokens.Types.PIT, HistographTokens.Actions.ADD, params);
@@ -140,6 +171,11 @@ public class InputReader {
 	private static Task deleteRelation(JSONObject data, String source) throws IOException {
 		Map<String, String> params = getRelationParams(data, source);
 		return new Task(HistographTokens.Types.RELATION, HistographTokens.Actions.DELETE, params);
+	}
+	
+	private static Task addRejectedRelation(JSONObject data, String source) throws IOException {
+		Map<String, String> params = getRelationParams(data, source);
+		return new Task(HistographTokens.Types.RELATION, HistographTokens.Actions.ADD_TO_REJECTED, params);
 	}
 	
 	private static Map<String, String> getPITParams(JSONObject data, String source) throws IOException {
@@ -194,14 +230,39 @@ public class InputReader {
 		Map<String, String> map = new HashMap<String, String>();
 		
 		try {
-			map.put(HistographTokens.RelationTokens.FROM, parseHGid(source, data.get(HistographTokens.RelationTokens.FROM).toString()));
-			map.put(HistographTokens.RelationTokens.TO, parseHGid(source, data.get(HistographTokens.RelationTokens.TO).toString()));
+			String from = data.get(HistographTokens.RelationTokens.FROM).toString();
+			PITIdentifyingMethod fromIdMethod = getRelationIdentifierType(from);
+
+			String to = data.get(HistographTokens.RelationTokens.TO).toString();
+			PITIdentifyingMethod toIdMethod = getRelationIdentifierType(to);
+			
+			map.put(HistographTokens.RelationTokens.FROM, from);
+			map.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
+			map.put(HistographTokens.RelationTokens.TO, to);
+			map.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
 			map.put(HistographTokens.RelationTokens.LABEL, data.get(HistographTokens.RelationTokens.LABEL).toString());
-			map.put(HistographTokens.General.SOURCE, source);			
+			map.put(HistographTokens.General.SOURCE, source);
+			
+			if (data.has(HistographTokens.RelationTokens.REJECTION_CAUSE)) {
+				map.put(HistographTokens.RelationTokens.REJECTION_CAUSE, data.get(HistographTokens.RelationTokens.REJECTION_CAUSE).toString());
+			}
+			
 			return map;
 		} catch (JSONException e) {
 			throw new IOException("Relation token(s) missing (" + HistographTokens.RelationTokens.FROM + "/" + HistographTokens.RelationTokens.TO + "/" + HistographTokens.RelationTokens.LABEL + ").");
 		}
+	}
+	
+	private static PITIdentifyingMethod getRelationIdentifierType (String identifier) {
+		if (isURI(identifier)) {
+			return PITIdentifyingMethod.URI;
+		} else {
+			return PITIdentifyingMethod.HGID;
+		}
+	}
+	
+	private static boolean isURI (String string) {
+		return (string.startsWith("http://") || string.startsWith("https://"));
 	}
 	
 	private static String parseHGid (String source, String id) {

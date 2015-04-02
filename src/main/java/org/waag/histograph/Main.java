@@ -187,7 +187,7 @@ public class Main {
 						throw new IOException("Invalid target received: " + obj.get(HistographTokens.General.ACTION).toString());
 					}
 				} catch (JSONException e) {
-					// If the TARGET key is not found (JSONException thrown), send task to both
+					// If the TARGET key is not found (JSONException thrown), send task to both Graph and ES
 					jedis.rpush(config.REDIS_GRAPH_QUEUE, obj.toString());
 					jedis.rpush(config.REDIS_ES_QUEUE, obj.toString());
 				}

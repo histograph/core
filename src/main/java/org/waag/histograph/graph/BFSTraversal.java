@@ -142,7 +142,7 @@ public class BFSTraversal {
     		    		// Add all outgoing relationships to each PIT
     		    		for (Relationship r : relSet) {
     		    			if (r.getStartNode().equals(node)) {
-    		    				String type = RelationType.fromRelationshipType(r.getType()).getLabel();
+    		    				String type = RelationType.fromRelationshipType(r.getType()).toString();
     		    				if (pitRelations.has(type)) {
     		    					pitRelations.getJSONArray(type).put(r.getEndNode().getProperty(HistographTokens.General.HGID));
     		    				} else {
