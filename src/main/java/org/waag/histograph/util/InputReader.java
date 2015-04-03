@@ -150,7 +150,7 @@ public class InputReader {
 	
 	private static Task deletePIT(JSONObject data, String source) throws IOException {
 		try {
-			String hgid = parseHGid(source, data.get(HistographTokens.PITTokens.ID).toString());
+			String hgid = parseHgid(source, data.get(HistographTokens.PITTokens.ID).toString());
 			Map<String, String> params = new HashMap<String, String>();
 			params.put(HistographTokens.General.HGID, hgid);
 			return new Task(HistographTokens.Types.PIT, HistographTokens.Actions.DELETE, params);
@@ -183,7 +183,7 @@ public class InputReader {
 		
 		try {
 			map.put(HistographTokens.PITTokens.NAME, data.get(HistographTokens.PITTokens.NAME).toString());
-			map.put(HistographTokens.General.HGID, parseHGid(source, data.get(HistographTokens.PITTokens.ID).toString()));
+			map.put(HistographTokens.General.HGID, parseHgid(source, data.get(HistographTokens.PITTokens.ID).toString()));
 			map.put(HistographTokens.PITTokens.TYPE, data.get(HistographTokens.PITTokens.TYPE).toString());
 			map.put(HistographTokens.General.SOURCE, source);
 			
@@ -230,8 +230,8 @@ public class InputReader {
 		Map<String, String> map = new HashMap<String, String>();
 		
 		try {
-			String from = data.get(HistographTokens.RelationTokens.FROM).toString();
-			String to = data.get(HistographTokens.RelationTokens.TO).toString();
+			String from = parseHgid(source, data.get(HistographTokens.RelationTokens.FROM).toString());
+			String to = parseHgid(source, data.get(HistographTokens.RelationTokens.TO).toString());
 
 			PITIdentifyingMethod fromIdMethod = getPITIdentifierMethod(from);
 			PITIdentifyingMethod toIdMethod = getPITIdentifierMethod(to);
@@ -271,7 +271,7 @@ public class InputReader {
 		return (string.startsWith("http://") || string.startsWith("https://"));
 	}
 	
-	private static String parseHGid (String source, String id) {
+	private static String parseHgid (String source, String id) {
 		// We assume URI's and hgids always contain at least one forward slash because of the hgid structure, e.g. 'geonames/1283416'
 		CharSequence delimiter = "/";
 		if (!id.contains(delimiter)) {
