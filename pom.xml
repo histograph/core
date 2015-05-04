@@ -8,34 +8,35 @@
   <description>Histograph Core - Graph management, Elasticsearch and inferencing)</description>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <versions.neo4j>2.1.7</versions.neo4j>
   </properties>
   <dependencies>
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j</artifactId>
-      <version>2.1.7</version>
+      <version>${versions.neo4j}</version>
       <type>pom</type>
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-shell</artifactId>
-      <version>2.1.7</version>
+      <version>${versions.neo4j}</version>
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-cypher</artifactId>
-      <version>2.1.7</version>
+      <version>${versions.neo4j}</version>
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-udc</artifactId>
-      <version>2.1.7</version>
+      <version>${versions.neo4j}</version>
       <classifier>neo4j</classifier>
     </dependency>
     <dependency>
       <groupId>org.neo4j.app</groupId>
       <artifactId>neo4j-server</artifactId>
-      <version>2.1.7</version>
+      <version>${versions.neo4j}</version>
     </dependency>
 	  <dependency>
 	    <groupId>redis.clients</groupId>
