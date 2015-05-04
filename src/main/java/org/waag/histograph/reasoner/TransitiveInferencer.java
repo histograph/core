@@ -59,7 +59,7 @@ public class TransitiveInferencer {
 				PITIdentifyingMethod toIdMethod = PITIdentifyingMethod.valueOf(r.getProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD).toString());				
 				if (!GraphMethods.relationExists(db, n1, fromIdMethod, n3, toIdMethod, type, source)) {
 					Relationship rel = n1.createRelationshipTo(n3, type);
-					rel.setProperty(HistographTokens.General.SOURCE, source);
+					rel.setProperty(HistographTokens.General.SOURCEID, source);
 					inferred++;
 				}
 			}
@@ -73,7 +73,7 @@ public class TransitiveInferencer {
 				PITIdentifyingMethod toIdMethod = PITIdentifyingMethod.valueOf(r.getProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD).toString());				
 				if (!GraphMethods.relationExists(db, n3, fromIdMethod, n1, toIdMethod, type, source)) {
 					Relationship rel = n3.createRelationshipTo(n1, type);
-					rel.setProperty(HistographTokens.General.SOURCE, source);
+					rel.setProperty(HistographTokens.General.SOURCEID, source);
 					inferred++;
 				}
 			}

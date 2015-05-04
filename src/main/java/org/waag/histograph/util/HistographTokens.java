@@ -1,5 +1,7 @@
 package org.waag.histograph.util;
 
+import org.neo4j.graphdb.Label;
+
 /**
  * A class in which all Histograph tokens are defined. These tokens are fixed
  * throughout all Histograph classes and should be modified here only.
@@ -7,7 +9,11 @@ package org.waag.histograph.util;
  * @author Bert Spaan
  */
 public final class HistographTokens {
-	
+
+	public enum Labels implements Label {
+		PIT, Owner, Source
+	}
+
 	/**
 	 * General tokens applicable for all object types.
 	 * @author Rutger van Willigen
@@ -15,11 +21,12 @@ public final class HistographTokens {
 	 */
 	public final class General {
 		public static final String DATA = "data";
-		public static final String SOURCE = "source";
+		public static final String SOURCEID = "sourceid";
 		public static final String TYPE = "type";
 		public static final String ACTION = "action";
-	    public static final String HGID = "hgid";
-	    public static final String TARGET = "target";
+		public static final String HGID = "hgid";
+		public static final String TARGET = "target";
+		public static final String NAME = "name";
 	}
 	
 	/**

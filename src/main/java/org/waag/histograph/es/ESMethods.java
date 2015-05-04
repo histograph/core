@@ -158,7 +158,7 @@ public class ESMethods {
 		JSONObject out = new JSONObject();
 		
 		out.put(HistographTokens.General.HGID, params.get(HistographTokens.General.HGID));
-		out.put(HistographTokens.General.SOURCE, params.get(HistographTokens.General.SOURCE));
+		out.put(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
 		out.put(HistographTokens.PITTokens.NAME, params.get(HistographTokens.PITTokens.NAME));
 		out.put(HistographTokens.PITTokens.TYPE, params.get(HistographTokens.PITTokens.TYPE));
 		

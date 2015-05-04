@@ -43,7 +43,7 @@ public class AtomicInferencer {
 			PITIdentifyingMethod toIdMethod = null;
 			
 			try (Transaction tx = db.beginTx()) {
-				source = r.getProperty(HistographTokens.General.SOURCE).toString();
+				source = r.getProperty(HistographTokens.General.SOURCEID).toString();
 				fromNode = r.getStartNode();
 				fromIdMethod = PITIdentifyingMethod.valueOf(r.getProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD).toString());
 				toNode = r.getEndNode();
@@ -62,7 +62,7 @@ public class AtomicInferencer {
 			// Create relation between nodes
 			try (Transaction tx = db.beginTx()) {
 				Relationship rel = fromNode.createRelationshipTo(toNode, RelationType.fromLabel(label));
-				rel.setProperty(HistographTokens.General.SOURCE, inferredSource);
+				rel.setProperty(HistographTokens.General.SOURCEID, inferredSource);
 				tx.success();
 			}
 		}
@@ -89,7 +89,7 @@ public class AtomicInferencer {
 	}
 	
 	private static void removeInferredAtomicRelations(GraphDatabaseService db, Map<String, String> params, String[] labels) throws IOException {
-		String inferredSource = "inferred_from_" + params.get(HistographTokens.General.SOURCE);
+		String inferredSource = "inferred_from_" + params.get(HistographTokens.General.SOURCEID);
 		PITIdentifyingMethod fromIdMethod = PITIdentifyingMethod.valueOf(params.get(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD));
 		PITIdentifyingMethod toIdMethod = PITIdentifyingMethod.valueOf(params.get(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD));
 

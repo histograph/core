@@ -38,7 +38,7 @@ public class RejectedEdgesServlet extends HttpServlet {
         response.setStatus(HttpServletResponse.SC_OK);
         PrintWriter out = response.getWriter();
         
-        String source = request.getParameter(HistographTokens.General.SOURCE);
+        String source = request.getParameter(HistographTokens.General.SOURCEID);
         if (source == null || source.equals("")) {
         	out.println(errorResponse("No source parameter supplied in GET request."));
         	return;

@@ -169,7 +169,7 @@ public class GraphMethods {
 				relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
 				relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
 				relParams.put(HistographTokens.RelationTokens.LABEL, RelationType.fromRelationshipType(rel.getType()).toString());
-				relParams.put(HistographTokens.General.SOURCE, rel.getProperty(HistographTokens.General.SOURCE).toString());
+				relParams.put(HistographTokens.General.SOURCEID, rel.getProperty(HistographTokens.General.SOURCEID).toString());
 								
 				relParamList.add(relParams);
 				
@@ -246,7 +246,7 @@ public class GraphMethods {
 		}
 		
 		RelationshipType relType = RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL));
-		String source = params.get(HistographTokens.General.SOURCE);
+		String source = params.get(HistographTokens.General.SOURCEID);
 		ArrayList<Relationship> relArray = new ArrayList<Relationship>();
 		
 		for (Node fromNode : fromNodes) {
@@ -257,7 +257,7 @@ public class GraphMethods {
 				// Create relation between nodes
 				try (Transaction tx = db.beginTx()) {
 					Relationship rel = fromNode.createRelationshipTo(toNode, relType);
-					rel.setProperty(HistographTokens.General.SOURCE, params.get(HistographTokens.General.SOURCE));
+					rel.setProperty(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
 					rel.setProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
 					rel.setProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
 					relArray.add(rel);
@@ -306,7 +306,7 @@ public class GraphMethods {
 		if (toNodes == null) throw new IOException("No nodes with " + HistographTokens.General.HGID + "/" + HistographTokens.PITTokens.URI + " '" + params.get(HistographTokens.RelationTokens.TO) + "' found in graph.");
 		
 		RelationshipType relType = RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL));
-		String source = params.get(HistographTokens.General.SOURCE);
+		String source = params.get(HistographTokens.General.SOURCEID);
 		
 		// For all possible node pairs, find the relationship between them and delete when found
 		boolean relationshipsRemoved = false;
@@ -436,7 +436,7 @@ public class GraphMethods {
 		try (Transaction tx = db.beginTx()) {
 			for (Relationship r : fromNode.getRelationships(type, Direction.OUTGOING)) {
 				if (r.getEndNode().equals(toNode) 
-						&& r.getProperty(HistographTokens.General.SOURCE).equals(source)
+						&& r.getProperty(HistographTokens.General.SOURCEID).equals(source)
 						&& (PITIdentifyingMethod.valueOf(r.getProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD).toString()) == fromIdMethod) 
 						&& (PITIdentifyingMethod.valueOf(r.getProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD).toString()) == toIdMethod)) {
 					return r;

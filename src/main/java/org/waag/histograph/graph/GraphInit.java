@@ -1,9 +1,11 @@
 package org.waag.histograph.graph;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.cypher.javacompat.ExecutionEngine;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.schema.Schema;
 import org.neo4j.kernel.GraphDatabaseAPI;
@@ -13,6 +15,7 @@ import org.neo4j.server.configuration.ServerConfigurator;
 import org.waag.histograph.reasoner.ReasoningDefinitions;
 import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.HistographTokens;
+import org.waag.histograph.util.BCrypt;
 
 /**
  * This is a class initializing the Neo4j graph connection. This includes setting up indices if
@@ -34,6 +37,7 @@ public class GraphInit {
 		try {
 			GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(config.NEO4J_FILEPATH);
 	        initializeIndices(db);
+          createAdminOwner(config.ADMIN_NAME, config.ADMIN_PASSWORD, db);
 	        initializeServer(config, db);
 	        return db;
 		} catch (RuntimeException e) {
@@ -58,15 +62,38 @@ public class GraphInit {
         
         System.out.println("Neo4j listening on http://localhost:" + config.NEO4J_PORT + "/");
 	}
-	
-	private static void initializeIndices (GraphDatabaseService db) {		
+
+  private static void createAdminOwner (String name, String password, GraphDatabaseService db) {
+		ExecutionEngine engine = new ExecutionEngine(db);
+
+		try ( Transaction tx = db.beginTx()) {
+      Map<String, Object> params = new HashMap<String, Object>();
+			params.put("name", name);
+			params.put("password", BCrypt.hashpw(password, BCrypt.gensalt()));
+      String query = "MERGE (admin:Owner { name:{name} }) ON CREATE SET admin.password = {password}";
+			engine.execute(query, params);
+
+      tx.success();
+    }
+  }
+
+  private static void initializeIndices (GraphDatabaseService db) {
 		try (Transaction tx = db.beginTx()) {
 			Schema schema = db.schema();
-			if (!schema.getConstraints(ReasoningDefinitions.NodeType.PIT).iterator().hasNext()) {
-				schema.constraintFor(ReasoningDefinitions.NodeType.PIT).assertPropertyIsUnique(HistographTokens.General.HGID).create();
-				schema.indexFor(ReasoningDefinitions.NodeType.PIT).on(HistographTokens.PITTokens.URI).create();
+			if (!schema.getConstraints(HistographTokens.Labels.PIT).iterator().hasNext()) {
+				schema.constraintFor(HistographTokens.Labels.PIT).assertPropertyIsUnique(HistographTokens.General.HGID).create();
+				schema.indexFor(HistographTokens.Labels.PIT).on(HistographTokens.PITTokens.URI).create();
 			}
-			tx.success();
+
+			if (!schema.getConstraints(HistographTokens.Labels.Owner).iterator().hasNext()) {
+        schema.constraintFor(HistographTokens.Labels.Owner).assertPropertyIsUnique(HistographTokens.General.NAME).create();
+			}
+
+      if (!schema.getConstraints(HistographTokens.Labels.Source).iterator().hasNext()) {
+				schema.constraintFor(HistographTokens.Labels.Source).assertPropertyIsUnique(HistographTokens.General.SOURCEID).create();
+      }
+
+      tx.success();
 		}
 		
 		try (Transaction tx = db.beginTx()) {

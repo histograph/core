@@ -26,7 +26,7 @@ public class InputReader {
 	 */
 	public static Task parse(JSONObject obj) throws IOException {		
 		try {
-			String source = obj.get(HistographTokens.General.SOURCE).toString();
+			String source = obj.get(HistographTokens.General.SOURCEID).toString();
 			switch (obj.get(HistographTokens.General.ACTION).toString()) {
 			case HistographTokens.Actions.ADD:
 				return parseAdd(obj, source);
@@ -185,7 +185,7 @@ public class InputReader {
 			map.put(HistographTokens.PITTokens.NAME, data.get(HistographTokens.PITTokens.NAME).toString());
 			map.put(HistographTokens.General.HGID, parseHgid(source, data.get(HistographTokens.PITTokens.ID).toString()));
 			map.put(HistographTokens.PITTokens.TYPE, data.get(HistographTokens.PITTokens.TYPE).toString());
-			map.put(HistographTokens.General.SOURCE, source);
+			map.put(HistographTokens.General.SOURCEID, source);
 			
 			// Optional predefined tokens
 			if (data.has(HistographTokens.PITTokens.GEOMETRY)) {
@@ -217,7 +217,7 @@ public class InputReader {
 			if (!map.containsKey(HistographTokens.PITTokens.NAME)) throw new IOException("PIT token " + HistographTokens.PITTokens.NAME + " missing.");
 			if (!map.containsKey(HistographTokens.General.HGID)) throw new IOException("PIT token " + HistographTokens.General.HGID + " missing.");
 			if (!map.containsKey(HistographTokens.PITTokens.TYPE)) throw new IOException("PIT token " + HistographTokens.PITTokens.TYPE + " missing.");
-			if (!map.containsKey(HistographTokens.General.SOURCE)) throw new IOException("PIT token " + HistographTokens.General.SOURCE + " missing.");
+			if (!map.containsKey(HistographTokens.General.SOURCEID)) throw new IOException("PIT token " + HistographTokens.General.SOURCEID + " missing.");
 			
 			return map;
 		} catch (JSONException e) {
@@ -243,7 +243,7 @@ public class InputReader {
 			map.put(HistographTokens.RelationTokens.TO, to);
 			map.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
 			map.put(HistographTokens.RelationTokens.LABEL, label);
-			map.put(HistographTokens.General.SOURCE, source);
+			map.put(HistographTokens.General.SOURCEID, source);
 			
 			if (data.has(HistographTokens.RelationTokens.REJECTION_CAUSE)) {
 				String cause = data.get(HistographTokens.RelationTokens.REJECTION_CAUSE).toString();

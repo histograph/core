@@ -312,7 +312,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, uri2);
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
-		relParams.put(HistographTokens.General.SOURCE, "rutgervanwilligen");
+		relParams.put(HistographTokens.General.SOURCEID, "rutgervanwilligen");
 		relParams.put(HistographTokens.RelationTokens.LABEL, ReasoningDefinitions.RelationType.ABSORBED.toString());
 		
 		// Add relationships between a URI-URI pair. Four different relationships should be created.
@@ -334,7 +334,7 @@ public class GraphMethodsTest {
 				assertEquals("Different FROM_ID_METHOD param was returned.", map.get(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD), relParams.get(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD));
 				assertEquals("Different TO param was returned.", map.get(HistographTokens.RelationTokens.TO), relParams.get(HistographTokens.RelationTokens.TO));
 				assertEquals("Different TO_ID_METHOD param was returned.", map.get(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD), relParams.get(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD));
-				assertEquals("Different SOURCE param was returned.", map.get(HistographTokens.General.SOURCE), relParams.get(HistographTokens.General.SOURCE));
+				assertEquals("Different SOURCEID param was returned.", map.get(HistographTokens.General.SOURCEID), relParams.get(HistographTokens.General.SOURCEID));
 				assertEquals("Different LABEL param was returned.", map.get(HistographTokens.RelationTokens.LABEL), relParams.get(HistographTokens.RelationTokens.LABEL));				
 			}
 			
@@ -624,7 +624,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, PITIdentifyingMethod.HGID.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, hgid2);
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, PITIdentifyingMethod.HGID.toString());
-		relParams.put(HistographTokens.General.SOURCE, "rutgervanwilligen");
+		relParams.put(HistographTokens.General.SOURCEID, "rutgervanwilligen");
 		relParams.put(HistographTokens.RelationTokens.LABEL, ReasoningDefinitions.RelationType.ABSORBED.toString());
 		
 		// Add relationship, here based on the HGID values
@@ -692,14 +692,14 @@ public class GraphMethodsTest {
 		rel1Params.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, PITIdentifyingMethod.HGID.toString());
 		rel1Params.put(HistographTokens.RelationTokens.TO, uri2);
 		rel1Params.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
-		rel1Params.put(HistographTokens.General.SOURCE, "rutgervanwilligen");
+		rel1Params.put(HistographTokens.General.SOURCEID, "rutgervanwilligen");
 		rel1Params.put(HistographTokens.RelationTokens.LABEL, ReasoningDefinitions.RelationType.ABSORBED.toString());
 		
 		rel2Params.put(HistographTokens.RelationTokens.FROM, uri2);
 		rel2Params.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
 		rel2Params.put(HistographTokens.RelationTokens.TO, hgid4);
 		rel2Params.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, PITIdentifyingMethod.HGID.toString());
-		rel2Params.put(HistographTokens.General.SOURCE, "rutgervanwilligen");
+		rel2Params.put(HistographTokens.General.SOURCEID, "rutgervanwilligen");
 		rel2Params.put(HistographTokens.RelationTokens.LABEL, ReasoningDefinitions.RelationType.WITHIN.toString());
 		
 		Relationship[] rels;
@@ -771,7 +771,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, uri2);
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
-		relParams.put(HistographTokens.General.SOURCE, "rutgervanwilligen");
+		relParams.put(HistographTokens.General.SOURCEID, "rutgervanwilligen");
 		relParams.put(HistographTokens.RelationTokens.LABEL, ReasoningDefinitions.RelationType.ABSORBED.toString());
 		
 		Relationship[] rels;
@@ -802,7 +802,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, PITIdentifyingMethod.HGID.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, "hgid2");
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, PITIdentifyingMethod.HGID.toString());
-		relParams.put(HistographTokens.General.SOURCE, "rutgervanwilligen");
+		relParams.put(HistographTokens.General.SOURCEID, "rutgervanwilligen");
 		relParams.put(HistographTokens.RelationTokens.LABEL, ReasoningDefinitions.RelationType.ABSORBED.toString());
 		
 		// Add relationship, here based on the HGID values
@@ -1032,7 +1032,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, hgid2);
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
-		relParams.put(HistographTokens.General.SOURCE, source);
+		relParams.put(HistographTokens.General.SOURCEID, source);
 		relParams.put(HistographTokens.RelationTokens.LABEL, relType.toString());
 		
 		// Add relationship, assumes addRelation works properly
@@ -1105,7 +1105,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, hgid2);
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
-		relParams.put(HistographTokens.General.SOURCE, source);
+		relParams.put(HistographTokens.General.SOURCEID, source);
 		relParams.put(HistographTokens.RelationTokens.LABEL, relType.toString());
 		
 		// Add relationship, assumes addRelation works properly
@@ -1140,7 +1140,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, "uri2");
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
-		relParams.put(HistographTokens.General.SOURCE, "rutgervanwilligen");
+		relParams.put(HistographTokens.General.SOURCEID, "rutgervanwilligen");
 		relParams.put(HistographTokens.RelationTokens.LABEL, ReasoningDefinitions.RelationType.ABSORBED.toString());
 		
 		// Delete them using the same parameters.
@@ -1199,7 +1199,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, uri2);
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
-		relParams.put(HistographTokens.General.SOURCE, "rutgervanwilligen");
+		relParams.put(HistographTokens.General.SOURCEID, "rutgervanwilligen");
 		relParams.put(HistographTokens.RelationTokens.LABEL, ReasoningDefinitions.RelationType.ABSORBED.toString());
 		
 		Map<String, String> relParams2 = new HashMap<String, String>();
@@ -1208,7 +1208,7 @@ public class GraphMethodsTest {
 		relParams2.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
 		relParams2.put(HistographTokens.RelationTokens.TO, uri2);
 		relParams2.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, PITIdentifyingMethod.URI.toString());
-		relParams2.put(HistographTokens.General.SOURCE, "bertspaan");
+		relParams2.put(HistographTokens.General.SOURCEID, "bertspaan");
 		relParams2.put(HistographTokens.RelationTokens.LABEL, ReasoningDefinitions.RelationType.ABSORBED.toString());
 		
 		// Add relationships between a URI-URI pair. Eight different relationships should be created.
@@ -1280,7 +1280,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, hgid2);
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
-		relParams.put(HistographTokens.General.SOURCE, source);
+		relParams.put(HistographTokens.General.SOURCEID, source);
 		relParams.put(HistographTokens.RelationTokens.LABEL, relType.toString());
 		
 		Node fromNode = null;
@@ -1335,7 +1335,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, hgid2);
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
-		relParams.put(HistographTokens.General.SOURCE, source);
+		relParams.put(HistographTokens.General.SOURCEID, source);
 		relParams.put(HistographTokens.RelationTokens.LABEL, relType.toString());
 		
 		// Add relationship, assumes addRelation works properly
@@ -1398,7 +1398,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, hgid2);
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
-		relParams.put(HistographTokens.General.SOURCE, source);
+		relParams.put(HistographTokens.General.SOURCEID, source);
 		relParams.put(HistographTokens.RelationTokens.LABEL, relType.toString());
 		
 		Node fromNode = null;
@@ -1453,7 +1453,7 @@ public class GraphMethodsTest {
 		relParams.put(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
 		relParams.put(HistographTokens.RelationTokens.TO, hgid2);
 		relParams.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
-		relParams.put(HistographTokens.General.SOURCE, source);
+		relParams.put(HistographTokens.General.SOURCEID, source);
 		relParams.put(HistographTokens.RelationTokens.LABEL, relType.toString());
 		
 		// Add relationship, assumes addRelation works properly

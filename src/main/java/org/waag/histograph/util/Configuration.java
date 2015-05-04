@@ -42,12 +42,16 @@ public class Configuration {
 	public String SCHEMA_DIR;
 	
 	public JSONArray LOGO;
+
+	public String ADMIN_NAME;
+	public String ADMIN_PASSWORD;
 	
 	private Configuration (String es_host, String es_port, String es_index, String es_type,
 							String pg_host, String pg_port, String pg_user, String pg_pass, String pg_db,
 							String neo4j_filepath, String neo4j_port, int traversal_port,
 							String redis_host, String redis_port, String redis_main_queue, String redis_graph_queue, 
-							String redis_es_queue, String redis_pg_queue, String schema_dir, JSONArray logo) {
+							String redis_es_queue, String redis_pg_queue, String schema_dir, JSONArray logo,
+												 String admin_name, String admin_password) {
 		ELASTICSEARCH_HOST = es_host;
 		ELASTICSEARCH_PORT = es_port;
 		ELASTICSEARCH_INDEX = es_index;
@@ -72,6 +76,9 @@ public class Configuration {
 		
 		SCHEMA_DIR = schema_dir;
 		LOGO = logo;
+
+		ADMIN_NAME = admin_name;
+		ADMIN_PASSWORD = admin_password;
 	}
 	
 	/**
@@ -118,7 +125,10 @@ public class Configuration {
 			String pg_user = configObj.getJSONObject("core").getJSONObject("postgresql").get("user").toString();
 			String pg_pass = configObj.getJSONObject("core").getJSONObject("postgresql").get("pass").toString();
 			String pg_db = configObj.getJSONObject("core").getJSONObject("postgresql").get("db").toString();
-			
+
+			String admin_name = configObj.getJSONObject("api").getJSONObject("admin").get("name").toString();
+			String admin_password = configObj.getJSONObject("api").getJSONObject("admin").get("password").toString();
+
 			String neo4j_filepath = configObj.getJSONObject("core").getJSONObject("neo4j").get("path").toString();
 			String neo4j_port = configObj.getJSONObject("core").getJSONObject("neo4j").get("port").toString();
 			int traversal_port = configObj.getJSONObject("core").getJSONObject("traversal").getInt("port");
@@ -137,7 +147,9 @@ public class Configuration {
 					pg_host, pg_port, pg_user, pg_pass, pg_db,
 					neo4j_filepath, neo4j_port, traversal_port, 
 					redis_host, redis_port, redis_main_queue, redis_graph_queue, 
-					redis_es_queue, redis_pg_queue, schema_dir, logo);
+					redis_es_queue, redis_pg_queue, schema_dir, logo,
+					admin_name, admin_password
+			);
 		} catch (JSONException e) {
 			throw new IOException("Invalid configuration file: " + e.getMessage());
 		}

@@ -124,7 +124,7 @@ public class PGThread implements Runnable {
 		String to = params.get(HistographTokens.RelationTokens.TO);
 		String toIdMethod = params.get(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD);
 		String label = params.get(HistographTokens.RelationTokens.LABEL);
-		String source = params.get(HistographTokens.General.SOURCE);
+		String source = params.get(HistographTokens.General.SOURCEID);
 		
 		try {
 			PGMethods.deleteFromTable(pg, TABLE_NAME, "rel_from", from, "from_id_method", fromIdMethod, "rel_to", to, "to_id_method", toIdMethod, "rel_label", label, "rel_source", source);
@@ -180,7 +180,7 @@ public class PGThread implements Runnable {
 		// Construct message and push to Graph
 		graphMessage.put(HistographTokens.General.ACTION, HistographTokens.Actions.ADD);
 		graphMessage.put(HistographTokens.General.TYPE, HistographTokens.Types.RELATION);
-		graphMessage.put(HistographTokens.General.SOURCE, relParams.get("rel_source"));
+		graphMessage.put(HistographTokens.General.SOURCEID, relParams.get("rel_source"));
 		
 		data.put(HistographTokens.RelationTokens.FROM, relParams.get("rel_from"));
 		data.put(HistographTokens.RelationTokens.TO, relParams.get("rel_to"));
@@ -200,7 +200,7 @@ public class PGThread implements Runnable {
 			String to = params.get(HistographTokens.RelationTokens.TO);
 			String toIdMethod = params.get(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD);
 			String label = params.get(HistographTokens.RelationTokens.LABEL);
-			String source = params.get(HistographTokens.General.SOURCE);
+			String source = params.get(HistographTokens.General.SOURCEID);
 			String cause = params.get(HistographTokens.RelationTokens.REJECTION_CAUSE);
 			String causeIdMethod = params.get(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD);
 			

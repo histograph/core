@@ -13,12 +13,12 @@ import org.neo4j.graphdb.RelationshipType;
 public final class ReasoningDefinitions {
 	
 	/**
-	 * The single node type in the Neo4j graph is 'PIT'.
+	 * The single node type used for reasoning in the Neo4j graph is 'PIT'.
 	 * @author Rutger van Willigen
 	 * @author Bert Spaan
 	 */
 	public enum NodeType implements Label {
-		PIT;
+		PIT
 	}
 	
 	/**

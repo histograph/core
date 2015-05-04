@@ -7,3 +7,5 @@ dump.rdb
 /target/
 /doc/javadoc
 .idea
+
+histograph-core.iml

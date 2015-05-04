@@ -176,7 +176,7 @@ public class GraphThread implements Runnable {
 								relParams.put(HistographTokens.RelationTokens.TO, GraphMethods.getNodePropertyByMethod(db, toIdMethod, node3));
 
 								relParams.put(HistographTokens.RelationTokens.LABEL, RelationType.fromRelationshipType(rel.getType()).toString());
-								relParams.put(HistographTokens.General.SOURCE, rel.getProperty(HistographTokens.General.SOURCE).toString());
+								relParams.put(HistographTokens.General.SOURCEID, rel.getProperty(HistographTokens.General.SOURCEID).toString());
 								
 								listOfNewRelations.add(relParams);
 							}
@@ -204,7 +204,7 @@ public class GraphThread implements Runnable {
 								relParams.put(HistographTokens.RelationTokens.FROM, GraphMethods.getNodePropertyByMethod(db, fromIdMethod, node1));
 
 								relParams.put(HistographTokens.RelationTokens.LABEL, RelationType.fromRelationshipType(rel.getType()).toString());
-								relParams.put(HistographTokens.General.SOURCE, rel.getProperty(HistographTokens.General.SOURCE).toString());
+								relParams.put(HistographTokens.General.SOURCEID, rel.getProperty(HistographTokens.General.SOURCEID).toString());
 								
 								listOfNewRelations.add(relParams);
 							}
@@ -236,7 +236,7 @@ public class GraphThread implements Runnable {
 			
 			message.put(HistographTokens.General.ACTION, HistographTokens.Actions.ADD_TO_REJECTED);
 			message.put(HistographTokens.General.TYPE, HistographTokens.Types.RELATION);
-			message.put(HistographTokens.General.SOURCE, params.get(HistographTokens.General.SOURCE));
+			message.put(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
 			message.put(HistographTokens.General.DATA, data);
 			
 			jedis.rpush(redis_pg_queue, message.toString());	
@@ -302,7 +302,7 @@ public class GraphThread implements Runnable {
 			String toNode = params.get(HistographTokens.RelationTokens.TO);
 			PITIdentifyingMethod toIdMethod = PITIdentifyingMethod.valueOf(params.get(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD));
 			RelationType relType = RelationType.fromLabel(params.get(HistographTokens.RelationTokens.LABEL));
-			String source = params.get(HistographTokens.General.SOURCE);
+			String source = params.get(HistographTokens.General.SOURCEID);
 			
 			if (GraphMethods.relationsAbsent(db, fromNode, fromIdMethod, toNode, toIdMethod, relType, source)) {
 				list.add(params);
