@@ -6,3 +6,4 @@ dump.rdb
 .project
 /target/
 /doc/javadoc
+.idea
