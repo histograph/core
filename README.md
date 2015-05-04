@@ -1,8 +1,8 @@
-#Histograph-Core
+# Histograph-Core
 
 Utility that parses NDJSON objects from Redis' `histograph-queue`, adds it to Neo4j, indexes the data with Elasticsearch and performs inferencing.
 
-##Preliminaries
+## Preliminaries
 
 - To build Histograph-Core:
   - You'll need Java 7 or 8 (Download JDK [here](http://www.oracle.com/technetwork/java/javase/downloads/index.html))
@@ -15,6 +15,8 @@ Utility that parses NDJSON objects from Redis' `histograph-queue`, adds it to Ne
 - To run Histograph-Core:
   - Redis server (`redis-server`) needs to be running
   - [Elasticsearch](http://elasticsearch.org) needs to be running
+  - PostgreSQL needs to be running (try [postgresql.app](http://postgresapp.com) if you are on a Mac).
+    `CREATE ROLE "histograph" LOGIN`.
 
 ## Building Histograph-Core
 
