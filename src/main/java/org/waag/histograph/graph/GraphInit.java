@@ -8,6 +8,7 @@ import org.neo4j.kernel.GraphDatabaseAPI;
 import org.neo4j.server.WrappingNeoServerBootstrapper;
 import org.neo4j.server.configuration.Configurator;
 import org.neo4j.server.configuration.ServerConfigurator;
+import org.neo4j.server.configuration.ServerSettings;
 import org.waag.histograph.util.BCrypt;
 import org.waag.histograph.util.Configuration;
 import org.waag.histograph.util.HistographTokens;
@@ -61,6 +62,7 @@ public class GraphInit {
 		try {
 			GraphDatabaseAPI api = (GraphDatabaseAPI) db;
         	ServerConfigurator serverConfig = new ServerConfigurator((GraphDatabaseAPI) db);
+			serverConfig.configuration().addProperty("dbms.security.auth_enabled", "false");
             serverConfig.configuration().addProperty(Configurator.WEBSERVER_ADDRESS_PROPERTY_KEY, "localhost");
             serverConfig.configuration().addProperty(Configurator.WEBSERVER_PORT_PROPERTY_KEY, config.NEO4J_PORT);
 
