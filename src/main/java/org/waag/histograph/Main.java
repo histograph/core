@@ -47,7 +47,7 @@ public class Main {
 	static Configuration config;
 	private static boolean verbose;
 
-	/**
+	/*
 	 * Initiates the Histograph-Core program.
 	 * @param argv Two arguments are allowed: <i>-verbose</i> for verbose output, and <i>-config</i> when a
 	 * configuration path is provided. Both are optional -- omitting the <i>-config</i> argument results in

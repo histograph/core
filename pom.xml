@@ -8,7 +8,7 @@
   <description>Histograph Core - Graph management, Elasticsearch and inferencing)</description>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <versions.neo4j>2.1.7</versions.neo4j>
+    <versions.neo4j>2.3.0-M01</versions.neo4j>
   </properties>
   <dependencies>
     <dependency>
