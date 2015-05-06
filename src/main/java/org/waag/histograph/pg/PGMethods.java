@@ -135,7 +135,7 @@ public class 	PGMethods {
 			}
 		} else if (keyVals.length == nColumns * 2) {
 			for (int i=0; i<keyVals.length; i+=2) {
-				query += columns[i / 2];
+				query += keyVals[i];
 				if ((i+2) < keyVals.length) query += ", ";
 			}
 			
