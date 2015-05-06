@@ -203,9 +203,9 @@ public class PGThread implements Runnable {
 			String source = params.get(HistographTokens.General.SOURCEID);
 			String cause = params.get(HistographTokens.RelationTokens.REJECTION_CAUSE);
 			String causeIdMethod = params.get(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD);
-			
-			if (!PGMethods.rowExists(pg, TABLE_NAME, from, fromIdMethod, to, toIdMethod, label, source, cause, causeIdMethod)) {
-				PGMethods.addToTable(pg, TABLE_NAME, from, fromIdMethod, to, toIdMethod, label, source, cause, causeIdMethod);	
+
+			if (!PGMethods.rowExists(pg, TABLE_NAME, "rel_from", from, "from_id_method", fromIdMethod, "rel_to", to, "to_id_method", toIdMethod, "rel_label", label, "rel_source", source, "rejection_cause", cause, "rejection_cause_id_method", causeIdMethod)) {
+				PGMethods.addToTable(pg, TABLE_NAME, "rel_from", from, "from_id_method", fromIdMethod, "rel_to", to, "to_id_method", toIdMethod, "rel_label", label, "rel_source", source, "rejection_cause", cause, "rejection_cause_id_method", causeIdMethod);
 			}
 			
 		} catch (JSONException | SQLException e) {
