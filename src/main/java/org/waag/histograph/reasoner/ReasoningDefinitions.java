@@ -38,8 +38,8 @@ public final class ReasoningDefinitions {
 		HASTIMETEMPORALENTITY("hg:hasTimeTemporalEntity"),
 		ISUSEDFOR("hg:isUsedFor"),
 		SAMEHGCONCEPT("hg:sameHgConcept"),
-		LIESIN("hg:liesIn");
-		
+		LIES_IN("hg:liesIn");
+
 		private final String label;
 		
 		private RelationType (String label) {
@@ -89,13 +89,13 @@ public final class ReasoningDefinitions {
 	public final static String[] PRIMARY_RELATIONS = {		RelationType.SAMEHGCONCEPT.toString(),
 															RelationType.ABSORBEDBY.toString(),
 															RelationType.ISUSEDFOR.toString(),
-															RelationType.LIESIN.toString()
+															RelationType.LIES_IN.toString()
 													};
 	
 	/**
 	 * Contains all transitive relations, i.e. (a) --[rel]--) (b) --[rel]--) (c) IMPL (a) --[rel]--) (c)
 	 */
-	public final static String[] TRANSITIVE_RELATIONS = {	RelationType.LIESIN.toString()
+	public final static String[] TRANSITIVE_RELATIONS = {	RelationType.LIES_IN.toString()
 													};
 	
 	/**
