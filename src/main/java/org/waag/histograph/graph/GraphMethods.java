@@ -258,11 +258,30 @@ public class GraphMethods {
 
 				// Create relation between nodes
 				try (Transaction tx = db.beginTx()) {
+
+					// once in the normal direction
 					Relationship rel = fromNode.createRelationshipTo(toNode, relType);
 					rel.setProperty(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
 					rel.setProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
 					rel.setProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
 					relArray.add(rel);
+
+					// check if we are adding an undirected relation
+					if("SAMEAS".equals(relType.name()))
+					{
+						// 	add edge in other direction if it doesn't already exists
+						if (GraphMethods.relationAbsent(db, toNode, toIdMethod, fromNode, fromIdMethod, relType, source))
+						{
+							Relationship opposite = toNode.createRelationshipTo(fromNode, relType);
+							opposite.setProperty(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
+							opposite.setProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, toIdMethod.toString());
+							opposite.setProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, fromIdMethod.toString());
+
+							// record
+							relArray.add(opposite);
+						}
+					}
+
 					tx.success();
 				}
 			}
