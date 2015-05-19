@@ -267,7 +267,7 @@ public class GraphMethods {
 					relArray.add(rel);
 
 					// check if we are adding an undirected relation
-					if("SAMEAS".equals(relType.name()))
+					if(RelationType.SAMEHGCONCEPT.name().equals(relType.label()))
 					{
 						// 	add edge in other direction if it doesn't already exists
 						if (GraphMethods.relationAbsent(db, toNode, toIdMethod, fromNode, fromIdMethod, relType, source))
