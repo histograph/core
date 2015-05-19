@@ -253,37 +253,47 @@ public class GraphMethods {
 		
 		for (Node fromNode : fromNodes) {
 			for (Node toNode : toNodes) {
-				// Verify the absence of the new relation, skip to next if already present
-				if (!GraphMethods.relationAbsent(db, fromNode, fromIdMethod, toNode, toIdMethod, relType, source)) continue;
 
-				// Create relation between nodes
-				try (Transaction tx = db.beginTx()) {
+				// Verify the absence of the new relation
+				if (GraphMethods.relationAbsent(db, fromNode, fromIdMethod, toNode, toIdMethod, relType, source))
+				{
+					// Create relation between nodes
+					try (Transaction tx = db.beginTx()) {
 
-					// once in the normal direction
-					Relationship rel = fromNode.createRelationshipTo(toNode, relType);
-					rel.setProperty(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
-					rel.setProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
-					rel.setProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
-					relArray.add(rel);
+						// once in the normal direction
+						Relationship rel = fromNode.createRelationshipTo(toNode, relType);
+						rel.setProperty(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
+						rel.setProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
+						rel.setProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
 
-					// check if we are adding an undirected relation
-					if(RelationType.SAMEHGCONCEPT.name().equals(relType.label()))
-					{
-						// 	add edge in other direction if it doesn't already exists
-						if (GraphMethods.relationAbsent(db, toNode, toIdMethod, fromNode, fromIdMethod, relType, source))
-						{
-							Relationship opposite = toNode.createRelationshipTo(fromNode, relType);
-							opposite.setProperty(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
-							opposite.setProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, toIdMethod.toString());
-							opposite.setProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, fromIdMethod.toString());
+						// record
+						relArray.add(rel);
 
-							// record
-							relArray.add(opposite);
-						}
+						tx.success();
 					}
+				};
 
-					tx.success();
-				}
+				// when it's a directed relation we are done
+				if(!RelationType.SAMEHGCONCEPT.equals(relType))
+					continue;
+
+				// add edge in other direction if it doesn't already exists
+				if(GraphMethods.relationAbsent(db, toNode, toIdMethod, fromNode, fromIdMethod, relType, source))
+				{
+					// ok create opposite
+					try (Transaction tx = db.beginTx())
+					{
+						Relationship opposite = toNode.createRelationshipTo(fromNode, relType);
+						opposite.setProperty(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
+						opposite.setProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, toIdMethod.toString());
+						opposite.setProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, fromIdMethod.toString());
+
+						// record
+						relArray.add(opposite);
+
+						tx.success();
+					}
+				};
 			}
 		}
 		
