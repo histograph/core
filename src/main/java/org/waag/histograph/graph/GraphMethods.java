@@ -133,12 +133,7 @@ public class GraphMethods {
 					break;
 				case URI:
 					String fromURI = rel.getStartNode().getProperty(HistographTokens.PITTokens.URI).toString();
-					String nodeURI = node.getProperty(HistographTokens.PITTokens.URI).toString();
 					relParams.put(HistographTokens.RelationTokens.FROM, fromURI);
-					if (nodeURI.equals(fromURI)) {
-						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE, fromURI);
-						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD, PITIdentifyingMethod.URI.toString());
-					}
 					break;
 				default:
 					throw new IOException("Unexpected PIT identifying method found while deleting relationship associated with PIT");
@@ -155,14 +150,7 @@ public class GraphMethods {
 					break;
 				case URI:
 					String toURI = rel.getEndNode().getProperty(HistographTokens.PITTokens.URI).toString();
-
-//					temporary fix for https://github.com/histograph/core/issues/40
-//					String nodeURI = node.getProperty(HistographTokens.PITTokens.URI).toString();
 					relParams.put(HistographTokens.RelationTokens.TO, toURI);
-//					if (nodeURI.equals(toURI)) {
-//						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE, toURI);
-//						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD, PITIdentifyingMethod.URI.toString());
-//					}
 					break;
 				default:
 					throw new IOException("Unexpected PIT identifying method found while deleting relationship associated with PIT");
