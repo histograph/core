@@ -30,6 +30,8 @@ public final class ReasoningDefinitions {
 		SAMEAS("owl:sameAs"),
 		ABSORBED("hg:absorbed"),
 		ABSORBEDBY("hg:absorbedBy"),
+		ORIGINATED("hg:originated"),
+		ORIGINATEDFROM("hg:originatedFrom"),
 		CONTAINS("hg:contains"),
 		HASGEOFEATURE("hg:hasGeoFeature"),
 		HASNAME("hg:hasName"),
@@ -88,6 +90,9 @@ public final class ReasoningDefinitions {
 	 */
 	public final static String[] PRIMARY_RELATIONS = {		RelationType.SAMEHGCONCEPT.toString(),
 															RelationType.ABSORBEDBY.toString(),
+															RelationType.ABSORBED.toString(),
+															RelationType.ORIGINATED.toString(),
+															RelationType.ORIGINATEDFROM.toString(),
 															RelationType.ISUSEDFOR.toString(),
 															RelationType.LIESIN.toString()
 													};
