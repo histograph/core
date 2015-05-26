@@ -133,12 +133,7 @@ public class GraphMethods {
 					break;
 				case URI:
 					String fromURI = rel.getStartNode().getProperty(HistographTokens.PITTokens.URI).toString();
-					String nodeURI = node.getProperty(HistographTokens.PITTokens.URI).toString();
 					relParams.put(HistographTokens.RelationTokens.FROM, fromURI);
-					if (nodeURI.equals(fromURI)) {
-						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE, fromURI);
-						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD, PITIdentifyingMethod.URI.toString());
-					}
 					break;
 				default:
 					throw new IOException("Unexpected PIT identifying method found while deleting relationship associated with PIT");
@@ -155,12 +150,7 @@ public class GraphMethods {
 					break;
 				case URI:
 					String toURI = rel.getEndNode().getProperty(HistographTokens.PITTokens.URI).toString();
-					String nodeURI = node.getProperty(HistographTokens.PITTokens.URI).toString();
 					relParams.put(HistographTokens.RelationTokens.TO, toURI);
-					if (nodeURI.equals(toURI)) {
-						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE, toURI);
-						relParams.put(HistographTokens.RelationTokens.REJECTION_CAUSE_ID_METHOD, PITIdentifyingMethod.URI.toString());
-					}
 					break;
 				default:
 					throw new IOException("Unexpected PIT identifying method found while deleting relationship associated with PIT");
@@ -251,18 +241,47 @@ public class GraphMethods {
 		
 		for (Node fromNode : fromNodes) {
 			for (Node toNode : toNodes) {
-				// Verify the absence of the new relation, skip to next if already present
-				if (!GraphMethods.relationAbsent(db, fromNode, fromIdMethod, toNode, toIdMethod, relType, source)) continue;
 
-				// Create relation between nodes
-				try (Transaction tx = db.beginTx()) {
-					Relationship rel = fromNode.createRelationshipTo(toNode, relType);
-					rel.setProperty(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
-					rel.setProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
-					rel.setProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
-					relArray.add(rel);
-					tx.success();
-				}
+				// Verify the absence of the new relation
+				if (GraphMethods.relationAbsent(db, fromNode, fromIdMethod, toNode, toIdMethod, relType, source))
+				{
+					// Create relation between nodes
+					try (Transaction tx = db.beginTx()) {
+
+						// once in the normal direction
+						Relationship rel = fromNode.createRelationshipTo(toNode, relType);
+						rel.setProperty(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
+						rel.setProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, fromIdMethod.toString());
+						rel.setProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, toIdMethod.toString());
+
+						// record
+						relArray.add(rel);
+
+						tx.success();
+					}
+				};
+
+				// when it's a directed relation we are done
+				if(!RelationType.SAMEHGCONCEPT.equals(relType))
+					continue;
+
+				// add edge in other direction if it doesn't already exists
+				if(GraphMethods.relationAbsent(db, toNode, toIdMethod, fromNode, fromIdMethod, relType, source))
+				{
+					// ok create opposite
+					try (Transaction tx = db.beginTx())
+					{
+						Relationship opposite = toNode.createRelationshipTo(fromNode, relType);
+						opposite.setProperty(HistographTokens.General.SOURCEID, params.get(HistographTokens.General.SOURCEID));
+						opposite.setProperty(HistographTokens.RelationTokens.FROM_IDENTIFYING_METHOD, toIdMethod.toString());
+						opposite.setProperty(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, fromIdMethod.toString());
+
+						// record
+						relArray.add(opposite);
+
+						tx.success();
+					}
+				};
 			}
 		}
 		

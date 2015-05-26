@@ -701,7 +701,7 @@ public class GraphMethodsTest {
 		rel2Params.put(HistographTokens.RelationTokens.TO_IDENTIFYING_METHOD, PITIdentifyingMethod.HGID.toString());
 		rel2Params.put(HistographTokens.General.SOURCEID, "rutgervanwilligen");
 		rel2Params.put(HistographTokens.RelationTokens.LABEL, ReasoningDefinitions.RelationType.LIESIN.toString());
-		
+
 		Relationship[] rels;
 		// Add relationships, first to a HGID-URI pair, then to a URI-HGID pair
 		try {

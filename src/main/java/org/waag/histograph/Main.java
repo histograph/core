@@ -9,12 +9,10 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.logging.Logger;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
-import org.eclipse.jetty.util.log.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -213,9 +211,16 @@ public class Main {
 	}
 	
 	private static void disableLogging () {
-		Logger globalLogger = Logger.getLogger("");
-		globalLogger.setLevel(java.util.logging.Level.OFF);
-		Log.setLog(new NoLogging());
+		// silence the root logger
+		java.util.logging.Logger.getLogger("").setLevel(java.util.logging.Level.OFF);
+
+		// disable jetty logging by passing a no-op logger
+		org.eclipse.jetty.util.log.Log.setLog(new NoLogging());
+
+		// finally, tell io.searchbox to stfu
+		final org.slf4j.Logger l = org.slf4j.LoggerFactory.getLogger("io.searchbox");
+		if (l instanceof ch.qos.logback.classic.Logger)
+			((ch.qos.logback.classic.Logger) l).setLevel(ch.qos.logback.classic.Level.OFF);
 	}
 	
 	private void writeToFile(String fileName, String header, String message) {

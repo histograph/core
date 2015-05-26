@@ -101,8 +101,8 @@ public class GraphInit {
 						.assertPropertyIsUnique(HistographTokens.General.HGID)
 						.create();
 
-				schema.indexFor(HistographTokens.Labels.PIT)
-						.on(HistographTokens.PITTokens.URI)
+				schema.constraintFor(HistographTokens.Labels.PIT)
+						.assertPropertyIsUnique(HistographTokens.PITTokens.URI)
 						.create();
 			}
 

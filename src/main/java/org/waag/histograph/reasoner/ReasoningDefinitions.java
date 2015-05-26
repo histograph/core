@@ -41,7 +41,7 @@ public final class ReasoningDefinitions {
 		ISUSEDFOR("hg:isUsedFor"),
 		SAMEHGCONCEPT("hg:sameHgConcept"),
 		LIESIN("hg:liesIn");
-		
+
 		private final String label;
 		
 		private RelationType (String label) {
