@@ -94,6 +94,7 @@ public final class ReasoningDefinitions {
 															RelationType.ORIGINATED.toString(),
 															RelationType.ORIGINATEDFROM.toString(),
 															RelationType.ISUSEDFOR.toString(),
+															RelationType.CONTAINS.toString(),
 															RelationType.LIESIN.toString()
 													};
 	
