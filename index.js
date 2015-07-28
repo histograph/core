@@ -140,10 +140,15 @@ var commands = redis
 
 graphmalizer(commands)
     .map(function(d){
-        return toElastic(d.request.parameters);
+	if(d.structure === 'node')
+		return toElastic(d.request.parameters);
+
+	return H([]);
     })
     .series()
     .errors(logError)
-    .each(H.log);
+    .each(function(){
+	process.stdout.write('.');
+    });
 
 console.log(config.logo.join('\n'));
