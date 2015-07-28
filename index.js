@@ -72,14 +72,14 @@ function toGraphmalizer(msg)
         dataset: msg.dataset,
 
         // some old data uses `label` instead of `type`
-        type: msg.type,
+        type: d.type,
 
         // nodes are identified with id's or URI's, we don't care
-        id: norm(msg.id || msg.uri),
+        id: norm(d.id || d.uri),
 
         // formalize source/target id's
-        source: norm(msg.from),
-        target: norm(msg.to),
+        source: norm(d.from),
+        target: norm(d.to),
 
         data: stringifyObjectFields(d)
     }
