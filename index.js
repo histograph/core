@@ -119,6 +119,9 @@ function toElastic(data){
     // select appropriate ES operation
     var operation = OP_MAP[data.operation];
 
+    // replace string version with original
+    data.data.geometry = JSON.parse(data.data.geometry);
+
     var opts = {
         index: data.dataset,
         type: data.type,
