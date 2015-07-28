@@ -120,7 +120,7 @@ function toElastic(data){
     var operation = OP_MAP[data.operation];
 
     // replace string version with original
-    try{ data.data.geometry = JSON.parse(data.data.geometry) } catch() {};
+    try{ data.data.geometry = JSON.parse(data.data.geometry) } catch(_) {};
 
     var opts = {
         index: data.dataset,
