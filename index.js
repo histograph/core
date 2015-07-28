@@ -60,11 +60,11 @@ function toGraphmalizer(msg)
 
     // move bunch of top level attributes into data
     // TODO read from JSON Schema?
-    d.name = msg.name;
     d.dataset = msg.dataset;
-    d.geometry = msg.geometry;
-    d.hasBeginning = msg.hasBeginning;
-    d.hasEnd = msg.hasEnd;
+    d.name = d.name;
+    d.geometry = d.geometry;
+    d.hasBeginning = d.hasBeginning;
+    d.hasEnd = d.hasEnd;
 
     return {
         operation: ACTION_MAP[msg.action],
