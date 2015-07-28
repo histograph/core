@@ -140,15 +140,16 @@ var commands = redis
 
 graphmalizer(commands)
     .map(function(d){
-	if(d.structure === 'node')
-		return toElastic(d.request.parameters);
+        // only index nodes into elasticsearch
+        if(d.request.parameters.structure === 'node')
+            return toElastic(d.request.parameters);
 
-	return H([]);
+        return H([]);
     })
     .series()
     .errors(logError)
     .each(function(){
-	process.stdout.write('.');
+        process.stdout.write('.');
     });
 
 console.log(config.logo.join('\n'));
