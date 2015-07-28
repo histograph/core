@@ -6,6 +6,7 @@ var normalizeIdentifiers = require('histograph-uri-normalizer').normalize;
 var H = require('highland');
 var graphmalizer = require('graphmalizer-core');
 
+var config = require(process.env.HISTOGRAPH_CONFIG);
 
 var Redis = require('redis');
 var redis_client = Redis.createClient();
@@ -144,3 +145,5 @@ graphmalizer(commands)
     .series()
     .errors(logError)
     .each(H.log);
+
+console.log(config.logo.join('\n'));
