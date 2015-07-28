@@ -18,8 +18,10 @@
   },
   "homepage": "https://github.com/histograph/core",
   "dependencies": {
+    "elasticsearch": "^5.0.0",
+    "graphmalizer-core": "graphmalizer/graphmalizer-core",
     "highland": "^2.5.1",
-    "histograph-uri-normalizer": "git://github.com/histograph/uri-normalizer.git",
+    "histograph-uri-normalizer": "histograph/uri-normalizer",
     "minimist": "^1.1.2",
     "redis": "^0.12.1"
   },
