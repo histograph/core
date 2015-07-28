@@ -55,7 +55,7 @@ function toGraphmalizer(msg)
         return undefined;
     }
 
-    var d = msg.data || {};
+    var d = msg.data;
 
     // move bunch of top level attributes into data
     // TODO read from JSON Schema?
