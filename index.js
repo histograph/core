@@ -82,6 +82,8 @@ function toGraphmalizer(msg)
         source: norm(d.from),
         target: norm(d.to),
 
+        geometry: d.geometry,
+
         data: stringifyObjectFields(d)
     }
 }
