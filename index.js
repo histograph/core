@@ -110,23 +110,20 @@ var remove = es_client.delete.bind(es_client);
 
 var OP_MAP = {
     add: index,
-    update: index,
-    delete: remove
+    remove: remove
 };
 
 // index documents into elasticsearch
 function toElastic(data){
     // select appropriate ES operation
-    var operation = OP_MAP[data.action];
+    var operation = OP_MAP[data.operation];
 
     var opts = {
         index: data.dataset,
         type: data.type,
         id: data.id,
-        body: data.doc
+        body: data.data
     };
-
-    log('Elastic ~~', pp.render(opts));
 
     // run it, returns a stream
     return H(operation(opts));
@@ -142,7 +139,7 @@ var commands = redis
 
 graphmalizer(commands)
     .map(function(d){
-        return toElastic(d.request);
+        return toElastic(d.request.parameters);
     })
     .series()
     .errors(logError)
