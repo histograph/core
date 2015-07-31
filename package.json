@@ -22,6 +22,7 @@
     "graphmalizer-core": "graphmalizer/graphmalizer-core",
     "highland": "^2.5.1",
     "histograph-config": "histograph/config",
+    "histograph-schemas": "histograph/schemas",
     "histograph-uri-normalizer": "histograph/uri-normalizer",
     "minimist": "^1.1.2",
     "redis": "^0.12.1"

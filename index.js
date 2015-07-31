@@ -7,11 +7,10 @@ var H = require('highland');
 var Graphmalizer = require('graphmalizer-core');
 
 var config = require('histograph-config');
+var schemas = require('histograph-schemas');
 
 var Redis = require('redis');
 var redis_client = Redis.createClient();
-var queueName = argv.q || argv.queue || 'histograph-queue';
-
 // create a stream from redis queue
 var redis = H(function redisGenerator(push, next)
 {
@@ -37,7 +36,7 @@ var redis = H(function redisGenerator(push, next)
     }
 
     // blocking pull from redis
-    redis_client.blpop(queueName, 0, redisCallback);
+    redis_client.blpop(config.redis.queue, 0, redisCallback);
 });
 
 var ACTION_MAP = {
@@ -135,7 +134,15 @@ var commands = redis
     .errors(logError)
     .map(toGraphmalizer);
 
-var graphmalizer = new Graphmalizer(config.graphmalizer);
+var gconf = {
+    types: schemas.graphmalizer.types,
+    Neo4J: {
+        hostname: config.neo4j.host,
+        port: config.neo4j.port
+    }
+};
+
+var graphmalizer = new Graphmalizer(gconf);
 
 graphmalizer.register(commands)
     .map(function(d){
