@@ -4,9 +4,9 @@ var argv = require('minimist')(process.argv.slice(2));
 var normalizeIdentifiers = require('histograph-uri-normalizer').normalize;
 
 var H = require('highland');
-var graphmalizer = require('graphmalizer-core');
+var Graphmalizer = require('graphmalizer-core');
 
-var config = require(process.env.HISTOGRAPH_CONFIG);
+var config = require('histograph-config');
 
 var Redis = require('redis');
 var redis_client = Redis.createClient();
@@ -135,7 +135,9 @@ var commands = redis
     .errors(logError)
     .map(toGraphmalizer);
 
-graphmalizer(commands)
+var graphmalizer = new Graphmalizer(config.graphmalizer);
+
+graphmalizer.register(commands)
     .map(function(d){
         // only index nodes into elasticsearch
         if(d.request.parameters.structure === 'node')
