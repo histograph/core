@@ -44,7 +44,7 @@ var ACTION_MAP = {
     add: 'add',
     update: 'add',
     delete: 'remove'
-}
+};
 
 function toGraphmalizer(msg)
 {
@@ -56,15 +56,13 @@ function toGraphmalizer(msg)
         return undefined;
     }
 
-    var d = msg.data;
+    var d = msg.data || {};
 
-    // move bunch of top level attributes into data
-    // TODO read from JSON Schema?
+    // dataset is a top-level attribute that we want copied into the 'data' attribute
     d.dataset = msg.dataset;
-    d.name = d.name;
-    d.geometry = d.geometry;
-    d.hasBeginning = d.hasBeginning;
-    d.hasEnd = d.hasEnd;
+
+    // if name is not already a 'data' attribute, then copy it from the top-level attribute
+    d.name = (d.name || msg.name);
 
     return {
         operation: ACTION_MAP[msg.action],
@@ -81,8 +79,6 @@ function toGraphmalizer(msg)
         // formalize source/target id's
         source: norm(d.from),
         target: norm(d.to),
-
-        geometry: d.geometry,
 
         data: stringifyObjectFields(d)
     }
