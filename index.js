@@ -61,14 +61,10 @@ function toGraphmalizer(msg)
     // dataset is a top-level attribute that we want copied into the 'data' attribute
     d.dataset = msg.dataset;
 
-    // if name is not already a 'data' attribute, then copy it from the top-level attribute
-    d.name = (d.name || msg.name);
-
     return {
         operation: ACTION_MAP[msg.action],
 
-        // some old data uses sourceId
-        dataset: msg.dataset,
+        dataset: d.dataset,
 
         // some old data uses `label` instead of `type`
         type: d.type,
