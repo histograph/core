@@ -142,7 +142,8 @@ var gconf = {
     types: schemas.graphmalizer.types,
     Neo4J: {
         hostname: config.neo4j.host,
-        port: config.neo4j.port
+        port: config.neo4j.port,
+        auth: neo4jAuth
     },
     batchSize: config.core.batchSize,
     batchTimeout: config.core.batchTimeout
