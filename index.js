@@ -133,6 +133,10 @@ function logError(err) {
 var commands = redis
     .errors(logError)
     .map(toGraphmalizer);
+var neo4jAuth;
+if (config.neo4j.user && config.neo4j.password) {
+  neo4jAuth = config.neo4j.user + ':' + config.neo4j.password;
+}
 
 var gconf = {
     types: schemas.graphmalizer.types,
