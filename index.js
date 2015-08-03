@@ -139,7 +139,9 @@ var gconf = {
     Neo4J: {
         hostname: config.neo4j.host,
         port: config.neo4j.port
-    }
+    },
+    batchSize: config.core.batchSize,
+    batchTimeout: config.core.batchTimeout
 };
 
 var graphmalizer = new Graphmalizer(gconf);
