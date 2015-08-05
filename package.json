@@ -19,10 +19,10 @@
   "homepage": "https://github.com/histograph/core",
   "dependencies": {
     "elasticsearch": "^5.0.0",
-    "graphmalizer-core": "graphmalizer/graphmalizer-core",
+    "graphmalizer-core": "graphmalizer/graphmalizer-core#clean-broken",
     "highland": "^2.5.1",
     "histograph-config": "histograph/config",
-    "histograph-schemas": "histograph/schemas#graphmalizer",
+    "histograph-schemas": "histograph/schemas",
     "histograph-uri-normalizer": "histograph/uri-normalizer",
     "minimist": "^1.1.2",
     "redis": "^0.12.1"
