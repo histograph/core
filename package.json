@@ -1,0 +1,43 @@
+{
+  "name": "histograph-core",
+  "version": "0.0.1",
+  "description": "Read from redis and index to ES/Graphmalizer",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/histograph/core.git"
+  },
+  "author": "Jelle 'wires' Herold <jelle@waag.org>",
+  "license": "AGPL-1.0",
+  "bugs": {
+    "url": "https://github.com/histograph/core/issues"
+  },
+  "homepage": "https://github.com/histograph/core",
+  "dependencies": {
+    "elasticsearch": "^5.0.0",
+    "highland": "^2.5.1",
+    "histograph-config": "histograph/config",
+    "histograph-schemas": "histograph/schemas",
+    "histograph-uri-normalizer": "histograph/uri-normalizer",
+    "graphmalizer-core": "graphmalizer/graphmalizer-core",
+    "minimist": "^1.1.2",
+    "redis": "^0.12.1"
+  },
+  "jshintConfig": {
+    "node": true,
+    "globalstrict": false,
+    "undef": true,
+    "unused": true,
+    "noarg": true
+  },
+  "jscsConfig": {
+    "preset": "airbnb",
+    "requireCamelCaseOrUpperCaseIdentifiers": null,
+    "disallowMultipleVarDecl": true,
+    "requireMultipleVarDecl": null
+  }
+}

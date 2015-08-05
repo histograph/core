@@ -1,11 +1,2 @@
-target
-dump.rdb
-*.txt
-.settings
-.classpath
-.project
-/target/
-/doc/javadoc
-.idea
-
-histograph-core.iml
+node_modules/
+.idea/
