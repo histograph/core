@@ -1,18 +1,19 @@
 {
   "name": "histograph-core",
   "version": "0.0.1",
-  "description": "Read from redis and index to ES/Graphmalizer",
+  "description": "Read from Redis and index to Graphmalizer and Elasticsearch",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jshint index.js lib test && jscs index.js lib test && node_modules/.bin/mocha test/test.js"
   },
+
   "repository": {
     "type": "git",
     "url": "https://github.com/histograph/core.git"
   },
   "author": "Jelle 'wires' Herold <jelle@waag.org>",
-  "license": "AGPL-1.0",
+  "license": "GPL-3.0",
   "bugs": {
     "url": "https://github.com/histograph/core/issues"
   },
@@ -26,6 +27,11 @@
     "graphmalizer-core": "graphmalizer/graphmalizer-core",
     "minimist": "^1.1.2",
     "redis": "^0.12.1"
+  },
+  "devDependencies": {
+    "mocha": "^2.2.1",
+    "jscs": "^1.10.0",
+    "jshint": "^2.6.0"
   },
   "jshintConfig": {
     "node": true,
