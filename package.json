@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "jshint index.js lib test && jscs index.js lib test && node_modules/.bin/mocha test/test.js"
+    "test": "jshint index.js && jscs index.js"
   },
 
   "repository": {
