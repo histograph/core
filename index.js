@@ -155,7 +155,7 @@ if (config.neo4j.user && config.neo4j.password) {
 }
 
 var gconf = {
-  types: schemas.graphmalizer.types,
+  types: schemas.graphmalizer,
   Neo4J: {
     hostname: config.neo4j.host,
     port: config.neo4j.port,
