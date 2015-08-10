@@ -25,6 +25,7 @@
     "histograph-schemas": "histograph/schemas",
     "histograph-uri-normalizer": "histograph/uri-normalizer",
     "graphmalizer-core": "graphmalizer/graphmalizer-core",
+    "fuzzy-dates": "histograph/fuzzy-dates",
     "minimist": "^1.1.2",
     "redis": "^0.12.1"
   },

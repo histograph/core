@@ -1,5 +1,6 @@
 var config = require('histograph-config');
 var schemas = require('histograph-schemas');
+var fuzzyDates = require('fuzzy-dates');
 var Graphmalizer = require('graphmalizer-core');
 var H = require('highland');
 var Redis = require('redis');
@@ -113,6 +114,15 @@ var OP_MAP = {
 function toElastic(data) {
   // select appropriate ES operation
   var operation = OP_MAP[data.operation];
+
+  // Normalize fuzzy dates (if present)
+  if (data.data.validSince) {
+    data.data.validSince = fuzzyDates.convert(data.data.validSince);
+  }
+
+  if (data.data.validUntil) {
+    data.data.validUntil = fuzzyDates.convert(data.data.validUntil);
+  }
 
   // replace string version with original
   try {
