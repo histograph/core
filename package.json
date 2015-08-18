@@ -7,7 +7,6 @@
     "start": "node index.js",
     "test": "jshint index.js && jscs index.js"
   },
-
   "repository": {
     "type": "git",
     "url": "https://github.com/histograph/core.git"

@@ -7,6 +7,7 @@ var H = require('highland');
 var Redis = require('redis');
 var redisClient = Redis.createClient(config.redis.port, config.redis.host);
 
+
 // Convert any ID, URI, URN to Histograph URN
 var normalize = require('histograph-uri-normalizer').normalize;
 
@@ -118,11 +119,11 @@ function toElastic(data) {
 
   // Normalize fuzzy dates (if present)
   if (data.data.validSince) {
-    data.data.validSince = fuzzyDates.convert(data.data.validSince);
+    data.data.validSince = fuzzyDates.convert(JSON.parse(data.data.validSince));
   }
 
   if (data.data.validUntil) {
-    data.data.validUntil = fuzzyDates.convert(data.data.validUntil);
+    data.data.validUntil = fuzzyDates.convert(JSON.parse(data.data.validUntil));
   }
 
   // replace string version with original
