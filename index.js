@@ -161,8 +161,8 @@ var gconf = {
     port: config.neo4j.port,
     auth: neo4jAuth
   },
-  batchSize: config.core.batchSize,
-  batchTimeout: config.core.batchTimeout
+  batchSize: argv.batchSize || config.core.batchSize,
+  batchTimeout: argv.batchTimeout || config.core.batchTimeout
 };
 
 var graphmalizer = new Graphmalizer(gconf);
