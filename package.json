@@ -20,13 +20,13 @@
   "homepage": "https://github.com/histograph/core",
   "dependencies": {
     "elasticsearch": "^5.0.0",
+    "fuzzy-dates": "histograph/fuzzy-dates",
+    "graphmalizer-core": "graphmalizer/graphmalizer-core",
     "highland": "^2.5.1",
     "histograph-config": "histograph/config",
     "histograph-schemas": "histograph/schemas",
     "histograph-uri-normalizer": "histograph/uri-normalizer",
-    "graphmalizer-core": "graphmalizer/graphmalizer-core",
-    "fuzzy-dates": "histograph/fuzzy-dates",
-    "minimist": "^1.1.2",
+    "minimist": "^1.1.3",
     "redis": "^0.12.1"
   },
   "devDependencies": {
