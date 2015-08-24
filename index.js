@@ -92,7 +92,8 @@ function stringifyObjectFields(obj) {
   if (typeof (d) === 'object') {
     Object.keys(d).forEach(function(k) {
       var v = d[k];
-      if (typeof (v) === 'object') {
+
+      if (v.constructor === Object) {
         d[k] = JSON.stringify(v);
       }
     });
