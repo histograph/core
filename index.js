@@ -64,12 +64,20 @@ function toGraphmalizer(msg) {
   // dataset is a top-level attribute that we want copied into the 'data' attribute
   d.dataset = msg.dataset;
 
+  // Parse fuzzy dates to arrays using fuzzy-dates module
+  if (d.validSince) {
+    d.validSince = fuzzyDates.convert(d.validSince);
+  }
+
+  if (d.validUntil) {
+    d.validUntil = fuzzyDates.convert(d.validUntil);
+  }
+
   return {
     operation: ACTION_MAP[msg.action],
 
     dataset: d.dataset,
 
-    // some old data uses `label` instead of `type`
     type: d.type,
 
     // nodes are identified with id's or URI's, we don't care
@@ -118,19 +126,12 @@ function toElastic(data) {
   // select appropriate ES operation
   var operation = OP_MAP[data.operation];
 
-  // Normalize fuzzy dates (if present)
-  if (data.data.validSince) {
-    data.data.validSince = fuzzyDates.convert(JSON.parse(data.data.validSince));
-  }
-
-  if (data.data.validUntil) {
-    data.data.validUntil = fuzzyDates.convert(JSON.parse(data.data.validUntil));
-  }
-
   // replace string version with original
-  try {
-    data.data.geometry = JSON.parse(data.data.geometry) ;
-  } catch (_) {
+  if (data.data.geometry) {
+    try {
+      data.data.geometry = JSON.parse(data.data.geometry) ;
+    } catch (_) {
+    }
   }
 
   var opts = {
