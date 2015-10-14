@@ -6,7 +6,7 @@ var Graphmalizer = require('graphmalizer-core');
 var H = require('highland');
 var Redis = require('redis');
 var redisClient = Redis.createClient(config.redis.port, config.redis.host);
-
+var u = require('util');
 
 // Convert any ID, URI, URN to Histograph URN
 var normalize = require('histograph-uri-normalizer').normalize;
@@ -111,14 +111,9 @@ function stringifyObjectFields(obj) {
 }
 
 // Index into elasticsearch
-
-// calling c.fn without 2nd argument yields a promise
-var index = esClient.index.bind(esClient);
-var remove = esClient.delete.bind(esClient);
-
 var OP_MAP = {
-  add: index,
-  remove: remove
+  add: "index",
+  remove: "delete"
 };
 
 // index documents into elasticsearch
@@ -134,15 +129,22 @@ function toElastic(data) {
     }
   }
 
-  var opts = {
-    index: data.dataset,
-    type: data.type,
-    id: data.id,
-    body: data.data
+  // { "action": { _index ... } , see
+  // https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/api-reference-2-0.html
+  var actionDesc = {};
+  actionDesc[operation] = {
+    _index: data.dataset,
+    _type: data.type,
+    _id: data.id
   };
 
-  // run it, returns a stream
-  return H(operation(opts));
+  var thing = [actionDesc];
+
+  // when removing no document is needed
+  if(data.operation === "add")
+    thing.push(data.data);
+
+  return thing;
 }
 
 function logError(err) {
@@ -171,19 +173,63 @@ var gconf = {
 
 var graphmalizer = new Graphmalizer(gconf);
 
-graphmalizer.register(commands)
-    .map(function(d) {
-      // only index nodes into elasticsearch
-      if (d.request.parameters.structure === 'node') {
-        return toElastic(d.request.parameters);
-      }
+function batchIntoElasticsearch(err, x, push, next){
+  if (err) {
+    // pass errors along the stream and consume next value
+    push(err);
+    next();
+    return;
+  }
 
-      return H([]);
+  if (x === H.nil) {
+    // pass nil (end event) along the stream,
+    push(null, H.nil);
+    // dont call next() on finished stream
+    return;
+  }
+
+  // index into elasticsearch
+  esClient.bulk({body: x}, function(err, resp){
+    // ES oopsed, we send the error downstream
+    if(err) {
+      push(err);
+      next();
+      return;
+    }
+
+    // all went fine, send the respons downstream
+    push(null, H([resp]));
+    next();
+
+  })
+}
+
+function flatten(arrays) {
+  return [].concat.apply([], arrays);
+}
+
+graphmalizer.register(commands)
+    // we only index PiTs into elasticsearch, not relations.
+    .map(function(d){
+      return d.request.parameters
     })
+    .filter(function(d){
+      return d.structure === 'node';
+    })
+    // first batch them up
+    .batchWithTimeOrCount(5000, 1000)
+
+    // convert batch into batch of ES commands
+    .map(function(pits) {
+      // turn batch into a list of form [action, doc, action, doc, ...]
+      return flatten(pits.map(toElastic));
+    })
+    .consume(batchIntoElasticsearch)
     .series()
     .errors(logError)
-    .each(function() {
-      process.stdout.write('.');
+    .each(function(resp) {
+      var r = resp || {took: 0, errors:false, items: []}
+      console.log("ES => %d indexed, took %dms, errors: %s", r.items.length, r.took, r.errors)
     });
 
 console.log(config.logo.join('\n'));
