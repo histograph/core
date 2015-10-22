@@ -94,8 +94,5 @@ Update PITs:
 rpush "histograph-queue" "{'action': 'update', 'type': 'pit', 'source': 'graafje', 'data': { 'id': '321', 'name': 'Frits', 'type': 'Human' } }"
 ```
 
-## License
 
 Copyright (C) 2015 [Waag Society](http://waag.org).
-
-The source for Histograph is released under the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
