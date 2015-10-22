@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/histograph/core",
   "dependencies": {
-    "elasticsearch": "^5.0.0",
+    "elasticsearch": "^8.2.0",
     "fuzzy-dates": "histograph/fuzzy-dates",
     "graphmalizer-core": "graphmalizer/graphmalizer-core",
     "highland": "^2.5.1",
