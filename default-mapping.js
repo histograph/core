@@ -4,7 +4,7 @@ module.exports = {
     "number_of_replicas": 0,
     "analysis": {
       "analyzer": {
-        "zemmel": {
+        "lowercase": {
           "type": "custom",
           "filter": " lowercase",
           "tokenizer":  "keyword"
@@ -41,7 +41,7 @@ module.exports = {
               "type": "string"
             },
             "exact": {
-              "analyzer": "zemmel",
+              "analyzer": "lowercase",
               "store": true,
               "type": "string"
             }
