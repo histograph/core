@@ -7,6 +7,7 @@ var H = require('highland');
 var Redis = require('redis');
 var redisClient = Redis.createClient(config.redis.port, config.redis.host);
 var u = require('util');
+var defaultMapping = require('./default-mapping')
 
 // Convert any ID, URI, URN to Histograph URN
 var normalize = require('histograph-uri-normalizer').normalize;
@@ -173,6 +174,25 @@ var gconf = {
 
 var graphmalizer = new Graphmalizer(gconf);
 
+
+// create named index
+var createIndex = H.wrapCallback(esClient.indices.create.bind(esClient.indices))
+
+// find all indices in ES bulk request
+function collectIndices(bulk_request)
+{
+  return H(bulk_request)
+    // we only create indices for `index` events (not deletes)
+    .filter(H.get('index'))
+
+    // take out the elasticsearch index
+    .map(H.get('index'))
+    .map(H.get('_index'))
+
+    // restrict to unique items
+    .uniq()
+}
+
 function batchIntoElasticsearch(err, x, push, next){
   if (err) {
     // pass errors along the stream and consume next value
@@ -188,20 +208,41 @@ function batchIntoElasticsearch(err, x, push, next){
     return;
   }
 
-  // index into elasticsearch
-  esClient.bulk({body: x}, function(err, resp){
-    // ES oopsed, we send the error downstream
-    if(err) {
-      push(err);
-      next();
-      return;
-    }
+  // Create indices, then bulk index
+  collectIndices(x)
+    .map(function(indexName){
+      // turn name into options for `esClient.indices.create`
+      return {
+        index: indexName,
+        body: defaultMapping
+      }
+    })
+    .map(createIndex)
+    .series()
+  	.errors(function(err){console.log("ignored", err && err.message)})
 
-    // all went fine, send the respons downstream
-    push(null, H([resp]));
-    next();
+    // collect all results
+    .collect()
+    .each(function(results){
 
-  })
+      // tell it
+      console.log("Created all indices", results)
+
+      // bulk index index into elasticsearch
+      esClient.bulk({body: x}, function(err, resp){
+        // ES oopsed, we send the error downstream
+        if(err) {
+          push(err);
+          next();
+          return;
+        }
+
+        // all went fine, send the respons downstream
+        push(null, H([resp]));
+        next();
+      })
+
+    });
 }
 
 function flatten(arrays) {
