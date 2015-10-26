@@ -1,7 +1,16 @@
 module.exports = {
   "settings": {
     "number_of_shards": 5,
-    "number_of_replicas": 0
+    "number_of_replicas": 0,
+    "analysis": {
+      "analyzer": {
+        "zemmel": {
+          "type": "custom",
+          "filter": " lowercase",
+          "tokenizer":  "keyword"
+        }
+      }
+    }
   },
   "mappings": {
     "_default_": {
@@ -32,7 +41,7 @@ module.exports = {
               "type": "string"
             },
             "exact": {
-              "analyzer": "lowercase",
+              "analyzer": "zemmel",
               "store": true,
               "type": "string"
             }
