@@ -219,7 +219,15 @@ function batchIntoElasticsearch(err, x, push, next){
     })
     .map(createIndex)
     .series()
-  	.errors(function(err){console.log("ignored", err && err.message)})
+  	.errors(function(err){
+
+      if(err && /^IndexAlreadyExistsException/.test(err.message)) {
+        console.log("Index already exists", err);
+      } else {
+        console.log("Failed creating index")
+        console.error(err, err && err.message)
+      }
+    })
 
     // collect all results
     .collect()
