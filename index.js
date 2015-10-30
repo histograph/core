@@ -51,6 +51,10 @@ var ACTION_MAP = {
   delete: 'remove'
 };
 
+function getUnixTime(date) {
+  return new Date(date).getTime() / 1000;
+}
+
 function toGraphmalizer(msg) {
   function norm(x) {
     if (x) {
@@ -68,10 +72,19 @@ function toGraphmalizer(msg) {
   // Parse fuzzy dates to arrays using fuzzy-dates module
   if (d.validSince) {
     d.validSince = fuzzyDates.convert(d.validSince);
+
+    // Add timestamp
+    // TODO: find more structured way to add extra values/fields
+    //   to Graphmalizer (and Neo4j afterwards) - API needs to remove
+    //   those fields later
+    d.validSinceTimestamp = getUnixTime(d.validSince[0]);
   }
 
   if (d.validUntil) {
     d.validUntil = fuzzyDates.convert(d.validUntil);
+
+    // Add timestamp
+    d.validUntilTimestamp = getUnixTime(d.validUntil[1]);
   }
 
   return {
