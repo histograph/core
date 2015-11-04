@@ -279,7 +279,7 @@ graphmalizer.register(commands)
       return d.structure === 'node';
     })
     // first batch them up
-    .batchWithTimeOrCount(5000, 1000)
+    .batchWithTimeOrCount(argv.batchTimeout || config.core.batchTimeout, argv.batchSize || config.core.batchSize)
 
     // convert batch into batch of ES commands
     .map(function(pits) {
