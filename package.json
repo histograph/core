@@ -21,7 +21,7 @@
     "elasticsearch": "^12.1.3",
     "highland": "^2.5.1",
     "fuzzy-dates": "git+https://github.com/histograph/fuzzy-dates#puppetdeploy",
-    "graphmalizer-core": "git+https://github.com/graphmalizer/graphmalizer-core#puppetdeploy",
+    "graphmalizer-core": "git+https://github.com/graphmalizer/graphmalizer-core",
     "histograph-config": "git+https://github.com/histograph/config#puppetdeploy",
     "histograph-schemas": "git+https://github.com/histograph/schemas#puppetdeploy",
     "histograph-uri-normalizer": "git+https://github.com/histograph/uri-normalizer#puppetdeploy",
