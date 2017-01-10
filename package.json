@@ -20,11 +20,11 @@
   "dependencies": {
     "elasticsearch": "^8.2.0",
     "highland": "^2.5.1",
-    "fuzzy-dates": "git+https://github.com/histograph/fuzzy-dates#v0.5.0",
-    "graphmalizer-core": "git+https://github.com/graphmalizer/graphmalizer-core#v0.5.0",
-    "histograph-config": "git+https://github.com/histograph/config#v0.5.1",
-    "histograph-schemas": "git+https://github.com/histograph/schemas#v0.5.1",
-    "histograph-uri-normalizer": "git+https://github.com/histograph/uri-normalizer#v0.5.0",
+    "fuzzy-dates": "git+https://github.com/histograph/fuzzy-dates#puppetdeploy",
+    "graphmalizer-core": "git+https://github.com/graphmalizer/graphmalizer-core#puppetdeploy",
+    "histograph-config": "git+https://github.com/histograph/config#puppetdeploy",
+    "histograph-schemas": "git+https://github.com/histograph/schemas#puppetdeploy",
+    "histograph-uri-normalizer": "git+https://github.com/histograph/uri-normalizer#puppetdeploy",
     "minimist": "^1.1.3",
     "redis": "^0.12.1"
   },

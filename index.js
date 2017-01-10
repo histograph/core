@@ -7,7 +7,7 @@ var H = require('highland');
 var Redis = require('redis');
 var redisClient = Redis.createClient(config.redis.port, config.redis.host);
 var u = require('util');
-var defaultMapping = require('./default-mapping')
+var defaultMapping = require('./default-mapping');
 
 // Convert any ID, URI, URN to Histograph URN
 var normalize = require('histograph-uri-normalizer').normalize;
@@ -189,11 +189,12 @@ var graphmalizer = new Graphmalizer(gconf);
 
 
 // create named index
-var createIndex = H.wrapCallback(esClient.indices.create.bind(esClient.indices))
+var createIndex = H.wrapCallback(esClient.indices.create.bind(esClient.indices));
 
 // find all indices in ES bulk request
 function collectIndices(bulk_request)
 {
+  //client.cat.indices([params, [callback]])
   return H(bulk_request)
     // we only create indices for `index` events (not deletes)
     .filter(H.get('index'))
@@ -203,7 +204,7 @@ function collectIndices(bulk_request)
     .map(H.get('_index'))
 
     // restrict to unique items
-    .uniq()
+    .uniq();
 }
 
 function batchIntoElasticsearch(err, x, push, next){
@@ -228,17 +229,17 @@ function batchIntoElasticsearch(err, x, push, next){
       return {
         index: indexName,
         body: defaultMapping
-      }
+      };
     })
     .map(createIndex)
     .series()
   	.errors(function(err){
 
-      if(err && /^IndexAlreadyExistsException/.test(err.message)) {
+      if(err && /^index_already_exists_exception/.test(err.message)) {
         console.log("Index already exists", err);
       } else {
-        console.log("Failed creating index")
-        console.error(err, err && err.message)
+        console.log("Failed creating index");
+        console.error(err, err && err.message);
       }
     })
 
@@ -247,7 +248,7 @@ function batchIntoElasticsearch(err, x, push, next){
     .each(function(results){
 
       // tell it
-      console.log("Created all indices", results)
+      console.log("Created all indices", results);
 
       // bulk index index into elasticsearch
       esClient.bulk({body: x}, function(err, resp){
@@ -261,7 +262,7 @@ function batchIntoElasticsearch(err, x, push, next){
         // all went fine, send the respons downstream
         push(null, H([resp]));
         next();
-      })
+      });
 
     });
 }
@@ -273,7 +274,7 @@ function flatten(arrays) {
 graphmalizer.register(commands)
     // we only index PiTs into elasticsearch, not relations.
     .map(function(d){
-      return d.request.parameters
+      return d.request.parameters;
     })
     .filter(function(d){
       return d.structure === 'node';
@@ -290,8 +291,8 @@ graphmalizer.register(commands)
     .series()
     .errors(logError)
     .each(function(resp) {
-      var r = resp || {took: 0, errors:false, items: []}
-      console.log("ES => %d indexed, took %dms, errors: %s", r.items.length, r.took, r.errors)
+      var r = resp || {took: 0, errors:false, items: []};
+      console.log("ES => %d indexed, took %dms, errors: %s", r.items.length, r.took, r.errors);
     });
 
 console.log(config.logo.join('\n'));
