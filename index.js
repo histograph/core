@@ -7,7 +7,7 @@ var H = require('highland');
 var Redis = require('redis');
 var redisClient = Redis.createClient(config.redis.port, config.redis.host);
 var u = require('util');
-var defaultMapping = require('./default-mapping');
+var defaultMapping = require('histograph-config/ESconfig')();
 
 // Convert any ID, URI, URN to Histograph URN
 var normalize = require('histograph-uri-normalizer').normalize;
