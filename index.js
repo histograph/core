@@ -235,7 +235,7 @@ function batchIntoElasticsearch(err, x, push, next){
     .series()
   	.errors(function(err){
 
-      if(err && /^index_already_exists_exception/.test(err.message)) {
+      if(err && /index_already_exists_exception/.test(err.message)) {
         console.log("Index already exists", err);
       } else {
         console.log("Failed creating index");
