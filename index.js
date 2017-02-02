@@ -204,7 +204,11 @@ function collectIndices(bulk_request)
     .map(H.get('_index'))
 
     // restrict to unique items
-    .uniq();
+    .uniq()
+    .reject(function (x) {
+      // console.log("I got: ",x);
+      return esClient.indices.exists(x);
+    });
 }
 
 function batchIntoElasticsearch(err, x, push, next){
@@ -225,14 +229,16 @@ function batchIntoElasticsearch(err, x, push, next){
   // Create indices, then bulk index
   collectIndices(x)
     .map(function(indexName){
+      console.log("Creating index: " + indexName);
       // turn name into options for `esClient.indices.create`
       return {
         index: indexName,
         body: defaultMapping
       };
+
     })
     .map(createIndex)
-    .series()
+    .parallel(10)
   	.errors(function(err){
 
       if(err && /index_already_exists_exception/.test(err.message)) {
@@ -244,14 +250,22 @@ function batchIntoElasticsearch(err, x, push, next){
     })
 
     // collect all results
+    .sequence()
     .collect()
     .each(function(results){
 
       // tell it
-      console.log("Created all indices", results);
+      if (results && results.length > 0){
+          console.log("Created all indices", JSON.stringify(results));
+      }else{
+          console.log("No index created");
+      }
+
+      // console.log("Data: " + JSON.stringify(x));
 
       // bulk index index into elasticsearch
-      esClient.bulk({body: x}, function(err, resp){
+      esClient.bulk({body: x, requestTimeout: config.elasticsearch.requestTimeoutMs},
+        function(err, resp){
         // ES oopsed, we send the error downstream
         if(err) {
           push(err);
@@ -292,6 +306,7 @@ graphmalizer.register(commands)
     .errors(logError)
     .each(function(resp) {
       var r = resp || {took: 0, errors:false, items: []};
+      console.log("ES resp: " + JSON.stringify(resp));
       console.log("ES => %d indexed, took %dms, errors: %s", r.items.length, r.took, r.errors);
     });
 
