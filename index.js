@@ -12,6 +12,7 @@ const defaultMapping = require('histograph-config/ESconfig')();
 // Convert any ID, URI, URN to Histograph URN
 const normalize = require('histograph-uri-normalizer').normalize;
 
+const log = require('histograph-logging');
 
 const my_log = new log("core");
 
@@ -334,4 +335,4 @@ graphmalizer.register(commands)
       my_log.info("ES => " + r.items.length + " indexed, took " + r.took + "ms, errors: " + r.errors);
     });
 
-my_log.info(config.logo.join('\n'));
+my_log.info("\n" + config.logo.join('\n'));
