@@ -1,24 +1,29 @@
-var argv = require('minimist')(process.argv.slice(2));
-var config = require('histograph-config');
-var schemas = require('histograph-schemas');
-var fuzzyDates = require('fuzzy-dates');
-var Graphmalizer = require('graphmalizer-core');
-var H = require('highland');
-var Redis = require('redis');
-var redisClient = Redis.createClient(config.redis.port, config.redis.host);
-var u = require('util');
-var defaultMapping = require('histograph-config/ESconfig')();
+const argv = require('minimist')(process.argv.slice(2));
+const config = require('histograph-config');
+const schemas = require('histograph-schemas');
+const fuzzyDates = require('fuzzy-dates');
+const Graphmalizer = require('graphmalizer-core');
+const H = require('highland');
+const Redis = require('redis');
+const redisClient = Redis.createClient(config.redis.port, config.redis.host);
+const u = require('util');
+const defaultMapping = require('histograph-config/ESconfig')();
 
 // Convert any ID, URI, URN to Histograph URN
-var normalize = require('histograph-uri-normalizer').normalize;
+const normalize = require('histograph-uri-normalizer').normalize;
 
-var elasticsearch = require('elasticsearch');
+
+const my_log = new log("core");
+
+const elasticsearch = require('elasticsearch');
 var esClient = new elasticsearch.Client({
   host: config.elasticsearch.host + ':' + config.elasticsearch.port
 });
 
 // Create a stream from Redis queue
 var redis = H(function redisGenerator(push, next) {
+
+  my_log.debug("In function redis");
 
   // Function called on each Redis message (or timeout)
   function redisCallback(err, data) {
@@ -43,9 +48,10 @@ var redis = H(function redisGenerator(push, next) {
 
   // blocking pull from Redis
   redisClient.blpop(config.redis.queue, 0, redisCallback);
+  my_log.debug("Out function redis");
 });
 
-var ACTION_MAP = {
+const ACTION_MAP = {
   add: 'add',
   update: 'add',
   delete: 'remove'
@@ -56,6 +62,8 @@ function getUnixTime(date) {
 }
 
 function toGraphmalizer(msg) {
+  my_log.debug("In function toGraphmalizer: " + JSON.stringify(msg));
+
   function norm(x) {
     if (x) {
       return normalize(x, msg.dataset);
@@ -87,7 +95,7 @@ function toGraphmalizer(msg) {
     d.validUntilTimestamp = getUnixTime(d.validUntil[1]);
   }
 
-  return {
+  const ret = {
     operation: ACTION_MAP[msg.action],
 
     dataset: d.dataset,
@@ -103,6 +111,10 @@ function toGraphmalizer(msg) {
 
     data: stringifyObjectFields(d)
   };
+
+  my_log.debug("Almost Out function toGraphmalizer: " + JSON.stringify(ret));
+
+  return ret;
 }
 
 // when passed an object, every field that contains an object
@@ -115,8 +127,12 @@ function stringifyObjectFields(obj) {
     Object.keys(d).forEach(function(k) {
       var v = d[k];
 
-      if (v.constructor === Object) {
-        d[k] = JSON.stringify(v);
+      if ( v !== null) {
+        if ( v.constructor && v.constructor === Object) {
+          d[k] = JSON.stringify(v);
+        }
+      }else{
+        my_log.warn("Object with null value for key: " + k + ", values: " + JSON.stringify(d));
       }
     });
   }
@@ -125,15 +141,18 @@ function stringifyObjectFields(obj) {
 }
 
 // Index into elasticsearch
-var OP_MAP = {
+const OP_MAP = {
   add: "index",
   remove: "delete"
 };
 
 // index documents into elasticsearch
 function toElastic(data) {
+
+  my_log.debug("In function toElastic");
+
   // select appropriate ES operation
-  var operation = OP_MAP[data.operation];
+  const operation = OP_MAP[data.operation];
 
   // replace string version with original
   if (data.data && data.data.geometry) {
@@ -158,11 +177,12 @@ function toElastic(data) {
   if(data.operation === "add")
     thing.push(data.data);
 
+  my_log.debug("Almost Out function toElastic: " + JSON.stringify(thing));
   return thing;
 }
 
 function logError(err) {
-  console.error(err.stack || err);
+  my_log.error(err.stack || err);
 }
 
 var commands = redis
@@ -206,12 +226,15 @@ function collectIndices(bulk_request)
     // restrict to unique items
     .uniq()
     .reject(function (x) {
-      // console.log("I got: ",x);
+      // my_log.debug("I got: " + x);
       return esClient.indices.exists(x);
     });
 }
 
 function batchIntoElasticsearch(err, x, push, next){
+
+  my_log.debug("In function batchIntoElasticsearch");
+
   if (err) {
     // pass errors along the stream and consume next value
     push(err);
@@ -229,7 +252,7 @@ function batchIntoElasticsearch(err, x, push, next){
   // Create indices, then bulk index
   collectIndices(x)
     .map(function(indexName){
-      console.log("Creating index: " + indexName);
+      my_log.debug("Creating index: " + indexName);
       // turn name into options for `esClient.indices.create`
       return {
         index: indexName,
@@ -242,10 +265,10 @@ function batchIntoElasticsearch(err, x, push, next){
   	.errors(function(err){
 
       if(err && /index_already_exists_exception/.test(err.message)) {
-        console.log("Index already exists", err);
+        my_log.warn("Index already exists: " + err);
       } else {
-        console.log("Failed creating index");
-        console.error(err, err && err.message);
+        my_log.error("Failed creating index");
+        my_log.error(err.message);
       }
     })
 
@@ -256,12 +279,12 @@ function batchIntoElasticsearch(err, x, push, next){
 
       // tell it
       if (results && results.length > 0){
-          console.log("Created all indices", JSON.stringify(results));
+          my_log.debug("Created all indices: " + JSON.stringify(results));
       }else{
-          console.log("No index created");
+          my_log.debug("No index created");
       }
 
-      // console.log("Data: " + JSON.stringify(x));
+      // my_log.debug("Data: " + JSON.stringify(x));
 
       // bulk index index into elasticsearch
       esClient.bulk({body: x, requestTimeout: config.elasticsearch.requestTimeoutMs},
@@ -279,6 +302,7 @@ function batchIntoElasticsearch(err, x, push, next){
       });
 
     });
+    my_log.debug("Out function batchIntoElasticsearch");
 }
 
 function flatten(arrays) {
@@ -306,8 +330,8 @@ graphmalizer.register(commands)
     .errors(logError)
     .each(function(resp) {
       var r = resp || {took: 0, errors:false, items: []};
-      console.log("ES resp: " + JSON.stringify(resp));
-      console.log("ES => %d indexed, took %dms, errors: %s", r.items.length, r.took, r.errors);
+      my_log.debug("ES resp: " + JSON.stringify(resp));
+      my_log.info("ES => " + r.items.length + " indexed, took " + r.took + "ms, errors: " + r.errors);
     });
 
-console.log(config.logo.join('\n'));
+my_log.info(config.logo.join('\n'));

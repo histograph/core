@@ -25,6 +25,7 @@
     "histograph-config": "git+https://github.com/histograph/config#puppetdeploy",
     "histograph-schemas": "git+https://github.com/histograph/schemas#puppetdeploy",
     "histograph-uri-normalizer": "git+https://github.com/histograph/uri-normalizer#puppetdeploy",
+    "histograph-logging": "git+https://github.com/histograph/logging#puppetdeploy",
     "minimist": "^1.1.3",
     "redis": "^2.6.3"
   },
