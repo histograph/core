@@ -159,7 +159,9 @@ function toElastic(data) {
   if (data.data && data.data.geometry) {
     try {
       data.data.geometry = JSON.parse(data.data.geometry) ;
-    } catch (_) {
+    } catch (err) {
+      my_log.error("Geometry " + data.data.geometry + " cannot be parsed, err: " + err);
+      my_log.debug(err.stack || "No Stack Info");
     }
   }
 
@@ -182,12 +184,12 @@ function toElastic(data) {
   return thing;
 }
 
-function logError(err) {
-  my_log.error(err.stack || err);
-}
 
 var commands = redis
-    .errors(logError)
+    .errors(function(err){
+      my_log.error("Error processing redis, error message: " + err);
+      my_log.debug(err.stack || "No Stack Info");
+    })
     .map(toGraphmalizer);
 
 var neo4jAuth;
@@ -262,7 +264,6 @@ function batchIntoElasticsearch(err, x, push, next){
 
     })
     .map(createIndex)
-    .parallel(10)
   	.errors(function(err){
 
       if(err && /index_already_exists_exception/.test(err.message)) {
@@ -272,11 +273,9 @@ function batchIntoElasticsearch(err, x, push, next){
         my_log.error(err.message);
       }
     })
-
+    .parallel(10)
     // collect all results
-    .sequence()
-    .collect()
-    .each(function(results){
+    .toArray(function(results){
 
       // tell it
       if (results && results.length > 0){
@@ -293,16 +292,14 @@ function batchIntoElasticsearch(err, x, push, next){
         // ES oopsed, we send the error downstream
         if(err) {
           push(err);
-          next();
-          return;
+        }else{
+          // all went fine, send the respons downstream
+          push(null, H([resp]));
         }
-
-        // all went fine, send the respons downstream
-        push(null, H([resp]));
-        next();
       });
-
-    });
+      next();
+    })
+    
     my_log.debug("Out function batchIntoElasticsearch");
 }
 
@@ -327,12 +324,26 @@ graphmalizer.register(commands)
       return flatten(pits.map(toElastic));
     })
     .consume(batchIntoElasticsearch)
-    .series()
-    .errors(logError)
+    .errors(function(err){
+      my_log.error("Error processing ES commands, error message: " + err);
+      my_log.debug(err.stack || "No Stack Info");
+    })
+    .series()    
     .each(function(resp) {
       var r = resp || {took: 0, errors:false, items: []};
+      if( r.items == null){
+        r.items = [];
+      }
       my_log.debug("ES resp: " + JSON.stringify(resp));
-      my_log.info("ES => " + r.items.length + " indexed, took " + r.took + "ms, errors: " + r.errors);
+      if ( r.errors ){
+        for (es_error=0;es_error<r.items.length;es_error++){
+          if (r.items[es_error].index && r.items[es_error].index.error != null ){
+             my_log.error("ES response:" + JSON.stringify(r.items[es_error].index));  
+          }
+        }
+      }
+      my_log.info("ES => " + r.items.length + " indexed, took " + r.took + " ms");
+      
     });
 
 my_log.info("\n" + config.logo.join('\n'));
