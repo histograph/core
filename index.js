@@ -342,8 +342,7 @@ graphmalizer.register(commands)
           }
         }
       }
-      my_log.info("ES => " + r.items.length + " indexed, took " + r.took + " ms");
-      
+      my_log.info("ES => " + r.items.length + " indexed, took " + r.took + "ms, errors: " + r.errors);      
     });
 
 my_log.info("\n" + config.logo.join('\n'));
