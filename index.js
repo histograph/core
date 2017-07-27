@@ -8,6 +8,7 @@ const Redis = require('redis');
 const redisClient = Redis.createClient(config.redis.port, config.redis.host);
 const u = require('util');
 const defaultMapping = require('histograph-config/ESconfig')();
+const WritableBulkIndexing = require('./writableBulk');
 
 // Convert any ID, URI, URN to Histograph URN
 const normalize = require('histograph-uri-normalizer').normalize;
@@ -20,6 +21,8 @@ const elasticsearch = require('elasticsearch');
 var esClient = new elasticsearch.Client({
   host: config.elasticsearch.host + ':' + config.elasticsearch.port
 });
+
+var bulk = new WritableBulkIndexing(esClient);
 
 // Create a stream from Redis queue
 var redis = H(function redisGenerator(push, next) {
@@ -274,35 +277,6 @@ graphmalizer.register(commands)
       return flatten(pits.map(toElastic));
     })
     .doto(createIndices)
-    .each(function(x){
-
-        my_log.debug("Data to index is: " + JSON.stringify(x));
-        // bulk index index into elasticsearch
-        esClient.bulk({body: x, requestTimeout: config.elasticsearch.requestTimeoutMs},
-          function(err, resp){
-          // ES oopsed, we send the error downstream
-          if(err) {
-            my_log.error("Error processing ES commands, message: " + err);
-            my_log.error(err.stack || "No Stack Info");
-          }else{
-            var r = resp || {took: 0, errors:false, items: []};
-            if( r.items == null){
-              r.items = [];
-            }
-            my_log.debug("ES resp: " + JSON.stringify(resp));
-            if ( r.errors ){
-              for (es_error=0;es_error<r.items.length;es_error++){
-                if (r.items[es_error].index && r.items[es_error].index.error != null ){
-                   my_log.error("ES response:" + JSON.stringify(r.items[es_error].index));  
-                }
-              }
-            }
-            my_log.info("ES => " + r.items.length + " indexed, took " + r.took + "ms, errors: " + r.errors);      
-          }
-        });
-    })
-    .done(function(){
-        my_log.info("Core pipeline done");
-    });
+    .pipe(bulk);
 
 my_log.info("\n" + config.logo.join('\n'));
