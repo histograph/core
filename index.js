@@ -225,24 +225,36 @@ const createAndCatch = function(bulk_request,callback){
 
   // restrict to unique items
   .uniq()
-  .each(function(indexName){
-    my_log.debug("Creating index: " + indexName);
+  .toArray(function(indexNames){
+    my_log.debug("Creating index: " + indexNames);
     // turn name into options for `esClient.indices.create`          
-    esClient.indices.create({index: indexName,body: defaultMapping},function(err, resp){
+    var lastOne = indexNames.length;
+    for (var cursor=0;cursor<indexNames.length;cursor++){
+      esClient.indices.create({index: indexNames[cursor],body: defaultMapping},function(err, resp){
+        lastOne = lastOne-1;
+        my_log.debug("Callback called, still pending: " + lastOne);
         if(err) {
           if(err && /index_already_exists_exception/.test(err.message)) {
             // my_log.debug("Index already exists: " + err);
-            callback(null,bulk_request);
+            
+            if (lastOne == 0 ){
+              callback(null,bulk_request);
+            }
           } else {
             my_log.error("Failed creating index");
             my_log.error(err.message);
-            callback(err,bulk_request);
+            if (lastOne == 0 ){
+              callback(err,bulk_request);
+            }
           }
         }else{
             my_log.info("Created index: " + indexName);
-            callback(null,bulk_request);
+            if (lastOne == 0 ){
+              callback(null,bulk_request);
+            }
         }
-    });
+      });
+    }
   });  
 };
   
