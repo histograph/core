@@ -213,11 +213,47 @@ var gconf = {
 
 var graphmalizer = new Graphmalizer(gconf);
 
+const createAndCatch = function(bulk_request,callback){
+  my_log.debug("Checking index in: " + bulk_request);
+  H(bulk_request)
+  // we only create indices for `index` events (not deletes)
+  .filter(H.get('index'))
+
+  // extract the elasticsearch index
+  .map(H.get('index'))
+  .map(H.get('_index'))
+
+  // restrict to unique items
+  .uniq()
+  .each(function(indexName){
+    my_log.debug("Creating index: " + indexName);
+    // turn name into options for `esClient.indices.create`          
+    esClient.indices.create({index: indexName,body: defaultMapping},function(err, resp){
+        if(err) {
+          if(err && /index_already_exists_exception/.test(err.message)) {
+            // my_log.debug("Index already exists: " + err);
+            callback(null,bulk_request);
+          } else {
+            my_log.error("Failed creating index");
+            my_log.error(err.message);
+            callback(err,bulk_request);
+          }
+        }else{
+            my_log.info("Created index: " + indexName);
+            callback(null,bulk_request);
+        }
+    });
+  });  
+};
+  
+  
+var wrappedCreate = H.wrapCallback(createAndCatch);
 
 // find all indices in ES bulk request
 function createIndices(bulk_request)
 {
   //client.cat.indices([params, [callback]])
+    my_log.debug("Checking index in: " + bulk_request);
     H(bulk_request)
     // we only create indices for `index` events (not deletes)
     .filter(H.get('index'))
@@ -228,31 +264,12 @@ function createIndices(bulk_request)
 
     // restrict to unique items
     .uniq()
-    .reject(function (x) {
-      // my_log.debug("I got: " + x);
-      return esClient.indices.exists(x);
-    })
-    .map(function(indexName){
-        my_log.info("Creating index: " + indexName);
-        // turn name into options for `esClient.indices.create`          
-        esClient.indices.create({index: indexName,body: defaultMapping},function(err, resp){
-            if(err) {
-              if(err && /index_already_exists_exception/.test(err.message)) {
-                my_log.warn("Index already exists: " + err);
-              } else {
-                my_log.error("Failed creating index");
-                my_log.error(err.message);
-              }
-            }else{
-                my_log.info("Created all indices: " + JSON.stringify(resp));
-            }
-        });
-      }
-    )
-    .parallel(10)
+    .map(wrappedCreate)
+    .sequence()
     .done(function (){
-      my_log.debug("Done with all new indices in: " + JSON.stringify(bulk_request));
+      my_log.debug("Done with all new indices");
     });
+    
     
 }
 
@@ -276,7 +293,8 @@ graphmalizer.register(commands)
       // turn batch into a list of form [action, doc, action, doc, ...]
       return flatten(pits.map(toElastic));
     })
-    .doto(createIndices)
+    .map(wrappedCreate)
+    .sequence()
     .pipe(bulk);
 
 my_log.info("\n" + config.logo.join('\n'));

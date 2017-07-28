@@ -41,6 +41,8 @@ WritableBulkIndexing.prototype._write = function(chunk, enc, next) {
   }
   
   this._doBulkIndexing(chunk, enc, next);
+  
+  return true;
 
 };
 
