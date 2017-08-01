@@ -43,4 +43,4 @@ _([1,2,3,4]).map(wrappedfunction).flatten().each(simplePrintFunction).done(funct
 
 _([1,2,3,4]).map(wrappedfunction).done(function(x){console.log("done");});
 
-_([1,2,3,4]).map(wrappedfunction).parallel(2).done(function(){console.log("done");});
+_([1,2,3,4]).map(wrappedfunction).parallel(2).toArray(simplePrintFunction).done(function(){console.log("done");});

@@ -262,28 +262,28 @@ const createAndCatch = function(bulk_request,callback){
 var wrappedCreate = H.wrapCallback(createAndCatch);
 
 // find all indices in ES bulk request
-function createIndices(bulk_request)
-{
-  //client.cat.indices([params, [callback]])
-    my_log.debug("Checking index in: " + bulk_request);
-    H(bulk_request)
-    // we only create indices for `index` events (not deletes)
-    .filter(H.get('index'))
-
-    // extract the elasticsearch index
-    .map(H.get('index'))
-    .map(H.get('_index'))
-
-    // restrict to unique items
-    .uniq()
-    .map(wrappedCreate)
-    .sequence()
-    .done(function (){
-      my_log.debug("Done with all new indices");
-    });
-    
-    
-}
+// function createIndices(bulk_request)
+// {
+//   //client.cat.indices([params, [callback]])
+//     my_log.debug("Checking index in: " + bulk_request);
+//     H(bulk_request)
+//     // we only create indices for `index` events (not deletes)
+//     .filter(H.get('index'))
+// 
+//     // extract the elasticsearch index
+//     .map(H.get('index'))
+//     .map(H.get('_index'))
+// 
+//     // restrict to unique items
+//     .uniq()
+//     .map(wrappedCreate)
+//     .sequence()
+//     .done(function (){
+//       my_log.debug("Done with all new indices");
+//     });
+//     
+//     
+// }
 
 function flatten(arrays) {
   return [].concat.apply([], arrays);
