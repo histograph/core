@@ -109,7 +109,40 @@ var clFunc = function(x,callback){
 
 var wrappedfunction = _.wrapCallback(clFunc);
 
+var consFunc = function(err,x,push,next){
+	console.log("In consFunc is: " + JSON.stringify(x));
+  if (err) {
+            // pass errors along the stream and consume next value
+    push(err);
+    next();
+  }else if (x === _.nil) {
+    console.log("In consFunc got null");
+    // pass nil (end event) along the stream
+    push(null, x);
+  }else{
+  	https.get('https://api.histograph.io/search?q=burlutto', (res) => {
+  	  console.log('statusCode:', res.statusCode);
+  	  // console.log('headers:', res.headers);
 
+  	  res.on('data', (d) => {
+  			console.log("data called: " + d )
+  	    // process.stdout.write(d);
+        push(null,d);
+  			next();
+  	  });
+
+  	}).on('error', (e) => {
+  		console.log("error called")
+  	  console.error(e);
+      push(e,null);
+      next();
+  	}).on('end',() => {
+  		console.log("end called")
+      push(null, _.nil);
+  	});
+  }
+	console.log("Out consFunc is: " + JSON.stringify(x));
+}
 
 
 /*
