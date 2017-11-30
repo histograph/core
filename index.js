@@ -31,6 +31,7 @@ var redis = H(function redisGenerator(push, next) {
 
   // Function called on each Redis message (or timeout)
   function redisCallback(err, data) {
+    my_log.debug("In redisCallback");
     // handle error
     if (err) {
       push(err);
@@ -41,10 +42,12 @@ var redis = H(function redisGenerator(push, next) {
     // attempt parse or error
     try {
       var d = JSON.parse(data[1]);
+      my_log.debug("Read from redis: " + JSON.stringify(d));
       push(null, d);
       next();
     }
     catch (e) {
+      my_log.warn("Error parsing redis data " + JSON.stringify(e));
       push(e);
       next();
     }
@@ -214,7 +217,7 @@ var gconf = {
 var graphmalizer = new Graphmalizer(gconf);
 
 const createAndCatch = function(bulk_request,callback){
-  my_log.debug("Checking index in: " + bulk_request);
+  my_log.debug("Checking index in: " + JSON.stringify(bulk_request));
   H(bulk_request)
   // we only create indices for `index` events (not deletes)
   .filter(H.get('index'))
@@ -292,9 +295,11 @@ function flatten(arrays) {
 graphmalizer.register(commands)
     // we only index PiTs into elasticsearch, not relations.
     .map(function(d){
+      my_log.debug("Extracting parameters " + JSON.stringify(d.request.parameters));
       return d.request.parameters;
     })
     .filter(function(d){
+      my_log.debug("Filtering for nodes " + d.structure);
       return d.structure === 'node';
     })
     // first batch them up
@@ -303,6 +308,7 @@ graphmalizer.register(commands)
     // convert batch into batch of ES commands
     .map(function(pits) {
       // turn batch into a list of form [action, doc, action, doc, ...]
+      my_log.debug("Creating actions for ES from " + JSON.stringify(pits));
       return flatten(pits.map(toElastic));
     })
     .map(wrappedCreate)

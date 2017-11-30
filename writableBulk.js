@@ -42,6 +42,7 @@ WritableBulkIndexing.prototype._write = function(chunk, enc, next) {
   
   this._doBulkIndexing(chunk, enc, next);
   
+  my_log.debug("Return true from writable");
   return true;
 
 };
@@ -100,8 +101,10 @@ WritableBulkIndexing.prototype._doBulkIndexing = function (chunk, enc, next){
     }
     if( self.needsToWait ){
       // Delay calling the callback to give some rest to the system
+      my_log.debug("Wait for timeout " + config.elasticsearch.retryTime);
       setTimeout(self._resetNeedsToWait,config.elasticsearch.retryTime,self,next,err,resp);
     }else{
+        my_log.debug("No need to wait for ES");
         next(err,resp);
     }    
   });
