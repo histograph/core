@@ -261,7 +261,7 @@ const createAndCatch = function(bulk_request,callback){
               }
             }
           }else{
-              my_log.info("Created index: " + indexName);
+              my_log.info("Created index: " + indexNames[cursor]);
               if (lastOne == 0 ){
                 callback(null,bulk_request);
               }
