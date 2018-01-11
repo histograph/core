@@ -324,6 +324,9 @@ graphmalizer.register(commands)
     })
     .map(wrappedCreate)
     .sequence()
+    .errors(function(err) {
+      my_log.error("Error during core processing: " + JSON.stringify(err));
+    })
     .pipe(bulk);
 
 my_log.info("\n" + config.logo.join('\n'));
