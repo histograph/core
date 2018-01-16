@@ -82,11 +82,15 @@ WritableBulkIndexing.prototype._doBulkIndexing = function (chunk, enc, next){
       }
       
       if ( r.errors ){
-        var newrequest = [];
+        //var newrequest = [];
         for (var err_cnt=0;err_cnt<r.items.length;err_cnt++){
+
+          if(r.items[err_cnt].index == null || r.items[err_cnt].index.errors == null){
+            continue;
+          }
           my_log.error("ES response:" + JSON.stringify(r.items[err_cnt]));
 
-          if (r.items[err_cnt].index && r.items[err_cnt].index.error != null ){
+          if (r.items[err_cnt].index.error != null ){
             if ('es_rejected_execution_exception' == r.items[err_cnt].index.error.type ){
                 my_log.error("ES Queue full:" + JSON.stringify(r.items[err_cnt].index));  
                 self.needsToWait = true;
