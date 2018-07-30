@@ -110,7 +110,7 @@ function toGraphmalizer(msg) {
     type: d.type,
 
     // nodes are identified with id's or URI's, we don't care
-    id: norm(d.id || d.uri),
+    id: norm(d.uri || d.id),
 
     // formalize source/target id's
     source: norm(d.from),
