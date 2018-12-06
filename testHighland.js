@@ -33,9 +33,37 @@ MyWriteStream.prototype._write = function(chunk, enc, next) {
 	this.counter = this.counter + 1;
 	console.log("counter is: " + this.counter + ", chunk is: " + chunk);
 	
-  if( this.counter%9 == 0 ){
+  if( this.counter%4 == 0 ){
+		
 		console.log("Returning FALSE, counter is: " + this.counter + ", chunk is: " + chunk);
-		setTimeout(this._cb,30000,this,next);
+
+
+		// var state = this._writableState;
+
+		// var last = state.lastBufferedRequest;
+		// state.lastBufferedRequest = new WriteReq(chunk, enc, state.bufferedRequest.callback);
+
+		// if (last) {
+		// 		last.next = state.lastBufferedRequest;
+		// } else {
+		// 	state.bufferedRequest = state.lastBufferedRequest;
+		// }
+		// state.bufferedRequestCount += 1;
+
+		// state.pendingcb += 1;
+
+		// // state.length = 0;
+		// if( state.bufferedRequest != null){
+		// 	// state.length += 1;
+		// 	var ptr = state.bufferedRequest.next;
+		// 	while (ptr != null){
+		// 		// state.length += 1;
+		// 		console.log("Ptr: " + JSON.stringify(ptr));
+		// 		ptr = ptr.next;
+		// 	}
+		// }
+		
+		setTimeout(this._write.bind(this),10000,chunk, enc, next);
 	 	return false;
 	}
 	
@@ -54,6 +82,17 @@ MyWriteStream.prototype._write = function(chunk, enc, next) {
 
 
 MyWriteStream.prototype._cb = function(self,next){
+	
+	// var entry = self._writableState.bufferedRequest;
+	// console.log("Consuming buffer: " + JSON.stringify(entry) );
+	// while (entry) {
+  //     var chunk = entry.chunk;
+  //     var encoding = entry.encoding;
+  //     var cb = entry.callback;
+
+  //     self._write(chunk, encoding, cb);
+  //     entry = entry.next;
+  // }
 	console.log("I will callback");
 	next();
 }
@@ -63,6 +102,8 @@ MyWriteStream.prototype._cb = function(self,next){
 MyWriteStream.prototype._emit = function(self,next){
 	
 	var entry = self._writableState.bufferedRequest;
+	console.log("Consuming buffer: " + JSON.stringify(entry) );
+
 	while (entry) {
       var chunk = entry.chunk;
       var encoding = entry.encoding;
@@ -144,6 +185,12 @@ var consFunc = function(err,x,push,next){
 	console.log("Out consFunc is: " + JSON.stringify(x));
 }
 
+function WriteReq(chunk, encoding, cb) { 
+  this.chunk = chunk; 
+  this.encoding = encoding; 
+  this.callback = cb; 
+  this.next = null; 
+}
 
 /*
 ** 
