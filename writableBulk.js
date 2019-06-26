@@ -57,7 +57,8 @@ WritableBulkIndexing.prototype._doBulkIndexing = function (chunk, enc, next){
   
   my_log.debug("Data to index is: " + JSON.stringify(chunk));
   
-  this.needsToWait = false;
+  var self = this;
+  self.needsToWait = false;
   
   // bulk index index into elasticsearch
   this.esClient.bulk({body: chunk, requestTimeout: config.elasticsearch.requestTimeoutMs},
@@ -66,7 +67,7 @@ WritableBulkIndexing.prototype._doBulkIndexing = function (chunk, enc, next){
     if(err) {
       if (/Request Timeout after/.test(err)){
         my_log.warn("Timeout, message: " + err + " response: " + JSON.stringify(resp || '{"message":"no response provided"}'));
-        this.needsToWait = true;
+        self.needsToWait = true;
       }else{
         my_log.error("Error processing ES commands, message: " + err + " response: " + JSON.stringify(resp || '{"message":"no response provided"}'));
         my_log.error(err.stack || "No Stack Info");
@@ -94,7 +95,7 @@ WritableBulkIndexing.prototype._doBulkIndexing = function (chunk, enc, next){
           if (r.items[err_cnt].index.error != null ){
             if ('es_rejected_execution_exception' == r.items[err_cnt].index.error.type ){
                 my_log.error("ES Queue full:" + JSON.stringify(r.items[err_cnt].index));  
-                this.needsToWait = true;
+                self.needsToWait = true;
                 // we should resubmit failed requests, but it is probably better to try again with the dataset
                 // and take care that the system does not get overloaded
                 // newrequest.push();
@@ -104,12 +105,12 @@ WritableBulkIndexing.prototype._doBulkIndexing = function (chunk, enc, next){
       }
       my_log.info("ES => " + r.items.length + " indexed, took " + r.took + "ms, errors: " + r.errors);  
     }
-    if( this.needsToWait ){
+    if( self.needsToWait ){
       // Delay calling the callback to give some rest to the system
       my_log.debug("Wait for timeout " + config.elasticsearch.retryTime);
       // This will cause entries to be discarded, since they have already been removed from the internal buffer,
       // but not written to ES, so we need to try again.
-      setTimeout(this._doBulkIndexing.bind(this),config.elasticsearch.retryTime,chunk, enc, next);
+      setTimeout(self._doBulkIndexing.bind(self),config.elasticsearch.retryTime,chunk, enc, next);
     }else{
         my_log.debug("No need to wait for ES");
         next(err,resp);
