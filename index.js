@@ -247,7 +247,9 @@ const createAndCatch = function(bulk_request,callback){
           lastOne = lastOne-1;
           my_log.debug("Callback called, still pending: " + lastOne);
           if(err) {
-            if(err && /index_already_exists_exception/.test(err.message)) {
+            if(err && 
+                  (/index_already_exists_exception/.test(err.message) || /resource_already_exists_exception/.test(err.message))
+              ) {
               // my_log.debug("Index already exists: " + err);
               
               if (lastOne == 0 ){
